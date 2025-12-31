@@ -55,6 +55,7 @@ export function LumiereTemplate({ data }: LumiereTemplateProps) {
   // Use photos from edit mode if available
   const photos = editMode?.photos ?? data.photos;
   const profile = data.profile;
+  const social = data.social;
 
   // Drag sensors
   const sensors = useSensors(
@@ -962,33 +963,9 @@ export function LumiereTemplate({ data }: LumiereTemplateProps) {
               alignItems: 'center',
             }}
           >
-            {profile.email && (
+            {social.instagram && (
               <a
-                href={`mailto:${profile.email}`}
-                style={{
-                  fontFamily: "'Outfit', sans-serif",
-                  fontSize: '14px',
-                  color: accentColor,
-                  textDecoration: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  transition: 'opacity 0.2s ease',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
-                onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                  <polyline points="22,6 12,13 2,6" />
-                </svg>
-                {profile.email}
-              </a>
-            )}
-
-            {profile.instagram && (
-              <a
-                href={`https://instagram.com/${profile.instagram.replace('@', '')}`}
+                href={`https://instagram.com/${social.instagram.replace('@', '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
@@ -1009,14 +986,41 @@ export function LumiereTemplate({ data }: LumiereTemplateProps) {
                   <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z" />
                   <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
                 </svg>
-                {profile.instagram}
+                @{social.instagram.replace('@', '')}
+              </a>
+            )}
+
+            {social.website && (
+              <a
+                href={social.website.startsWith('http') ? social.website : `https://${social.website}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontFamily: "'Outfit', sans-serif",
+                  fontSize: '14px',
+                  color: accentColor,
+                  textDecoration: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'opacity 0.2s ease',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
+                onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="2" y1="12" x2="22" y2="12" />
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
+                {social.website.replace(/^https?:\/\//, '')}
               </a>
             )}
           </div>
 
           {/* Contact CTA Button */}
           <a
-            href={`mailto:${profile.email || ''}`}
+            href={social.instagram ? `https://instagram.com/${social.instagram.replace('@', '')}` : '#'}
             style={{
               display: 'inline-block',
               marginTop: '2.5rem',

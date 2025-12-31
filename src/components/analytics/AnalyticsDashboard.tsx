@@ -1177,9 +1177,9 @@ export function AnalyticsDashboard() {
               fontFamily: typography.fontFamily.body,
               fontSize: typography.fontSize.body,
               color: colors.text.secondary,
-              marginBottom: spacing.padding.lg,
               maxWidth: "500px",
-              margin: "0 auto",
+              marginLeft: "auto",
+              marginRight: "auto",
               marginBottom: spacing.padding.lg,
             }}
           >
@@ -1192,7 +1192,8 @@ export function AnalyticsDashboard() {
               gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
               gap: spacing.gap.sm,
               maxWidth: "600px",
-              margin: "0 auto",
+              marginLeft: "auto",
+              marginRight: "auto",
               marginBottom: spacing.padding.lg,
             }}
           >
