@@ -157,19 +157,28 @@ async function upsertSubscription(userId: string, subscription: Stripe.Subscript
   };
   
   const status = statusMap[subscription.status] || 'active';
+
+  // Cast subscription to access period fields (Stripe SDK v20+ types)
+  const sub = subscription as unknown as {
+    customer: string;
+    id: string;
+    current_period_start: number;
+    current_period_end: number;
+    cancel_at_period_end: boolean;
+  };
   
   // Upsert subscription data
   const { error } = await supabaseAdmin
     .from('subscriptions')
     .upsert({
       profile_id: userId,
-      stripe_customer_id: subscription.customer as string,
-      stripe_subscription_id: subscription.id,
+      stripe_customer_id: sub.customer,
+      stripe_subscription_id: sub.id,
       plan_id: planId,
       status: status,
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-      cancel_at_period_end: subscription.cancel_at_period_end,
+      current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
+      current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+      cancel_at_period_end: sub.cancel_at_period_end,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'profile_id' });
   
