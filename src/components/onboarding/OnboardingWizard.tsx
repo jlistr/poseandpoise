@@ -345,6 +345,7 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const photosInputRef = useRef<HTMLInputElement>(null);
@@ -387,6 +388,59 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
   const updateData = (updates: Partial<OnboardingData>) => {
     setData(prev => ({ ...prev, ...updates }));
     setError(null);
+  };
+
+  const handleGetLocation = async () => {
+    if (!navigator.geolocation) {
+      setError("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setLocationLoading(true);
+    setError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          
+          // Use BigDataCloud's free reverse geocoding API (no API key needed)
+          const response = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+          );
+          
+          if (!response.ok) throw new Error("Failed to get location");
+          
+          const locationData = await response.json();
+          const city = locationData.city || locationData.locality || locationData.principalSubdivision || "";
+          const country = locationData.countryName || "";
+          
+          const locationString = [city, country].filter(Boolean).join(", ");
+          updateData({ location: locationString });
+        } catch {
+          setError("Could not determine your location");
+        } finally {
+          setLocationLoading(false);
+        }
+      },
+      (err) => {
+        setLocationLoading(false);
+        switch (err.code) {
+          case err.PERMISSION_DENIED:
+            setError("Location permission denied. Please enable it in your browser settings.");
+            break;
+          case err.POSITION_UNAVAILABLE:
+            setError("Location information unavailable");
+            break;
+          case err.TIMEOUT:
+            setError("Location request timed out");
+            break;
+          default:
+            setError("Could not get your location");
+        }
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+    );
   };
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -669,13 +723,52 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
         
         <div style={styles.fieldGroup}>
           <label style={styles.label}>Location</label>
-          <input
-            type="text"
-            placeholder="City, Country"
-            value={data.location}
-            onChange={(e) => updateData({ location: e.target.value })}
-            style={styles.input}
-          />
+          <div style={{ display: "flex", gap: "8px" }}>
+            <input
+              type="text"
+              placeholder="City, Country"
+              value={data.location}
+              onChange={(e) => updateData({ location: e.target.value })}
+              style={{ ...styles.input, flex: 1 }}
+            />
+            <button
+              type="button"
+              onClick={handleGetLocation}
+              disabled={locationLoading}
+              style={{
+                padding: "14px 16px",
+                border: "1px solid rgba(26, 26, 26, 0.15)",
+                borderRadius: "8px",
+                backgroundColor: "white",
+                cursor: locationLoading ? "wait" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.2s ease",
+              }}
+              title="Get my location"
+            >
+              {locationLoading ? (
+                <svg 
+                  width="20" 
+                  height="20" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="rgba(26,26,26,0.4)" 
+                  strokeWidth="2"
+                  style={{ animation: "spin 1s linear infinite" }}
+                >
+                  <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" />
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(26,26,26,0.6)" strokeWidth="2">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+                  <circle cx="12" cy="12" r="8" strokeDasharray="2 4" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
         
         <div style={styles.row}>
@@ -1244,6 +1337,9 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
 
   return (
     <div style={styles.container}>
+      {/* Keyframes for spinner animation */}
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      
       {/* Header */}
       <header style={styles.header}>
         <span style={styles.logo}>Pose & Poise</span>
