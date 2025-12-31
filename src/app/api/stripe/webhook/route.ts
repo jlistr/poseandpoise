@@ -93,10 +93,11 @@ export async function POST(request: Request) {
       // =======================================================================
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
-        if (invoice.subscription) {
-          const subscription = await stripe.subscriptions.retrieve(
-            invoice.subscription as string
-          );
+        // In newer Stripe API versions, subscription may be in parent field
+        const subscriptionId = (invoice as { subscription?: string | null }).subscription 
+          || (invoice as { parent?: { subscription?: string } }).parent?.subscription;
+        if (subscriptionId) {
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
           await handlePaymentFailed(subscription);
         }
         break;
