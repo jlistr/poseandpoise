@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { TEMPLATES } from '@/config/template';
-import type { TemplateId } from '@/types/template';
+import { TEMPLATE_METADATA } from '@/templates';
+import type { TemplateMetadata } from '@/types/portfolio';
 import { 
   EyeIcon, 
   ChevronDownIcon, 
@@ -17,21 +18,26 @@ import {
 interface OwnerPreviewBannerProps {
   username: string;
   currentTemplate: string;
+  isPublished?: boolean;
 }
 
 export function OwnerPreviewBanner({ 
   username, 
-  currentTemplate 
+  currentTemplate,
+  isPublished = false,
 }: OwnerPreviewBannerProps) {
-  const [selected, setSelected] = useState<TemplateId>(currentTemplate as TemplateId);
+  const router = useRouter();
+  const [selected, setSelected] = useState(currentTemplate);
   const [isOpen, setIsOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
 
-  const currentTemplateData = TEMPLATES.find(t => t.id === selected);
+  const currentTemplateData = TEMPLATE_METADATA.find(t => t.id === selected);
 
-  const handleSelect = async (templateId: TemplateId) => {
-    const template = TEMPLATES.find(t => t.id === templateId);
-    if (!template?.isAvailable) return;
+  const handleSelect = async (templateId: string) => {
+    const template = TEMPLATE_METADATA.find(t => t.id === templateId);
+    // For now, allow all templates (premium check can be added later)
+    if (!template) return;
     
     setSelected(templateId);
     setIsOpen(false);
@@ -43,14 +49,35 @@ export function OwnerPreviewBanner({
     if (user) {
       await supabase
         .from('profiles')
-        .update({ selected_template: templateId })
+        .update({ template: templateId })
+        .eq('id', user.id);
+    }
+
+    setSaving(false);
+    setHasChanges(true);
+    
+    // Reload to show new template
+    router.refresh();
+  };
+
+  const handlePublish = async () => {
+    setSaving(true);
+    
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (user) {
+      await supabase
+        .from('profiles')
+        .update({ is_published: true })
         .eq('id', user.id);
     }
 
     setSaving(false);
     
-    // Reload to show new template
-    window.location.reload();
+    // Open the live portfolio in a new tab
+    window.open(`/${username}`, '_blank');
+    router.refresh();
   };
 
   return (
@@ -112,12 +139,12 @@ export function OwnerPreviewBanner({
                 letterSpacing: '0.5px',
               }}
             >
-              Preview Mode — Only you can see this
+              {isPublished ? 'Live Portfolio' : 'Preview Mode — Only you can see this'}
             </span>
           </div>
         </div>
 
-        {/* Right side - Template dropdown and share */}
+        {/* Right side - Template dropdown and launch */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           {/* Template Dropdown */}
           <div style={{ position: 'relative' }}>
@@ -140,7 +167,7 @@ export function OwnerPreviewBanner({
               <span style={{ color: 'rgba(250, 249, 247, 0.5)', fontSize: '12px' }}>
                 Template:
               </span>
-              <span>{currentTemplateData?.name || 'Editorial'}</span>
+              <span>{currentTemplateData?.name || 'Rose'}</span>
               {saving ? (
                 <div
                   style={{
@@ -170,18 +197,17 @@ export function OwnerPreviewBanner({
                   position: 'absolute',
                   top: 'calc(100% + 8px)',
                   right: 0,
-                  width: '280px',
+                  width: '300px',
                   background: '#FFFFFF',
                   border: '1px solid rgba(26, 26, 26, 0.1)',
                   boxShadow: '0 8px 32px rgba(26, 26, 26, 0.15)',
                   zIndex: 100,
                 }}
               >
-                {TEMPLATES.map((template) => (
+                {TEMPLATE_METADATA.map((template) => (
                   <button
                     key={template.id}
                     onClick={() => handleSelect(template.id)}
-                    disabled={!template.isAvailable}
                     style={{
                       width: '100%',
                       display: 'flex',
@@ -193,8 +219,7 @@ export function OwnerPreviewBanner({
                         : 'transparent',
                       border: 'none',
                       borderBottom: '1px solid rgba(26, 26, 26, 0.06)',
-                      cursor: template.isAvailable ? 'pointer' : 'not-allowed',
-                      opacity: template.isAvailable ? 1 : 0.5,
+                      cursor: 'pointer',
                       textAlign: 'left',
                       transition: 'background 0.15s ease',
                     }}
@@ -203,7 +228,7 @@ export function OwnerPreviewBanner({
                     <div style={{ marginTop: '2px' }}>
                       {selected === template.id ? (
                         <CheckIcon size={16} color="#C4A484" />
-                      ) : !template.isAvailable ? (
+                      ) : template.isPremium ? (
                         <LockIcon size={16} color="rgba(26, 26, 26, 0.3)" />
                       ) : (
                         <div style={{ width: '16px' }} />
@@ -218,6 +243,16 @@ export function OwnerPreviewBanner({
                         gap: '8px',
                         marginBottom: '4px',
                       }}>
+                        {/* Color swatch */}
+                        <div
+                          style={{
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '50%',
+                            background: template.accentColor,
+                            border: template.id === 'noir' ? '1px solid rgba(26,26,26,0.2)' : 'none',
+                          }}
+                        />
                         <span
                           style={{
                             fontFamily: "'Cormorant Garamond', Georgia, serif",
@@ -227,7 +262,7 @@ export function OwnerPreviewBanner({
                         >
                           {template.name}
                         </span>
-                        {!template.isAvailable && (
+                        {template.isPremium && (
                           <span
                             style={{
                               fontFamily: "'Outfit', sans-serif",
@@ -241,7 +276,7 @@ export function OwnerPreviewBanner({
                               borderRadius: '2px',
                             }}
                           >
-                            Coming Soon
+                            Pro
                           </span>
                         )}
                       </div>
@@ -263,30 +298,57 @@ export function OwnerPreviewBanner({
             )}
           </div>
 
-          {/* Share/View Live Link */}
-          <a
-            href={`/${username}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              background: '#C4A484',
-              color: '#1A1A1A',
-              padding: '8px 16px',
-              fontFamily: "'Outfit', sans-serif",
-              fontSize: '12px',
-              fontWeight: 500,
-              letterSpacing: '1px',
-              textTransform: 'uppercase',
-              textDecoration: 'none',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <span>Share</span>
-            <ExternalLinkIcon size={12} />
-          </a>
+          {/* Launch/Share Button */}
+          {isPublished ? (
+            <a
+              href={`/${username}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: '#C4A484',
+                color: '#1A1A1A',
+                padding: '8px 16px',
+                fontFamily: "'Outfit', sans-serif",
+                fontSize: '12px',
+                fontWeight: 500,
+                letterSpacing: '1px',
+                textTransform: 'uppercase',
+                textDecoration: 'none',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <span>Share</span>
+              <ExternalLinkIcon size={12} />
+            </a>
+          ) : (
+            <button
+              onClick={handlePublish}
+              disabled={saving}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: '#C4A484',
+                color: '#1A1A1A',
+                padding: '8px 16px',
+                fontFamily: "'Outfit', sans-serif",
+                fontSize: '12px',
+                fontWeight: 500,
+                letterSpacing: '1px',
+                textTransform: 'uppercase',
+                border: 'none',
+                cursor: saving ? 'wait' : 'pointer',
+                opacity: saving ? 0.7 : 1,
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <span>{saving ? 'Publishing...' : 'Launch Portfolio'}</span>
+              <ExternalLinkIcon size={12} />
+            </button>
+          )}
         </div>
       </div>
 

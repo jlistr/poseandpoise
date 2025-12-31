@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 
 // ============================================================================
-// Types
+// Types - Basic Analytics
 // ============================================================================
 
 export interface PortfolioView {
@@ -45,6 +45,93 @@ export interface DeviceBreakdown {
   percentage: number;
 }
 
+// ============================================================================
+// Types - Advanced Analytics (Deluxe Only)
+// ============================================================================
+
+export interface CityBreakdown {
+  city: string;
+  region: string | null;
+  country: string | null;
+  count: number;
+  percentage: number;
+}
+
+export interface BrowserBreakdown {
+  browser: string;
+  count: number;
+  percentage: number;
+}
+
+export interface OSBreakdown {
+  os: string;
+  count: number;
+  percentage: number;
+}
+
+export interface HourlyDistribution {
+  hour: number; // 0-23
+  label: string; // "12 AM", "1 AM", etc.
+  count: number;
+  percentage: number;
+}
+
+export interface DayOfWeekDistribution {
+  day: number; // 0-6 (Sunday-Saturday)
+  label: string; // "Sunday", "Monday", etc.
+  count: number;
+  percentage: number;
+}
+
+export interface VisitorLoyalty {
+  new_visitors: number;
+  returning_visitors: number;
+  new_percentage: number;
+  returning_percentage: number;
+  avg_visits_per_returning: number;
+}
+
+export interface ReferrerDetail {
+  full_url: string;
+  domain: string;
+  count: number;
+  is_social: boolean;
+  platform?: string; // "instagram", "tiktok", "linkedin", etc.
+}
+
+export interface EngagementTrend {
+  current_period: number;
+  previous_period: number;
+  change_percentage: number;
+  trend: "up" | "down" | "stable";
+}
+
+export interface DeluxeAnalytics {
+  // Geographic deep dive
+  top_cities: CityBreakdown[];
+  
+  // Technical breakdown
+  browser_breakdown: BrowserBreakdown[];
+  os_breakdown: OSBreakdown[];
+  
+  // Time patterns
+  hourly_distribution: HourlyDistribution[];
+  day_of_week_distribution: DayOfWeekDistribution[];
+  peak_hour: number;
+  peak_day: string;
+  
+  // Visitor behavior
+  visitor_loyalty: VisitorLoyalty;
+  
+  // Referrer details
+  referrer_details: ReferrerDetail[];
+  social_traffic_percentage: number;
+  
+  // Trends
+  views_trend: EngagementTrend;
+  visitors_trend: EngagementTrend;
+}
+
 export interface AnalyticsSummary {
   total_views: number;
   unique_visitors: number;
@@ -58,6 +145,9 @@ export interface AnalyticsSummary {
   daily_views: DailyViewData[];
   comp_card_views: number;
   comp_card_downloads: number;
+  // Deluxe-only advanced analytics
+  deluxe_insights: DeluxeAnalytics | null;
+  is_deluxe: boolean;
 }
 
 export interface TrackViewInput {
@@ -145,6 +235,230 @@ export async function trackCompCardView(
 }
 
 // ============================================================================
+// Helper Functions for Advanced Analytics
+// ============================================================================
+
+const SOCIAL_PLATFORMS: Record<string, string> = {
+  "instagram.com": "Instagram",
+  "l.instagram.com": "Instagram",
+  "tiktok.com": "TikTok",
+  "vm.tiktok.com": "TikTok",
+  "twitter.com": "Twitter/X",
+  "x.com": "Twitter/X",
+  "t.co": "Twitter/X",
+  "facebook.com": "Facebook",
+  "m.facebook.com": "Facebook",
+  "l.facebook.com": "Facebook",
+  "linkedin.com": "LinkedIn",
+  "lnkd.in": "LinkedIn",
+  "pinterest.com": "Pinterest",
+  "pin.it": "Pinterest",
+  "youtube.com": "YouTube",
+  "youtu.be": "YouTube",
+};
+
+function formatHour(hour: number): string {
+  if (hour === 0) return "12 AM";
+  if (hour === 12) return "12 PM";
+  if (hour < 12) return `${hour} AM`;
+  return `${hour - 12} PM`;
+}
+
+const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+function calculateDeluxeAnalytics(
+  allViews: PortfolioView[],
+  total_views: number,
+  days: number
+): DeluxeAnalytics {
+  // ========== GEOGRAPHIC DEEP DIVE ==========
+  const cityCounts: Record<string, { city: string; region: string | null; country: string | null; count: number }> = {};
+  allViews.forEach((v) => {
+    const city = v.city || "Unknown";
+    const key = `${city}-${v.region || ""}-${v.country || ""}`;
+    if (!cityCounts[key]) {
+      cityCounts[key] = { city, region: v.region, country: v.country, count: 0 };
+    }
+    cityCounts[key].count++;
+  });
+  const top_cities: CityBreakdown[] = Object.values(cityCounts)
+    .map((c) => ({
+      ...c,
+      percentage: total_views > 0 ? Math.round((c.count / total_views) * 100) : 0,
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  // ========== BROWSER BREAKDOWN ==========
+  const browserCounts: Record<string, number> = {};
+  allViews.forEach((v) => {
+    const browser = v.browser || "Unknown";
+    browserCounts[browser] = (browserCounts[browser] || 0) + 1;
+  });
+  const browser_breakdown: BrowserBreakdown[] = Object.entries(browserCounts)
+    .map(([browser, count]) => ({
+      browser,
+      count,
+      percentage: total_views > 0 ? Math.round((count / total_views) * 100) : 0,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  // ========== OS BREAKDOWN ==========
+  const osCounts: Record<string, number> = {};
+  allViews.forEach((v) => {
+    const os = v.os || "Unknown";
+    osCounts[os] = (osCounts[os] || 0) + 1;
+  });
+  const os_breakdown: OSBreakdown[] = Object.entries(osCounts)
+    .map(([os, count]) => ({
+      os,
+      count,
+      percentage: total_views > 0 ? Math.round((count / total_views) * 100) : 0,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  // ========== HOURLY DISTRIBUTION ==========
+  const hourlyCounts: number[] = new Array(24).fill(0);
+  allViews.forEach((v) => {
+    const hour = new Date(v.viewed_at).getHours();
+    hourlyCounts[hour]++;
+  });
+  const hourly_distribution: HourlyDistribution[] = hourlyCounts.map((count, hour) => ({
+    hour,
+    label: formatHour(hour),
+    count,
+    percentage: total_views > 0 ? Math.round((count / total_views) * 100) : 0,
+  }));
+  const peak_hour = hourlyCounts.indexOf(Math.max(...hourlyCounts));
+
+  // ========== DAY OF WEEK DISTRIBUTION ==========
+  const dayCounts: number[] = new Array(7).fill(0);
+  allViews.forEach((v) => {
+    const day = new Date(v.viewed_at).getDay();
+    dayCounts[day]++;
+  });
+  const day_of_week_distribution: DayOfWeekDistribution[] = dayCounts.map((count, day) => ({
+    day,
+    label: DAY_NAMES[day],
+    count,
+    percentage: total_views > 0 ? Math.round((count / total_views) * 100) : 0,
+  }));
+  const peak_day = DAY_NAMES[dayCounts.indexOf(Math.max(...dayCounts))];
+
+  // ========== VISITOR LOYALTY ==========
+  const visitorViewCounts: Record<string, number> = {};
+  allViews.forEach((v) => {
+    if (v.visitor_id) {
+      visitorViewCounts[v.visitor_id] = (visitorViewCounts[v.visitor_id] || 0) + 1;
+    }
+  });
+  const uniqueVisitorIds = Object.keys(visitorViewCounts);
+  const returningVisitorIds = uniqueVisitorIds.filter((id) => visitorViewCounts[id] > 1);
+  const newVisitorIds = uniqueVisitorIds.filter((id) => visitorViewCounts[id] === 1);
+  
+  const returning_visitors = returningVisitorIds.length;
+  const new_visitors = newVisitorIds.length;
+  const totalKnownVisitors = returning_visitors + new_visitors;
+  
+  const avg_visits_per_returning = returning_visitors > 0
+    ? Math.round(
+        (returningVisitorIds.reduce((sum, id) => sum + visitorViewCounts[id], 0) / returning_visitors) * 10
+      ) / 10
+    : 0;
+
+  const visitor_loyalty: VisitorLoyalty = {
+    new_visitors,
+    returning_visitors,
+    new_percentage: totalKnownVisitors > 0 ? Math.round((new_visitors / totalKnownVisitors) * 100) : 0,
+    returning_percentage: totalKnownVisitors > 0 ? Math.round((returning_visitors / totalKnownVisitors) * 100) : 0,
+    avg_visits_per_returning,
+  };
+
+  // ========== REFERRER DETAILS ==========
+  const referrerDetailCounts: Record<string, { url: string; domain: string; count: number }> = {};
+  allViews.forEach((v) => {
+    const url = v.referrer || "Direct";
+    const domain = v.referrer_domain || "Direct";
+    if (!referrerDetailCounts[url]) {
+      referrerDetailCounts[url] = { url, domain, count: 0 };
+    }
+    referrerDetailCounts[url].count++;
+  });
+  
+  const referrer_details: ReferrerDetail[] = Object.values(referrerDetailCounts)
+    .map((r) => {
+      const platform = SOCIAL_PLATFORMS[r.domain.toLowerCase()];
+      return {
+        full_url: r.url,
+        domain: r.domain,
+        count: r.count,
+        is_social: !!platform,
+        platform,
+      };
+    })
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 15);
+
+  const socialViews = allViews.filter((v) => {
+    const domain = v.referrer_domain?.toLowerCase() || "";
+    return !!SOCIAL_PLATFORMS[domain];
+  }).length;
+  const social_traffic_percentage = total_views > 0 ? Math.round((socialViews / total_views) * 100) : 0;
+
+  // ========== ENGAGEMENT TRENDS ==========
+  const halfPeriod = Math.floor(days / 2);
+  const midPoint = new Date();
+  midPoint.setDate(midPoint.getDate() - halfPeriod);
+
+  const currentPeriodViews = allViews.filter((v) => new Date(v.viewed_at) >= midPoint).length;
+  const previousPeriodViews = allViews.filter((v) => new Date(v.viewed_at) < midPoint).length;
+  
+  const viewsChange = previousPeriodViews > 0
+    ? Math.round(((currentPeriodViews - previousPeriodViews) / previousPeriodViews) * 100)
+    : currentPeriodViews > 0 ? 100 : 0;
+
+  const views_trend: EngagementTrend = {
+    current_period: currentPeriodViews,
+    previous_period: previousPeriodViews,
+    change_percentage: viewsChange,
+    trend: viewsChange > 5 ? "up" : viewsChange < -5 ? "down" : "stable",
+  };
+
+  const currentVisitors = new Set(
+    allViews.filter((v) => new Date(v.viewed_at) >= midPoint).map((v) => v.visitor_id).filter(Boolean)
+  ).size;
+  const previousVisitors = new Set(
+    allViews.filter((v) => new Date(v.viewed_at) < midPoint).map((v) => v.visitor_id).filter(Boolean)
+  ).size;
+  
+  const visitorsChange = previousVisitors > 0
+    ? Math.round(((currentVisitors - previousVisitors) / previousVisitors) * 100)
+    : currentVisitors > 0 ? 100 : 0;
+
+  const visitors_trend: EngagementTrend = {
+    current_period: currentVisitors,
+    previous_period: previousVisitors,
+    change_percentage: visitorsChange,
+    trend: visitorsChange > 5 ? "up" : visitorsChange < -5 ? "down" : "stable",
+  };
+
+  return {
+    top_cities,
+    browser_breakdown,
+    os_breakdown,
+    hourly_distribution,
+    day_of_week_distribution,
+    peak_hour,
+    peak_day,
+    visitor_loyalty,
+    referrer_details,
+    social_traffic_percentage,
+    views_trend,
+    visitors_trend,
+  };
+}
+
+// ============================================================================
 // Get Analytics Summary (for dashboard)
 // ============================================================================
 
@@ -160,6 +474,15 @@ export async function getAnalyticsSummary(
   if (!user) {
     return { success: false, message: "Not authenticated" };
   }
+
+  // Check subscription tier for Deluxe features
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("subscription_tier")
+    .eq("id", user.id)
+    .single();
+
+  const isDeluxe = profile?.subscription_tier === "DELUXE";
 
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
@@ -272,6 +595,9 @@ export async function getAnalyticsSummary(
   const comp_card_views = compCardViews?.filter((v) => v.action === "view").length || 0;
   const comp_card_downloads = compCardViews?.filter((v) => v.action === "download").length || 0;
 
+  // Calculate advanced analytics for Deluxe users
+  const deluxe_insights = isDeluxe ? calculateDeluxeAnalytics(allViews, total_views, days) : null;
+
   return {
     success: true,
     data: {
@@ -287,6 +613,8 @@ export async function getAnalyticsSummary(
       daily_views,
       comp_card_views,
       comp_card_downloads,
+      deluxe_insights,
+      is_deluxe: isDeluxe,
     },
   };
 }

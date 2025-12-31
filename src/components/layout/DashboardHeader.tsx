@@ -4,15 +4,30 @@ import { useState } from 'react';
 import Link from 'next/link';
 import styles from './DashboardHeader.module.css';
 
+type SubscriptionTier = 'FREE' | 'PROFESSIONAL' | 'DELUXE' | null;
+
 interface DashboardHeaderProps {
   userEmail?: string;
   userName?: string;
+  username?: string; // The user's profile username for portfolio URL
+  subscriptionTier?: SubscriptionTier;
 }
 
-export function DashboardHeader({ userEmail, userName }: DashboardHeaderProps) {
+export function DashboardHeader({ userEmail, userName, username, subscriptionTier }: DashboardHeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const displayName = userName || userEmail?.split('@')[0] || 'User';
+  const previewUrl = username ? `/preview/${username}` : null;
+  
+  // Determine tier display info
+  const tierInfo = {
+    FREE: { label: 'Free', className: styles.tierBadgeFree, icon: null },
+    PROFESSIONAL: { label: 'Pro', className: styles.tierBadgePro, icon: <CrownIcon /> },
+    DELUXE: { label: 'Deluxe', className: styles.tierBadgeDeluxe, icon: <SparkleIcon /> },
+  };
+  const currentTier = subscriptionTier && subscriptionTier !== 'FREE' 
+    ? tierInfo[subscriptionTier] 
+    : tierInfo.FREE;
 
   return (
     <header className={styles.header}>
@@ -25,10 +40,17 @@ export function DashboardHeader({ userEmail, userName }: DashboardHeaderProps) {
         {/* Right Side */}
         <div className={styles.headerRight}>
           {/* View Portfolio Link */}
-          <Link href="/preview" className={styles.previewLink}>
-            <EyeIcon />
-            <span>Preview Portfolio</span>
-          </Link>
+          {previewUrl ? (
+            <Link href={previewUrl} className={styles.previewLink}>
+              <EyeIcon />
+              <span>Preview Portfolio</span>
+            </Link>
+          ) : (
+            <span className={styles.previewLinkDisabled}>
+              <EyeIcon />
+              <span>Set username to preview</span>
+            </span>
+          )}
 
           {/* User Menu */}
           <div className={styles.userMenu}>
@@ -38,6 +60,13 @@ export function DashboardHeader({ userEmail, userName }: DashboardHeaderProps) {
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               aria-expanded={isMenuOpen}
             >
+              {/* Subscription Tier Badge (next to avatar for Pro/Deluxe) */}
+              {subscriptionTier && subscriptionTier !== 'FREE' && (
+                <span className={`${styles.headerTierBadge} ${currentTier.className}`}>
+                  {currentTier.icon}
+                  {currentTier.label}
+                </span>
+              )}
               <div className={styles.avatar}>
                 {displayName.charAt(0).toUpperCase()}
               </div>
@@ -57,6 +86,11 @@ export function DashboardHeader({ userEmail, userName }: DashboardHeaderProps) {
                     {userEmail && (
                       <p className={styles.dropdownEmail}>{userEmail}</p>
                     )}
+                    {/* Subscription Tier Badge in Dropdown */}
+                    <span className={`${styles.tierBadge} ${currentTier.className}`}>
+                      {currentTier.icon}
+                      {currentTier.label} Plan
+                    </span>
                   </div>
                   <div className={styles.dropdownDivider} />
                   <Link 
@@ -163,6 +197,23 @@ function LogoutIcon() {
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
       <polyline points="16 17 21 12 16 7" />
       <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  );
+}
+
+function CrownIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M3 17l3-12 6 6 6-6 3 12H3z" />
+      <rect x="3" y="18" width="18" height="2" rx="1" />
+    </svg>
+  );
+}
+
+function SparkleIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2l2.4 7.2h7.6l-6 4.8 2.4 7.2-6.4-4.8-6.4 4.8 2.4-7.2-6-4.8h7.6z" />
     </svg>
   );
 }

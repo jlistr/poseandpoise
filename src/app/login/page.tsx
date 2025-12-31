@@ -128,6 +128,22 @@ export default function LoginPage() {
             <button type="submit" className="auth-button" disabled={loading}>
               {loading ? "Signing in..." : "Sign In"}
             </button>
+            
+            <Link
+              href="/auth/forgot-password"
+              style={{
+                fontFamily: "'Outfit', sans-serif",
+                fontSize: "13px",
+                color: "rgba(26, 26, 26, 0.6)",
+                textAlign: "center",
+                display: "block",
+                textDecoration: "none",
+                marginTop: "8px",
+              }}
+              className="auth-link"
+            >
+              Forgot your password?
+            </Link>
           </div>
         </form>
 

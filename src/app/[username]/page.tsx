@@ -1,86 +1,188 @@
-import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getPublicProfile } from "@/app/actions/public-profile";
-import type { Metadata } from "next";
+// =============================================================================
+// FILE: app/[username]/page.tsx
+// PURPOSE: Public portfolio page - NO editing capabilities, public view only
+// =============================================================================
 
-// Template imports
-import { EditorialTemplate } from "@/components/templates/EditorialTemplate";
-import { MinimalTemplate } from "@/components/templates/MinimalTemplate";
-import { ClassicTemplate } from "@/components/templates/ClassicTemplate";
-import { OwnerPreviewBanner } from "@/components/dashboard/OwnerPreviewBanner";
+import { notFound } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import { getTemplate } from '@/templates';
+import type { PortfolioData } from '@/types/portfolio';
 
-type PageParams = { username: string };
-type PageProps = { params: Promise<PageParams> };
+interface PageProps {
+  params: Promise<{ username: string }>;
+}
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { username } = await params;
-  const result = await getPublicProfile(username);
+async function getPublicPortfolioData(username: string): Promise<PortfolioData | null> {
+  const supabase = await createClient();
 
-  if (!result.success || !result.data) {
-    return {
-      title: "Profile Not Found | Pose & Poise",
-    };
+  // Get profile with public data only
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select(`
+      id,
+      username,
+      display_name,
+      bio,
+      avatar_url,
+      agency,
+      location,
+      template,
+      is_public,
+      is_published,
+      height_cm,
+      bust_cm,
+      waist_cm,
+      hips_cm,
+      shoe_size,
+      hair_color,
+      eye_color,
+      instagram,
+      tiktok,
+      website,
+      accent_color
+    `)
+    .eq('username', username)
+    .single();
+  
+  if (profileError || !profile) {
+    return null;
   }
-
-  const profile = result.data;
-  const title = profile.display_name || username;
-
+  
+  // Get ONLY visible photos for public view
+  const { data: photos } = await supabase
+    .from('photos')
+    .select('id, url, thumbnail_url, caption, sort_order, width, height')
+    .eq('profile_id', profile.id)
+    .eq('is_visible', true)
+    .order('sort_order', { ascending: true });
+  
+  // Get services
+  const { data: services } = await supabase
+    .from('services')
+    .select('id, title, description, price, sort_order')
+    .eq('profile_id', profile.id)
+    .order('sort_order', { ascending: true });
+  
+  // Get primary comp card for display
+  const { data: compCard } = await supabase
+    .from('comp_cards')
+    .select('id, photo_ids, template')
+    .eq('profile_id', profile.id)
+    .eq('is_primary', true)
+    .single();
+  
+  // Transform to PortfolioData interface
   return {
-    title: `${title} | Pose & Poise`,
-    description: profile.bio || `View ${title}'s modeling portfolio on Pose & Poise.`,
-    openGraph: {
-      title: `${title} | Pose & Poise`,
-      description: profile.bio || `View ${title}'s modeling portfolio.`,
-      type: "profile",
-      images: profile.photos[0]?.url ? [profile.photos[0].url] : [],
+    profile: {
+      displayName: profile.display_name || '',
+      username: profile.username,
+      bio: profile.bio || '',
+      avatarUrl: profile.avatar_url || '',
+      agency: profile.agency,
+      location: profile.location,
+    },
+    stats: {
+      heightCm: profile.height_cm || 0,
+      bustCm: profile.bust_cm || 0,
+      waistCm: profile.waist_cm || 0,
+      hipsCm: profile.hips_cm || 0,
+      shoeSize: profile.shoe_size || '',
+      hairColor: profile.hair_color || '',
+      eyeColor: profile.eye_color || '',
+    },
+    photos: (photos || []).map(photo => ({
+      id: photo.id,
+      url: photo.url,
+      thumbnailUrl: photo.thumbnail_url || photo.url,
+      caption: photo.caption,
+      sortOrder: photo.sort_order,
+      width: photo.width,
+      height: photo.height,
+      isVisible: true, // All photos in public view are visible
+    })),
+    services: (services || []).map(service => ({
+      title: service.title,
+      description: service.description,
+      price: service.price,
+    })),
+    social: {
+      instagram: profile.instagram,
+      tiktok: profile.tiktok,
+      website: profile.website,
+    },
+    compCard: compCard ? {
+      photoIds: compCard.photo_ids,
+    } : undefined,
+    settings: {
+      template: profile.template || 'rose',
+      accentColor: profile.accent_color,
+      isPublished: profile.is_published || false,
+      isPublic: profile.is_public || false,
     },
   };
 }
 
-export default async function PortfolioPage({ params }: PageProps) {
+export default async function PublicPortfolioPage({ params }: PageProps) {
   const { username } = await params;
-  const result = await getPublicProfile(username);
-
-  if (!result.success || !result.data) {
+  
+  // Fetch public portfolio data
+  const data = await getPublicPortfolioData(username);
+  
+  if (!data) {
     notFound();
   }
-
-  const profile = result.data;
   
-  // Check if current user is the profile owner
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const isOwner = user?.id === profile.id;
-  
-  // Get selected template (default to 'editorial' if not set)
-  const templateId = profile.selected_template || 'editorial';
-
-  // Render the appropriate template
-  const renderTemplate = () => {
-    switch (templateId) {
-      case 'minimal':
-        return <MinimalTemplate profile={profile} username={username} />;
-      case 'classic':
-        return <ClassicTemplate profile={profile} username={username} />;
-      case 'editorial':
-      default:
-        return <EditorialTemplate profile={profile} username={username} />;
-    }
-  };
-
-  // If owner is viewing, wrap with template selector banner
-  if (isOwner) {
+  // Check if portfolio is published for public viewing
+  if (!data.settings.isPublished) {
     return (
-      <div>
-        <OwnerPreviewBanner 
-          username={username} 
-          currentTemplate={templateId}
-        />
-        {renderTemplate()}
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#FAF9F7',
+        fontFamily: "'Cormorant Garamond', Georgia, serif",
+        textAlign: 'center',
+        padding: '24px',
+      }}>
+        <div>
+          <h1 style={{ fontSize: '48px', fontWeight: 300, marginBottom: '16px' }}>
+            Coming Soon
+          </h1>
+          <p style={{
+            fontFamily: "'Outfit', sans-serif",
+            fontSize: '16px',
+            color: 'rgba(26, 26, 26, 0.6)',
+          }}>
+            This portfolio is being crafted and will be available soon.
+          </p>
+        </div>
       </div>
     );
   }
+  
+  // Render the selected template - PUBLIC VIEW ONLY, NO EDITING
+  const Template = getTemplate(data.settings.template);
+  
+  return <Template data={data} />;
+}
 
-  // Public view - just the template
-  return renderTemplate();
+// Metadata for SEO
+export async function generateMetadata({ params }: PageProps) {
+  const { username } = await params;
+  const data = await getPublicPortfolioData(username);
+  
+  if (!data) {
+    return { title: 'Not Found' };
+  }
+  
+  return {
+    title: `${data.profile.displayName} | Model Portfolio`,
+    description: data.profile.bio || `Professional portfolio of ${data.profile.displayName}`,
+    openGraph: {
+      title: `${data.profile.displayName} | Model Portfolio`,
+      description: data.profile.bio,
+      images: data.photos[0]?.url ? [{ url: data.photos[0].url }] : [],
+    },
+  };
 }

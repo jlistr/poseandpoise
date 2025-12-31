@@ -60,6 +60,21 @@
     color: var(--color-charcoal, #1A1A1A);
     border-color: var(--color-camel, #C4A484);
   }
+
+  .previewLinkDisabled {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 1px;
+    color: var(--color-text-muted, rgba(26, 26, 26, 0.4));
+    border: 1px solid var(--color-border-subtle, rgba(26, 26, 26, 0.1));
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
   
   /* User Menu */
   .userMenu {
@@ -125,6 +140,55 @@
     font-size: 12px;
     color: var(--color-text-muted, rgba(26, 26, 26, 0.4));
     margin: 4px 0 0 0;
+  }
+
+  /* Subscription Tier Badge */
+  .tierBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-radius: 4px;
+    margin-top: 8px;
+  }
+
+  .tierBadgeFree {
+    background: rgba(26, 26, 26, 0.08);
+    color: var(--color-text-secondary, rgba(26, 26, 26, 0.6));
+  }
+
+  .tierBadgePro {
+    background: linear-gradient(135deg, #D4AF37 0%, #F4E5B2 50%, #D4AF37 100%);
+    color: #1A1A1A;
+  }
+
+  .tierBadgeDeluxe {
+    background: linear-gradient(135deg, #E6B8C2 0%, #F4D4DB 50%, #E6B8C2 100%);
+    color: #1A1A1A;
+  }
+
+  .tierIcon {
+    width: 12px;
+    height: 12px;
+  }
+
+  /* Header Tier Badge (next to avatar) */
+  .headerTierBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border-radius: 3px;
   }
   
   .dropdownDivider {

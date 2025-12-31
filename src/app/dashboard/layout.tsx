@@ -19,10 +19,10 @@ export default async function DashboardLayout({
     redirect('/login');
   }
 
-  // Get profile for display name
+  // Get profile for display name and subscription tier
   const { data: profile } = await supabase
     .from('profiles')
-    .select('display_name, username')
+    .select('display_name, username, subscription_tier')
     .eq('id', user.id)
     .single();
 
@@ -31,6 +31,8 @@ export default async function DashboardLayout({
       <DashboardHeader 
         userEmail={user.email} 
         userName={profile?.display_name || profile?.username}
+        username={profile?.username}
+        subscriptionTier={profile?.subscription_tier}
       />
       <DashboardNav />
       <main className={styles.main}>

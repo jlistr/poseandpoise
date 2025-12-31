@@ -16,6 +16,7 @@
 // 3. URL becomes /store/[slug] instead of /store/[accountId]
 
 import { listProductsOnConnectedAccount } from '@/lib/stripe/connect';
+import { BuyButton } from './BuyButton';
 
 // =============================================================================
 // PAGE COMPONENT
@@ -153,58 +154,6 @@ function ProductCard({ product, accountId }: ProductCardProps) {
         </form>
       </div>
     </div>
-  );
-}
-
-// =============================================================================
-// BUY BUTTON (Client-side)
-// =============================================================================
-
-'use client';
-
-function BuyButton({ 
-  accountId, 
-  priceId, 
-  priceInCents 
-}: { 
-  accountId: string; 
-  priceId: string; 
-  priceInCents: number;
-}) {
-  const handleClick = async () => {
-    try {
-      const response = await fetch('/api/connect/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          accountId,
-          priceId,
-          priceInCents,
-          quantity: 1,
-        }),
-      });
-      
-      const data = await response.json();
-      
-      if (data.success && data.url) {
-        // Redirect to Stripe Checkout
-        window.location.href = data.url;
-      } else {
-        alert(data.error || 'Failed to create checkout session');
-      }
-    } catch {
-      alert('An error occurred. Please try again.');
-    }
-  };
-  
-  return (
-    <button 
-      type="button"
-      onClick={handleClick}
-      style={styles.buyButton}
-    >
-      Buy Now
-    </button>
   );
 }
 

@@ -1,0 +1,94 @@
+// =============================================================================
+// FILE: types/portfolio.ts
+// PURPOSE: Shared TypeScript interfaces for portfolio data
+// =============================================================================
+
+export interface ProfileData {
+  displayName: string;
+  username: string;
+  bio: string;
+  avatarUrl: string;
+  agency?: string;
+  location?: string;
+}
+
+export interface ModelStats {
+  heightCm: number;
+  bustCm: number;
+  waistCm: number;
+  hipsCm: number;
+  shoeSize: string;
+  hairColor: string;
+  eyeColor: string;
+}
+
+export interface PortfolioPhoto {
+  id: string;
+  url: string;
+  thumbnailUrl: string;
+  caption?: string | null;
+  sortOrder: number;
+  width?: number;
+  height?: number;
+  isVisible: boolean;
+}
+
+export interface ServiceItem {
+  id?: string;
+  title: string;
+  description: string;
+  price?: string;
+}
+
+export interface SocialLinks {
+  instagram?: string;
+  tiktok?: string;
+  website?: string;
+}
+
+export interface CompCardData {
+  photoIds: string[];
+}
+
+export interface SavedCompCard {
+  id: string;
+  name?: string;
+  photoIds: string[];
+  template?: string;
+  isPrimary: boolean;
+}
+
+export type SubscriptionTier = 'FREE' | 'PROFESSIONAL' | 'DELUXE';
+
+export interface PortfolioSettings {
+  template: string;
+  accentColor?: string;
+  isPublished: boolean;
+  isPublic: boolean;
+  subscriptionTier?: SubscriptionTier;
+}
+
+// Main interface that ALL templates must consume
+export interface PortfolioData {
+  profile: ProfileData;
+  stats: ModelStats;
+  photos: PortfolioPhoto[];
+  services?: ServiceItem[];
+  social: SocialLinks;
+  compCard?: CompCardData;
+  compCards?: SavedCompCard[]; // All saved comp cards for selection
+  settings: PortfolioSettings;
+}
+
+// Template component type
+export type TemplateComponent = React.FC<{ data: PortfolioData }>;
+
+// Template metadata (for the selector UI)
+export interface TemplateMetadata {
+  id: string;
+  name: string;
+  description: string;
+  isPremium: boolean;
+  thumbnailUrl: string;
+  accentColor: string;
+}

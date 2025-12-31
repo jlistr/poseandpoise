@@ -8,6 +8,7 @@ const navItems = [
   { href: '/dashboard', label: 'Overview', icon: OverviewIcon },
   { href: '/dashboard/profile', label: 'Profile', icon: ProfileIcon },
   { href: '/dashboard/photos', label: 'Photos', icon: PhotosIcon },
+  { href: '/dashboard/templates', label: 'Templates', icon: TemplatesIcon },
   { href: '/dashboard/comp-card', label: 'Comp Card', icon: CompCardIcon },
   { href: '/dashboard/calendar', label: 'Calendar', icon: CalendarIcon },
   { href: '/dashboard/messages', label: 'Messages', icon: MessagesIcon },
@@ -126,6 +127,17 @@ function AnalyticsIcon() {
       <path d="M18 20V10" />
       <path d="M12 20V4" />
       <path d="M6 20v-6" />
+    </svg>
+  );
+}
+
+function TemplatesIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
     </svg>
   );
 }

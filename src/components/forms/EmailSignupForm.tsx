@@ -2,7 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import { joinWaitlist } from "@/app/actions/waitlist";
-import { colors, typography, spacing, effects, borders } from "@/styles/tokens";
+import { colors, typography, spacing, borders } from "@/styles/tokens";
 
 interface EmailSignupFormProps {
   buttonText?: string;
@@ -11,7 +11,7 @@ interface EmailSignupFormProps {
 }
 
 export function EmailSignupForm({
-  buttonText = "Start Free",
+  buttonText = "Get Started Free",
   placeholder = "Enter your email",
   className = "",
 }: EmailSignupFormProps) {
@@ -42,11 +42,49 @@ export function EmailSignupForm({
         style={{
           fontFamily: typography.fontFamily.body,
           fontSize: typography.fontSize.body,
-          color: colors.camel,
-          padding: `${spacing.padding.md} 0`,
+          padding: `${spacing.padding.lg} ${spacing.padding.xl}`,
+          background: "rgba(196, 164, 132, 0.08)",
+          borderRadius: "8px",
+          border: "1px solid rgba(196, 164, 132, 0.2)",
         }}
       >
-        ✓ You&apos;re on the list. We&apos;ll be in touch soon.
+        <div style={{ 
+          display: "flex", 
+          alignItems: "center", 
+          gap: "12px",
+          marginBottom: "8px",
+        }}>
+          <span style={{ 
+            width: "32px", 
+            height: "32px", 
+            borderRadius: "50%", 
+            background: colors.camel,
+            color: colors.cream,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "16px",
+          }}>
+            ✓
+          </span>
+          <span style={{ 
+            fontWeight: 500, 
+            color: colors.charcoal,
+            fontSize: typography.fontSize.body,
+          }}>
+            Check your inbox!
+          </span>
+        </div>
+        <p style={{
+          fontSize: typography.fontSize.bodySmall,
+          color: "rgba(26, 26, 26, 0.7)",
+          margin: 0,
+          paddingLeft: "44px",
+          lineHeight: 1.6,
+        }}>
+          We&apos;ve sent a verification link to <strong>{email}</strong>.
+          Click the link to create your free account and start building your portfolio.
+        </p>
       </div>
     );
   }
@@ -96,9 +134,10 @@ export function EmailSignupForm({
           textTransform: "uppercase",
           cursor: loading ? "not-allowed" : "pointer",
           opacity: loading ? 0.6 : 1,
+          transition: "all 0.2s ease",
         }}
       >
-        {loading ? "Joining..." : buttonText}
+        {loading ? "Sending..." : buttonText}
       </button>
       {error && (
         <p
