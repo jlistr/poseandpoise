@@ -1,0 +1,188 @@
+/* PhotoGrid.module.css */
+
+.container {
+  /* Content container - fits within dashboard layout */
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 20px 24px;
+  background: var(--color-white, #FFFFFF);
+  border: 1px solid var(--color-border-subtle, rgba(26, 26, 26, 0.05));
+  margin-bottom: 24px;
+}
+
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+/* Stats */
+.stats {
+  display: flex;
+  gap: 12px;
+}
+
+.statVisible,
+.statHidden {
+  padding: 6px 12px;
+  font-family: var(--font-body, 'Outfit', sans-serif);
+  font-size: 12px;
+  color: var(--color-text-secondary, rgba(26, 26, 26, 0.7));
+}
+
+.statVisible {
+  background: var(--color-accent-wash, rgba(196, 164, 132, 0.1));
+}
+
+.statHidden {
+  background: rgba(26, 26, 26, 0.05);
+}
+
+.statVisible strong,
+.statHidden strong {
+  color: var(--color-charcoal, #1A1A1A);
+}
+
+/* Instructions */
+.instructions {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.instructionItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body, 'Outfit', sans-serif);
+  font-size: 12px;
+  color: var(--color-text-muted, rgba(26, 26, 26, 0.4));
+}
+
+.instructionItem svg {
+  color: var(--color-text-tertiary, rgba(26, 26, 26, 0.6));
+}
+
+/* Save Button */
+.saveButton {
+  padding: 12px 24px;
+  background: var(--color-border-light, rgba(26, 26, 26, 0.2));
+  border: none;
+  color: var(--color-text-muted, rgba(26, 26, 26, 0.4));
+  font-family: var(--font-body, 'Outfit', sans-serif);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: not-allowed;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.saveButtonActive {
+  background: var(--color-charcoal, #1A1A1A);
+  color: var(--color-cream, #FAF9F7);
+  cursor: pointer;
+}
+
+.saveButtonActive:hover {
+  background: var(--color-camel, #C4A484);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px var(--color-accent-transparent, rgba(196, 164, 132, 0.3));
+}
+
+/* Grid */
+.gridWrapper {
+  /* Container for the grid */
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 24px;
+}
+
+/* Empty State */
+.emptyState {
+  text-align: center;
+  padding: 80px 48px;
+  background: var(--color-white, #FFFFFF);
+  border: 1px solid var(--color-border-subtle, rgba(26, 26, 26, 0.05));
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.emptyState svg {
+  color: var(--color-camel, #C4A484);
+  margin-bottom: 24px;
+}
+
+.emptyState h3 {
+  font-family: var(--font-heading, 'Cormorant Garamond', Georgia, serif);
+  font-size: 24px;
+  font-weight: 300;
+  margin-bottom: 12px;
+  color: var(--color-charcoal, #1A1A1A);
+}
+
+.emptyState p {
+  font-family: var(--font-body, 'Outfit', sans-serif);
+  font-size: 14px;
+  color: var(--color-text-secondary, rgba(26, 26, 26, 0.7));
+  margin-bottom: 24px;
+}
+
+.uploadButton {
+  padding: 14px 32px;
+  background: var(--color-charcoal, #1A1A1A);
+  border: none;
+  color: var(--color-cream, #FAF9F7);
+  font-family: var(--font-body, 'Outfit', sans-serif);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.uploadButton:hover {
+  background: var(--color-camel, #C4A484);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px var(--color-accent-transparent, rgba(196, 164, 132, 0.3));
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .toolbar {
+    padding: 16px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolbarLeft {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .instructions {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .saveButton {
+    width: 100%;
+  }
+
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+}

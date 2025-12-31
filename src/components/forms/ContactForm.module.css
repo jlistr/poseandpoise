@@ -1,0 +1,161 @@
+/* ContactForm.module.css */
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  
+  .formGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+  
+  .formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .label {
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--color-text-secondary, rgba(26, 26, 26, 0.7));
+  }
+  
+  .input,
+  .select,
+  .textarea {
+    padding: 16px 20px;
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 14px;
+    color: var(--color-charcoal, #1A1A1A);
+    background: transparent;
+    border: 1px solid var(--color-border-light, rgba(26, 26, 26, 0.2));
+    outline: none;
+    transition: all 0.3s ease;
+  }
+  
+  .input::placeholder,
+  .textarea::placeholder {
+    color: var(--color-text-muted, rgba(26, 26, 26, 0.4));
+  }
+  
+  .input:focus,
+  .select:focus,
+  .textarea:focus {
+    border-color: var(--color-camel, #C4A484);
+  }
+  
+  .select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231A1A1A' stroke-width='2' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    padding-right: 48px;
+  }
+  
+  .textarea {
+    resize: vertical;
+    min-height: 120px;
+  }
+  
+  .submitButton {
+    padding: 18px 48px;
+    background: var(--color-charcoal, #1A1A1A);
+    border: none;
+    color: var(--color-cream, #FAF9F7);
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    align-self: flex-start;
+  }
+  
+  .submitButton:hover:not(:disabled) {
+    background: var(--color-camel, #C4A484);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 40px var(--color-accent-transparent, rgba(196, 164, 132, 0.3));
+  }
+  
+  .submitButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  /* Success State */
+  .successMessage {
+    text-align: center;
+    padding: 48px 24px;
+  }
+  
+  .successMessage svg {
+    color: var(--color-camel, #C4A484);
+    margin-bottom: 24px;
+  }
+  
+  .successMessage h3 {
+    font-family: var(--font-heading, 'Cormorant Garamond', Georgia, serif);
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--color-charcoal, #1A1A1A);
+    margin-bottom: 12px;
+  }
+  
+  .successMessage p {
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 14px;
+    color: var(--color-text-secondary, rgba(26, 26, 26, 0.7));
+    margin-bottom: 32px;
+  }
+  
+  .resetButton {
+    padding: 14px 28px;
+    background: transparent;
+    border: 1px solid var(--color-border-light, rgba(26, 26, 26, 0.2));
+    color: var(--color-charcoal, #1A1A1A);
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .resetButton:hover {
+    border-color: var(--color-camel, #C4A484);
+    color: var(--color-camel, #C4A484);
+  }
+  
+  /* Error Message */
+  .errorMessage {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: rgba(220, 38, 38, 0.05);
+    border: 1px solid rgba(220, 38, 38, 0.2);
+    color: #dc2626;
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 13px;
+  }
+  
+  /* Responsive */
+  @media (max-width: 640px) {
+    .formGrid {
+      grid-template-columns: 1fr;
+    }
+  
+    .submitButton {
+      width: 100%;
+    }
+  }

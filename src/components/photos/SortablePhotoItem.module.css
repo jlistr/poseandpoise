@@ -1,0 +1,284 @@
+/* SortablePhotoItem.module.css */
+
+.card {
+  position: relative;
+  background: var(--color-white, #FFFFFF);
+  border: 1px solid var(--color-border-subtle, rgba(26, 26, 26, 0.05));
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.cardHidden {
+  border-color: var(--color-border-light, rgba(26, 26, 26, 0.2));
+}
+
+/* Drag Handle */
+.dragHandle {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  background: rgba(26, 26, 26, 0.7);
+  backdrop-filter: blur(10px);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  transition: all 0.3s ease;
+  color: var(--color-cream, #FAF9F7);
+}
+
+.dragHandle:hover {
+  background: var(--color-camel, #C4A484);
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+/* Sort Badge */
+.sortBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  padding: 4px 10px;
+  background: rgba(26, 26, 26, 0.7);
+  backdrop-filter: blur(10px);
+  font-family: var(--font-body, 'Outfit', sans-serif);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  color: var(--color-cream, #FAF9F7);
+}
+
+/* Image */
+.imageWrapper {
+  position: relative;
+  aspect-ratio: 3/4;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.imageHidden {
+  filter: grayscale(100%);
+  opacity: 0.5;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hiddenOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(26, 26, 26, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-cream, #FAF9F7);
+}
+
+.hiddenOverlay svg {
+  width: 32px;
+  height: 32px;
+}
+
+/* Controls */
+.controls {
+  padding: 16px;
+  border-top: 1px solid var(--color-border-subtle, rgba(26, 26, 26, 0.05));
+}
+
+/* Caption Wrapper */
+.captionWrapper {
+  margin-bottom: 12px;
+  min-height: 32px;
+}
+
+.captionDisplayRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.caption {
+  flex: 1;
+  font-family: var(--font-body, 'Outfit', sans-serif);
+  font-size: 13px;
+  color: var(--color-text-secondary, rgba(26, 26, 26, 0.7));
+  line-height: 1.5;
+  margin: 0;
+}
+
+.captionPlaceholder {
+  color: var(--color-text-muted, rgba(26, 26, 26, 0.4));
+  font-style: italic;
+}
+
+/* Edit Button */
+.editButton {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--color-border-light, rgba(26, 26, 26, 0.2));
+  color: var(--color-text-tertiary, rgba(26, 26, 26, 0.6));
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.editButton:hover {
+  border-color: var(--color-camel, #C4A484);
+  color: var(--color-camel, #C4A484);
+  background: var(--color-accent-wash, rgba(196, 164, 132, 0.1));
+}
+
+/* Caption Edit Row */
+.captionEditRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.captionInput {
+  flex: 1;
+  padding: 8px 12px;
+  font-family: var(--font-body, 'Outfit', sans-serif);
+  font-size: 13px;
+  color: var(--color-charcoal, #1A1A1A);
+  background: transparent;
+  border: 1px solid var(--color-camel, #C4A484);
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.captionInput::placeholder {
+  color: var(--color-text-muted, rgba(26, 26, 26, 0.4));
+}
+
+.captionInput:focus {
+  border-color: var(--color-charcoal, #1A1A1A);
+}
+
+.captionSaveButton,
+.captionCancelButton {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.captionSaveButton {
+  background: var(--color-charcoal, #1A1A1A);
+  color: var(--color-cream, #FAF9F7);
+}
+
+.captionSaveButton:hover {
+  background: var(--color-camel, #C4A484);
+}
+
+.captionCancelButton {
+  background: transparent;
+  border: 1px solid var(--color-border-light, rgba(26, 26, 26, 0.2));
+  color: var(--color-text-tertiary, rgba(26, 26, 26, 0.6));
+}
+
+.captionCancelButton:hover {
+  border-color: #dc2626;
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.05);
+}
+
+/* Actions Row */
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Visibility Button */
+.visibilityButton {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: transparent;
+  border: 1px solid var(--color-border-light, rgba(26, 26, 26, 0.2));
+  color: var(--color-charcoal, #1A1A1A);
+  font-family: var(--font-body, 'Outfit', sans-serif);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.visibilityButton:hover {
+  border-color: var(--color-camel, #C4A484);
+  color: var(--color-camel, #C4A484);
+}
+
+.visibilityButtonActive {
+  background: var(--color-charcoal, #1A1A1A);
+  border-color: var(--color-charcoal, #1A1A1A);
+  color: var(--color-cream, #FAF9F7);
+}
+
+.visibilityButtonActive:hover {
+  background: var(--color-camel, #C4A484);
+  border-color: var(--color-camel, #C4A484);
+  color: var(--color-charcoal, #1A1A1A);
+}
+
+/* Delete Button */
+.deleteButton {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--color-border-light, rgba(26, 26, 26, 0.2));
+  color: var(--color-text-tertiary, rgba(26, 26, 26, 0.6));
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.deleteButton:hover {
+  border-color: #dc2626;
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.05);
+}
+
+/* Drag Overlay */
+.dragOverlay {
+  background: var(--color-white, #FFFFFF);
+  border: 2px solid var(--color-camel, #C4A484);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  cursor: grabbing;
+  transform: scale(1.02);
+}
+
+.dragOverlayImage {
+  aspect-ratio: 3/4;
+  overflow: hidden;
+}

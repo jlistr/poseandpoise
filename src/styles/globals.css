@@ -1,0 +1,215 @@
+/* ==========================================================================
+   Pose & Poise — Global Styles
+   ========================================================================== */
+
+   :root {
+    --font-cormorant: 'Cormorant Garamond', Georgia, serif;
+    --font-outfit: 'Outfit', sans-serif;
+  }
+/* ==========================================================================
+   Reset & Base
+   ========================================================================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-display), Georgia, serif;
+  background-color: #FAF9F7;
+  color: #1A1A1A;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ==========================================================================
+   Animations
+   ========================================================================== */
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-up {
+  animation: fadeUp 1s ease-out forwards;
+}
+
+.fade-in {
+  animation: fadeIn 1.2s ease-out forwards;
+}
+
+/* Staggered animation delays */
+.delay-1 { animation-delay: 0.2s; opacity: 0; }
+.delay-2 { animation-delay: 0.4s; opacity: 0; }
+.delay-3 { animation-delay: 0.6s; opacity: 0; }
+.delay-4 { animation-delay: 0.8s; opacity: 0; }
+.delay-5 { animation-delay: 1s; opacity: 0; }
+
+/* ==========================================================================
+   Interactive Elements
+   ========================================================================== */
+
+/* Navigation Links */
+.nav-link {
+  transition: color 0.3s ease;
+}
+
+.nav-link:hover {
+  color: #C4A484;
+}
+
+/* Buttons */
+.pp-button {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pp-button:hover {
+  background: #C4A484 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px rgba(196, 164, 132, 0.3);
+}
+
+.pp-button-accent:hover {
+  background: #1A1A1A !important;
+  color: #FAF9F7 !important;
+}
+
+/* Feature Cards */
+.pp-feature-card {
+  transition: all 0.4s ease;
+}
+
+.pp-feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.06);
+  border-color: rgba(196, 164, 132, 0.3) !important;
+}
+
+/* Inputs */
+.pp-input {
+  transition: border-color 0.3s ease;
+}
+
+.pp-input:focus {
+  border-color: #C4A484 !important;
+}
+
+.pp-input::placeholder {
+  color: rgba(26, 26, 26, 0.4);
+  letter-spacing: 1px;
+}
+
+/* Auth-specific inputs */
+.auth-input {
+  background: transparent;
+  border: 1px solid rgba(26, 26, 26, 0.2);
+  padding: 18px 24px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 14px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.auth-input:focus {
+  border-color: #C4A484;
+}
+
+.auth-input::placeholder {
+  color: rgba(26, 26, 26, 0.4);
+  letter-spacing: 0.5px;
+}
+
+/* Auth buttons */
+.auth-button {
+  background: #1A1A1A;
+  color: #FAF9F7;
+  border: none;
+  padding: 18px 48px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+}
+
+.auth-button:hover:not(:disabled) {
+  background: #C4A484;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px rgba(196, 164, 132, 0.3);
+}
+
+.auth-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Auth links */
+.auth-link {
+  color: #C4A484;
+  text-decoration: none;
+  transition: opacity 0.3s ease;
+}
+
+.auth-link:hover {
+  opacity: 0.7;
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  .hero-section {
+    padding: 120px 24px 60px !important;
+  }
+  
+  .section-padding {
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+  }
+  
+  .nav-links {
+    display: none !important;
+  }
+  
+  .hero-form {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  
+  .pp-input,
+  .email-input {
+    max-width: 100% !important;
+  }
+  
+  .features-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+}

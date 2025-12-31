@@ -1,0 +1,77 @@
+/* Support page.module.css */
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  
+  .header {
+    margin-bottom: 48px;
+  }
+  
+  .label {
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--color-camel, #C4A484);
+    margin-bottom: 8px;
+  }
+  
+  .title {
+    font-family: var(--font-heading, 'Cormorant Garamond', Georgia, serif);
+    font-size: 36px;
+    font-weight: 300;
+    letter-spacing: -0.5px;
+    color: var(--color-charcoal, #1A1A1A);
+    margin-bottom: 12px;
+  }
+  
+  .description {
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 14px;
+    color: var(--color-text-secondary, rgba(26, 26, 26, 0.7));
+  }
+  
+  .content {
+    /* Content container */
+  }
+  
+  .comingSoon {
+    text-align: center;
+    padding: 80px 48px;
+    background: var(--color-white, #FFFFFF);
+    border: 1px solid var(--color-border-subtle, rgba(26, 26, 26, 0.05));
+  }
+  
+  .comingSoon svg {
+    color: var(--color-camel, #C4A484);
+    margin-bottom: 24px;
+  }
+  
+  .comingSoon h2 {
+    font-family: var(--font-heading, 'Cormorant Garamond', Georgia, serif);
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--color-charcoal, #1A1A1A);
+    margin-bottom: 16px;
+  }
+  
+  .comingSoon p {
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 14px;
+    color: var(--color-text-secondary, rgba(26, 26, 26, 0.7));
+    line-height: 1.7;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  
+  .comingSoon a {
+    color: var(--color-camel, #C4A484);
+    text-decoration: none;
+    transition: color 0.3s ease;
+  }
+  
+  .comingSoon a:hover {
+    color: var(--color-charcoal, #1A1A1A);
+  }

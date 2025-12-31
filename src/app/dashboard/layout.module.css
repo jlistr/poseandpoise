@@ -1,0 +1,25 @@
+/* Dashboard layout.module.css */
+
+.layout {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-cream, #FAF9F7);
+  }
+  
+  .main {
+    flex: 1;
+    padding: 32px;
+  }
+  
+  .content {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .main {
+      padding: 24px 16px;
+    }
+  }
