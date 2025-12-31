@@ -19,12 +19,17 @@ export default async function DashboardLayout({
     redirect('/login');
   }
 
-  // Get profile for display name and subscription tier
+  // Get profile for display name, subscription tier, and onboarding status
   const { data: profile } = await supabase
     .from('profiles')
-    .select('display_name, username, subscription_tier')
+    .select('display_name, username, subscription_tier, onboarding_completed')
     .eq('id', user.id)
     .single();
+
+  // Redirect to onboarding if not completed
+  if (!profile?.onboarding_completed) {
+    redirect('/onboarding');
+  }
 
   return (
     <div className={styles.layout}>

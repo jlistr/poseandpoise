@@ -26,16 +26,19 @@ const TEMPLATE_OPTIONS = [
     name: 'Lumière',
     description: 'Golden hour warmth with editorial flair',
     isPremium: false,
-    accentColor: '#A78E14',
+    accentColor: '#C8553D',
   },
   {
     id: 'noir',
     name: 'Noir',
     description: 'Bold monochrome with dramatic contrast',
     isPremium: true,
-    accentColor: '#1A1A1A',
+    accentColor: '#FFFFFF',
   },
 ];
+
+// Step labels for progress indicator
+const STEP_LABELS = ['Profile', 'About', 'Services', 'Template', 'Photos'];
 
 // =============================================================================
 // Types
@@ -112,9 +115,20 @@ const styles = {
   },
   progressContainer: {
     display: "flex",
-    gap: "8px",
+    gap: "4px",
     alignItems: "center",
   },
+  progressStep: (active: boolean, completed: boolean, clickable: boolean) => ({
+    display: "flex",
+    flexDirection: "column" as const,
+    alignItems: "center",
+    gap: "6px",
+    cursor: clickable ? "pointer" : "default",
+    padding: "4px 8px",
+    borderRadius: "6px",
+    transition: "all 0.2s ease",
+    backgroundColor: active ? "rgba(255, 122, 162, 0.08)" : "transparent",
+  }),
   progressDot: (active: boolean, completed: boolean) => ({
     width: "10px",
     height: "10px",
@@ -122,11 +136,22 @@ const styles = {
     backgroundColor: completed ? "#22C55E" : active ? "#FF7AA2" : "rgba(26, 26, 26, 0.15)",
     transition: "all 0.3s ease",
   }),
+  progressLabel: (active: boolean, completed: boolean) => ({
+    fontFamily: "'Outfit', sans-serif",
+    fontSize: "10px",
+    fontWeight: active ? 600 : 400,
+    letterSpacing: "0.5px",
+    color: completed ? "#22C55E" : active ? "#FF7AA2" : "rgba(26, 26, 26, 0.4)",
+    textTransform: "uppercase" as const,
+    transition: "all 0.2s ease",
+    whiteSpace: "nowrap" as const,
+  }),
   progressLine: (completed: boolean) => ({
-    width: "28px",
+    width: "20px",
     height: "2px",
     backgroundColor: completed ? "#22C55E" : "rgba(26, 26, 26, 0.1)",
     transition: "all 0.3s ease",
+    flexShrink: 0,
   }),
   main: {
     maxWidth: "680px",
@@ -318,6 +343,7 @@ const styles = {
 export function OnboardingWizard({ userEmail, userId, existingProfile }: OnboardingWizardProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -540,6 +566,9 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
     setLoading(false);
     
     if (saved) {
+      // Mark current step as completed
+      setCompletedSteps(prev => new Set([...prev, currentStep]));
+      
       if (currentStep < totalSteps) {
         setCurrentStep(prev => prev + 1);
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -558,11 +587,23 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
   };
 
   const handleSkip = async () => {
+    // Mark current step as completed (skipped)
+    setCompletedSteps(prev => new Set([...prev, currentStep]));
+    
     if (currentStep < totalSteps) {
       setCurrentStep(prev => prev + 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
       await completeOnboarding();
+    }
+  };
+
+  const handleStepClick = (step: number) => {
+    // Can only navigate to completed steps or current step
+    if (step <= currentStep || completedSteps.has(step)) {
+      setCurrentStep(step);
+      setError(null);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
@@ -921,14 +962,16 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(2, 1fr)",
-          gap: "16px",
+          gap: "20px",
         }}>
           {TEMPLATE_OPTIONS.map((template) => {
             const isSelected = data.selectedTemplate === template.id;
             const isLocked = template.isPremium;
+            const isDark = template.id === 'noir';
             
             return (
-              <div
+              <button
+                type="button"
                 key={template.id}
                 onClick={() => {
                   if (!isLocked) {
@@ -937,15 +980,18 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
                 }}
                 style={{
                   position: "relative",
-                  padding: "24px",
-                  borderRadius: "16px",
+                  padding: 0,
+                  borderRadius: "12px",
                   border: isSelected 
                     ? `2px solid ${template.accentColor}` 
-                    : "2px solid rgba(26, 26, 26, 0.1)",
-                  backgroundColor: isSelected ? `${template.accentColor}08` : "white",
+                    : "1px solid rgba(26, 26, 26, 0.1)",
+                  backgroundColor: "white",
                   cursor: isLocked ? "not-allowed" : "pointer",
                   opacity: isLocked ? 0.6 : 1,
                   transition: "all 0.2s ease",
+                  textAlign: "left",
+                  overflow: "hidden",
+                  boxShadow: isSelected ? `0 4px 20px ${template.accentColor}25` : "0 2px 8px rgba(26, 26, 26, 0.04)",
                 }}
               >
                 {/* PRO Badge */}
@@ -953,66 +999,30 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
                   <span style={{
                     position: "absolute",
                     top: "12px",
-                    right: "12px",
+                    left: "12px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
                     padding: "4px 10px",
                     fontSize: "10px",
                     fontWeight: 600,
                     fontFamily: "'Outfit', sans-serif",
-                    letterSpacing: "1px",
-                    backgroundColor: "#1A1A1A",
+                    letterSpacing: "0.5px",
+                    backgroundColor: "rgba(26, 26, 26, 0.9)",
                     color: "white",
                     borderRadius: "4px",
+                    zIndex: 10,
                   }}>
+                    <span style={{ fontSize: "10px" }}>🔒</span>
                     PRO
                   </span>
                 )}
-                
-                {/* Color Preview */}
-                <div style={{
-                  width: "100%",
-                  height: "80px",
-                  borderRadius: "8px",
-                  marginBottom: "16px",
-                  background: template.id === 'noir' 
-                    ? "linear-gradient(135deg, #1A1A1A 0%, #333 100%)"
-                    : `linear-gradient(135deg, ${template.accentColor}20 0%, ${template.accentColor}40 100%)`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}>
-                  <div style={{
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "50%",
-                    backgroundColor: template.accentColor,
-                    border: template.id === 'noir' ? "2px solid white" : "none",
-                  }} />
-                </div>
-                
-                {/* Template Name */}
-                <h3 style={{
-                  fontSize: "18px",
-                  fontWeight: 400,
-                  marginBottom: "4px",
-                }}>
-                  {template.name}
-                </h3>
-                
-                {/* Description */}
-                <p style={{
-                  fontFamily: "'Outfit', sans-serif",
-                  fontSize: "13px",
-                  color: "rgba(26, 26, 26, 0.6)",
-                  lineHeight: 1.4,
-                }}>
-                  {template.description}
-                </p>
                 
                 {/* Selected Check */}
                 {isSelected && (
                   <div style={{
                     position: "absolute",
-                    bottom: "12px",
+                    top: "12px",
                     right: "12px",
                     width: "24px",
                     height: "24px",
@@ -1021,13 +1031,44 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    zIndex: 10,
                   }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={isDark ? "#1A1A1A" : "white"} strokeWidth="3">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   </div>
                 )}
-              </div>
+                
+                {/* Template Thumbnail */}
+                <div style={{
+                  padding: "20px",
+                  paddingBottom: "16px",
+                  background: isDark ? "#1A1A1A" : "#f8f8f8",
+                }}>
+                  <TemplateThumbnail templateId={template.id} accentColor={template.accentColor} />
+                </div>
+                
+                {/* Template Info */}
+                <div style={{ padding: "16px 20px 20px" }}>
+                  <h3 style={{
+                    fontFamily: "'Cormorant Garamond', Georgia, serif",
+                    fontSize: "20px",
+                    fontWeight: 500,
+                    color: "#1A1A1A",
+                    marginBottom: "6px",
+                  }}>
+                    {template.name}
+                  </h3>
+                  <p style={{
+                    fontFamily: "'Outfit', sans-serif",
+                    fontSize: "13px",
+                    color: "rgba(26, 26, 26, 0.5)",
+                    lineHeight: 1.4,
+                  }}>
+                    {template.description}
+                  </p>
+                </div>
+              </button>
             );
           })}
         </div>
@@ -1196,28 +1237,64 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
   // =========================================================================
   // Main Render
   // =========================================================================
+  // Check if a step can be navigated to
+  const canNavigateToStep = (step: number) => {
+    return step <= currentStep || completedSteps.has(step);
+  };
+
   return (
     <div style={styles.container}>
       {/* Header */}
       <header style={styles.header}>
         <span style={styles.logo}>Pose & Poise</span>
         
-        {/* Progress Indicator */}
+        {/* Progress Indicator with Labels */}
         <div style={styles.progressContainer}>
-          {[1, 2, 3, 4, 5].map((step, index) => (
-            <div key={step} style={{ display: "flex", alignItems: "center" }}>
-              <div style={styles.progressDot(step === currentStep, step < currentStep)} />
-              {index < 4 && <div style={styles.progressLine(step < currentStep)} />}
-            </div>
-          ))}
+          {[1, 2, 3, 4, 5].map((step, index) => {
+            const isActive = step === currentStep;
+            const isCompleted = completedSteps.has(step) || step < currentStep;
+            const clickable = canNavigateToStep(step);
+            
+            return (
+              <div key={step} style={{ display: "flex", alignItems: "center" }}>
+                <div 
+                  style={styles.progressStep(isActive, isCompleted, clickable)}
+                  onClick={() => clickable && handleStepClick(step)}
+                  onMouseEnter={(e) => {
+                    if (clickable) {
+                      e.currentTarget.style.backgroundColor = isActive 
+                        ? "rgba(255, 122, 162, 0.12)" 
+                        : "rgba(26, 26, 26, 0.04)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = isActive 
+                      ? "rgba(255, 122, 162, 0.08)" 
+                      : "transparent";
+                  }}
+                >
+                  <div style={styles.progressDot(isActive, isCompleted)} />
+                  <span style={styles.progressLabel(isActive, isCompleted)}>
+                    {STEP_LABELS[index]}
+                  </span>
+                </div>
+                {index < 4 && <div style={styles.progressLine(isCompleted)} />}
+              </div>
+            );
+          })}
         </div>
         
-        <button 
-          onClick={handleSkip}
-          style={styles.skipButton}
-        >
-          Skip for now
-        </button>
+        {/* Hide skip button on last step */}
+        {currentStep < totalSteps ? (
+          <button 
+            onClick={handleSkip}
+            style={styles.skipButton}
+          >
+            Skip for now
+          </button>
+        ) : (
+          <div style={{ width: "100px" }} /> // Spacer to maintain layout
+        )}
       </header>
 
       {/* Main Content */}
@@ -1262,6 +1339,213 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
           }
         </button>
       </footer>
+    </div>
+  );
+}
+
+// =============================================================================
+// Template Thumbnail Component (matches dashboard/templates)
+// =============================================================================
+function TemplateThumbnail({ templateId, accentColor }: { templateId: string; accentColor: string }) {
+  const isDark = templateId === 'noir';
+  const isLumiere = templateId === 'lumiere';
+  
+  // Lumière has a unique filmstrip design
+  if (isLumiere) {
+    const warmCream = '#FFF8F0';
+    const portfolioDark = '#1F1816';
+    const terracotta = '#C8553D';
+    
+    return (
+      <div style={{
+        aspectRatio: '4/3',
+        background: warmCream,
+        borderRadius: '6px',
+        border: '1px solid rgba(200, 85, 61, 0.15)',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+      }}>
+        {/* Hero Section with gradient */}
+        <div style={{
+          flex: '0 0 45%',
+          background: `linear-gradient(180deg, ${portfolioDark} 0%, ${portfolioDark}F0 70%, ${warmCream} 100%)`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+        }}>
+          <div style={{
+            fontFamily: "'Cormorant Garamond', Georgia, serif",
+            fontSize: '14px',
+            fontWeight: 200,
+            color: warmCream,
+            letterSpacing: '0.1em',
+            textShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+          }}>
+            Lumière
+          </div>
+        </div>
+        
+        {/* Filmstrip Gallery */}
+        <div style={{
+          flex: 1,
+          background: portfolioDark,
+          padding: '6px 0',
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '6px',
+        }}>
+          {/* Sprocket holes top */}
+          <div style={{
+            position: 'absolute',
+            top: '2px',
+            left: 0,
+            right: 0,
+            height: '4px',
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '8px',
+          }}>
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+              <div key={`top-${i}`} style={{
+                width: '4px',
+                height: '3px',
+                borderRadius: '1px',
+                background: '#0a0a0a',
+              }} />
+            ))}
+          </div>
+          
+          {/* Film frames */}
+          {[1, 2, 3].map(i => (
+            <div key={i} style={{
+              width: '32px',
+              background: warmCream,
+              padding: '3px',
+              borderRadius: '2px',
+              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)',
+            }}>
+              <div style={{
+                aspectRatio: '3/4',
+                background: `linear-gradient(135deg, ${terracotta}20 0%, rgba(26, 26, 26, 0.08) 100%)`,
+                borderRadius: '1px',
+              }} />
+            </div>
+          ))}
+          
+          {/* Sprocket holes bottom */}
+          <div style={{
+            position: 'absolute',
+            bottom: '2px',
+            left: 0,
+            right: 0,
+            height: '4px',
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '8px',
+          }}>
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+              <div key={`bottom-${i}`} style={{
+                width: '4px',
+                height: '3px',
+                borderRadius: '1px',
+                background: '#0a0a0a',
+              }} />
+            ))}
+          </div>
+        </div>
+        
+        {/* Footer with accent */}
+        <div style={{
+          padding: '8px 10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <div style={{
+            width: '30px',
+            height: '4px',
+            background: terracotta,
+            borderRadius: '2px',
+          }} />
+          <div style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: terracotta,
+            boxShadow: `0 0 6px ${terracotta}40`,
+          }} />
+        </div>
+      </div>
+    );
+  }
+  
+  // Default thumbnail for other templates
+  const bgColor = isDark ? '#2a2a2a' : '#fff';
+  const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(26, 26, 26, 0.08)';
+  
+  return (
+    <div style={{
+      aspectRatio: '4/3',
+      background: bgColor,
+      borderRadius: '6px',
+      border: `1px solid ${borderColor}`,
+      padding: '12px',
+      display: 'flex',
+      flexDirection: 'column',
+    }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: '12px',
+      }}>
+        <div style={{
+          width: '40px',
+          height: '6px',
+          background: accentColor,
+          borderRadius: '3px',
+        }} />
+        <div style={{ display: 'flex', gap: '4px' }}>
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} style={{
+              width: '20px',
+              height: '4px',
+              background: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(26, 26, 26, 0.15)',
+              borderRadius: '2px',
+            }} />
+          ))}
+        </div>
+      </div>
+      
+      {/* Photo Grid */}
+      <div style={{
+        flex: 1,
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gridTemplateRows: 'repeat(2, 1fr)',
+        gap: '4px',
+      }}>
+        {[1, 2, 3, 4, 5, 6].map(i => (
+          <div key={i} style={{
+            background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(26, 26, 26, 0.06)',
+            borderRadius: '2px',
+          }} />
+        ))}
+      </div>
+      
+      {/* Accent Dot */}
+      <div style={{
+        width: '10px',
+        height: '10px',
+        borderRadius: '50%',
+        background: accentColor,
+        marginTop: '10px',
+      }} />
     </div>
   );
 }
