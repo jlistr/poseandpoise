@@ -175,19 +175,28 @@ async function updateSubscriptionInDb(userId: string, subscription: Stripe.Subsc
   const status = statusMap[subscription.status] || 'none';
   
   // Update subscriptions table (include both tier and plan_id for compatibility)
+  // Cast subscription to access period fields (Stripe SDK v20+ types)
+  const sub = subscription as unknown as {
+    customer: string;
+    id: string;
+    current_period_start: number;
+    current_period_end: number;
+    cancel_at_period_end: boolean;
+  };
+  
   const { error: subError } = await supabaseAdmin
     .from('subscriptions')
     .upsert({
       profile_id: userId,
-      stripe_customer_id: subscription.customer as string,
-      stripe_subscription_id: subscription.id,
+      stripe_customer_id: sub.customer,
+      stripe_subscription_id: sub.id,
       stripe_price_id: priceId,
       status: status,
       tier: tier,
       plan_id: tier.toLowerCase(), // Store lowercase version as plan_id
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-      cancel_at_period_end: subscription.cancel_at_period_end,
+      current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
+      current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+      cancel_at_period_end: sub.cancel_at_period_end,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'profile_id' });
   
