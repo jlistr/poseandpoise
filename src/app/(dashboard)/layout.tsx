@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { DashboardNav } from '@/components/layout/DashboardNav';
-import styles from '../../dashboard/layout.module.css';
+import styles from '../dashboard/layout.module.css';
 
 export default async function DashboardLayout({
   children,
