@@ -123,7 +123,9 @@ async function getPublicPortfolioData(username: string): Promise<PortfolioData |
 }
 
 export default async function PublicPortfolioPage({ params }: PageProps) {
-  const { username } = await params;
+  const { username: rawUsername } = await params;
+  // Normalize username to lowercase for consistent lookup
+  const username = rawUsername.toLowerCase();
   
   // Fetch public portfolio data
   const data = await getPublicPortfolioData(username);

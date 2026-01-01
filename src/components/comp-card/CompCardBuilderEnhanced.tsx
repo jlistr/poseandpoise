@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { createCompCard, deleteCompCard, type CompCard } from "@/app/actions/comp-card";
 import { uploadCompCardPdf, uploadCompCardImage } from "@/app/actions/comp-card-pdf";
 import { CompCardPreview } from "./CompCardPreview";
@@ -10,6 +10,364 @@ import type { Profile } from "@/app/actions/profile";
 import type { Photo } from "@/app/actions/photos";
 import { colors, typography, spacing } from "@/styles/tokens";
 import Link from "next/link";
+
+// =============================================================================
+// Photo Picker Modal Component
+// =============================================================================
+
+interface PhotoPickerModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  photos: Photo[];
+  selectedIds: string[];
+  onSelect: (photoId: string) => void;
+  mode: 'single' | 'multiple';
+  maxSelections?: number;
+  title: string;
+  excludeIds?: string[];
+}
+
+function PhotoPickerModal({
+  isOpen,
+  onClose,
+  photos,
+  selectedIds,
+  onSelect,
+  mode,
+  maxSelections = 5,
+  title,
+  excludeIds = [],
+}: PhotoPickerModalProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const PHOTOS_PER_PAGE = 20;
+
+  // Filter and paginate photos
+  const filteredPhotos = useMemo(() => {
+    let result = photos;
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(p => 
+        p.caption?.toLowerCase().includes(query) ||
+        p.id.toLowerCase().includes(query)
+      );
+    }
+    return result;
+  }, [photos, searchQuery]);
+
+  const totalPages = Math.ceil(filteredPhotos.length / PHOTOS_PER_PAGE);
+  const paginatedPhotos = filteredPhotos.slice(
+    (currentPage - 1) * PHOTOS_PER_PAGE,
+    currentPage * PHOTOS_PER_PAGE
+  );
+
+  // Reset page when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  if (!isOpen) return null;
+
+  const canSelectMore = mode === 'single' || selectedIds.length < maxSelections;
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0, 0, 0, 0.6)',
+        backdropFilter: 'blur(4px)',
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: colors.cream,
+          width: '90%',
+          maxWidth: '800px',
+          maxHeight: '85vh',
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          style={{
+            padding: '20px 24px',
+            borderBottom: `1px solid ${colors.border.light}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <div>
+            <h3
+              style={{
+                fontFamily: typography.fontFamily.display,
+                fontSize: '20px',
+                fontWeight: typography.fontWeight.regular,
+                color: colors.charcoal,
+                margin: 0,
+              }}
+            >
+              {title}
+            </h3>
+            <p
+              style={{
+                fontFamily: typography.fontFamily.body,
+                fontSize: typography.fontSize.caption,
+                color: colors.text.muted,
+                margin: '4px 0 0 0',
+              }}
+            >
+              {filteredPhotos.length} photos available
+              {mode === 'multiple' && ` • ${selectedIds.length}/${maxSelections} selected`}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '8px',
+              color: colors.text.muted,
+              fontSize: '24px',
+              lineHeight: 1,
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Search */}
+        <div style={{ padding: '16px 24px', borderBottom: `1px solid ${colors.border.subtle}` }}>
+          <input
+            type="text"
+            placeholder="Search by caption..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 14px',
+              fontFamily: typography.fontFamily.body,
+              fontSize: typography.fontSize.body,
+              border: `1px solid ${colors.border.light}`,
+              background: colors.white,
+              outline: 'none',
+            }}
+          />
+        </div>
+
+        {/* Photo Grid */}
+        <div
+          style={{
+            flex: 1,
+            overflow: 'auto',
+            padding: '20px 24px',
+          }}
+        >
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(5, 1fr)',
+              gap: '12px',
+            }}
+          >
+            {paginatedPhotos.map((photo) => {
+              const isSelected = selectedIds.includes(photo.id);
+              const isExcluded = excludeIds.includes(photo.id);
+              const selectionIndex = selectedIds.indexOf(photo.id);
+              const canSelect = !isExcluded && (isSelected || canSelectMore);
+
+              return (
+                <div
+                  key={photo.id}
+                  onClick={() => canSelect && onSelect(photo.id)}
+                  style={{
+                    aspectRatio: '3 / 4',
+                    position: 'relative',
+                    cursor: canSelect ? 'pointer' : 'not-allowed',
+                    border: isSelected
+                      ? `3px solid ${colors.camel}`
+                      : `1px solid ${colors.border.subtle}`,
+                    overflow: 'hidden',
+                    opacity: isExcluded ? 0.3 : (!canSelect ? 0.5 : 1),
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <img
+                    src={photo.thumbnail_url || photo.url}
+                    alt={photo.caption || ''}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                  {isSelected && mode === 'single' && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '4px',
+                        left: '4px',
+                        background: colors.camel,
+                        color: colors.cream,
+                        padding: '2px 8px',
+                        fontSize: '10px',
+                        fontWeight: 500,
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      Selected
+                    </div>
+                  )}
+                  {isSelected && mode === 'multiple' && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '4px',
+                        left: '4px',
+                        width: '22px',
+                        height: '22px',
+                        borderRadius: '50%',
+                        background: colors.camel,
+                        color: colors.cream,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {selectionIndex + 1}
+                    </div>
+                  )}
+                  {isExcluded && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'rgba(0,0,0,0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: colors.cream,
+                        fontSize: '10px',
+                        textTransform: 'uppercase',
+                        fontWeight: 500,
+                      }}
+                    >
+                      In Use
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {paginatedPhotos.length === 0 && (
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '40px',
+                color: colors.text.muted,
+                fontFamily: typography.fontFamily.body,
+              }}
+            >
+              No photos found
+            </div>
+          )}
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div
+            style={{
+              padding: '16px 24px',
+              borderTop: `1px solid ${colors.border.subtle}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+            }}
+          >
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              style={{
+                padding: '8px 16px',
+                background: currentPage === 1 ? colors.background.card : colors.charcoal,
+                color: currentPage === 1 ? colors.text.muted : colors.cream,
+                border: 'none',
+                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                fontFamily: typography.fontFamily.body,
+                fontSize: typography.fontSize.caption,
+              }}
+            >
+              Previous
+            </button>
+            <span
+              style={{
+                fontFamily: typography.fontFamily.body,
+                fontSize: typography.fontSize.caption,
+                color: colors.text.secondary,
+                padding: '0 12px',
+              }}
+            >
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              style={{
+                padding: '8px 16px',
+                background: currentPage === totalPages ? colors.background.card : colors.charcoal,
+                color: currentPage === totalPages ? colors.text.muted : colors.cream,
+                border: 'none',
+                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                fontFamily: typography.fontFamily.body,
+                fontSize: typography.fontSize.caption,
+              }}
+            >
+              Next
+            </button>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div
+          style={{
+            padding: '16px 24px',
+            borderTop: `1px solid ${colors.border.light}`,
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '12px',
+          }}
+        >
+          <button
+            onClick={onClose}
+            style={{
+              padding: '12px 24px',
+              background: colors.charcoal,
+              color: colors.cream,
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: typography.fontFamily.body,
+              fontSize: typography.fontSize.caption,
+              textTransform: 'uppercase',
+              letterSpacing: '1px',
+            }}
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Info Icon SVG Component
 function InfoIcon({ size = 16 }: { size?: number }) {
@@ -139,6 +497,11 @@ export function CompCardBuilder({ profile, photos, existingCompCards, onUpdate }
   const [generating, setGenerating] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [viewingCardId, setViewingCardId] = useState<string | null>(null);
+  
+  // Photo picker modal state
+  const [showHeadshotPicker, setShowHeadshotPicker] = useState(false);
+  const [showBackPhotosPicker, setShowBackPhotosPicker] = useState(false);
+  const [showSimplePhotoPicker, setShowSimplePhotoPicker] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const initialLoadRef = useRef(true);
@@ -893,54 +1256,120 @@ export function CompCardBuilder({ profile, photos, existingCompCards, onUpdate }
               letterSpacing: "1px",
               marginBottom: spacing.padding.sm,
             }}>
-              Select Photos ({selectedPhotoIds.length}/5)
+              Select Photos ({selectedPhotoIds.length}/4)
             </label>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: spacing.gap.sm }}>
-              {photos.map((photo) => {
-                const isSelected = selectedPhotoIds.includes(photo.id);
-                const selectionIndex = selectedPhotoIds.indexOf(photo.id);
-                return (
-                  <div
-                    key={photo.id}
-                    onClick={() => toggleSimplePhoto(photo.id)}
-                    style={{
-                      aspectRatio: "3 / 4",
-                      position: "relative",
-                      cursor: "pointer",
-                      border: isSelected ? `3px solid ${colors.camel}` : `1px solid ${colors.border.subtle}`,
-                      overflow: "hidden",
-                      opacity: !isSelected && selectedPhotoIds.length >= 5 ? 0.5 : 1,
-                    }}
-                  >
-                    <img src={photo.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    {isSelected && (
-                      <div style={{
-                        position: "absolute",
-                        top: "4px",
-                        left: "4px",
-                        width: "20px",
-                        height: "20px",
-                        borderRadius: "50%",
-                        background: colors.camel,
-                        color: colors.cream,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "11px",
-                      }}>
-                        {selectionIndex + 1}
+            <div
+              style={{
+                padding: spacing.padding.md,
+                background: colors.background.card,
+                border: `1px solid ${colors.border.subtle}`,
+              }}
+            >
+              {selectedPhotoIds.length > 0 ? (
+                <div style={{ display: "flex", gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
+                  {selectedPhotoIds.map((photoId, index) => {
+                    const photo = photos.find(p => p.id === photoId);
+                    if (!photo) return null;
+                    return (
+                      <div
+                        key={photoId}
+                        style={{
+                          width: "70px",
+                          height: "88px",
+                          position: "relative",
+                          overflow: "hidden",
+                          border: `2px solid ${colors.camel}`,
+                        }}
+                      >
+                        <img
+                          src={photo.thumbnail_url || photo.url}
+                          alt=""
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: "2px",
+                            left: "2px",
+                            width: "16px",
+                            height: "16px",
+                            borderRadius: "50%",
+                            background: colors.camel,
+                            color: colors.cream,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "10px",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {index + 1}
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleSimplePhoto(photoId);
+                          }}
+                          style={{
+                            position: "absolute",
+                            top: "2px",
+                            right: "2px",
+                            width: "16px",
+                            height: "16px",
+                            borderRadius: "50%",
+                            background: "rgba(0,0,0,0.6)",
+                            color: colors.cream,
+                            border: "none",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "12px",
+                            lineHeight: 1,
+                          }}
+                        >
+                          ×
+                        </button>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              ) : (
+                <p
+                  style={{
+                    fontFamily: typography.fontFamily.body,
+                    fontSize: typography.fontSize.bodySmall,
+                    color: colors.text.muted,
+                    marginBottom: "12px",
+                  }}
+                >
+                  Select up to 4 photos for your simple comp card
+                </p>
+              )}
+              <button
+                onClick={() => setShowSimplePhotoPicker(true)}
+                style={{
+                  padding: "8px 16px",
+                  background: selectedPhotoIds.length >= 4 ? colors.background.card : colors.charcoal,
+                  color: selectedPhotoIds.length >= 4 ? colors.text.muted : colors.cream,
+                  border: selectedPhotoIds.length >= 4 ? `1px solid ${colors.border.light}` : "none",
+                  cursor: selectedPhotoIds.length >= 4 ? "not-allowed" : "pointer",
+                  fontFamily: typography.fontFamily.body,
+                  fontSize: typography.fontSize.caption,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+                disabled={selectedPhotoIds.length >= 4}
+              >
+                {selectedPhotoIds.length === 0 ? "Browse Photos" : selectedPhotoIds.length >= 4 ? "Maximum Selected" : "Add More Photos"}
+              </button>
             </div>
           </div>
         )}
 
         {cardMode === "branded" && isCreatingNew && (
           <>
-            {/* Headshot Selection */}
+            {/* Headshot Selection - Compact UI */}
             <div style={{ marginBottom: spacing.padding.lg }}>
               <label style={{
                 display: "block",
@@ -951,45 +1380,83 @@ export function CompCardBuilder({ profile, photos, existingCompCards, onUpdate }
                 letterSpacing: "1px",
                 marginBottom: spacing.padding.sm,
               }}>
-                Front: Select Headshot
+                Front: Headshot
               </label>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: spacing.gap.sm }}>
-                {photos.map((photo) => {
-                  const isSelected = headshotId === photo.id;
-                  return (
-                    <div
-                      key={photo.id}
-                      onClick={() => selectHeadshot(photo.id)}
-                      style={{
-                        aspectRatio: "3 / 4",
-                        position: "relative",
-                        cursor: "pointer",
-                        border: isSelected ? `3px solid ${colors.camel}` : `1px solid ${colors.border.subtle}`,
-                        overflow: "hidden",
-                      }}
-                    >
-                      <img src={photo.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      {isSelected && (
-                        <div style={{
-                          position: "absolute",
-                          top: "4px",
-                          left: "4px",
-                          background: colors.camel,
-                          color: colors.cream,
-                          padding: "2px 6px",
-                          fontSize: "9px",
-                          textTransform: "uppercase",
-                        }}>
-                          Front
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: spacing.gap.md,
+                  padding: spacing.padding.md,
+                  background: colors.background.card,
+                  border: `1px solid ${colors.border.subtle}`,
+                }}
+              >
+                {headshotPhoto ? (
+                  <div
+                    style={{
+                      width: "80px",
+                      height: "100px",
+                      position: "relative",
+                      overflow: "hidden",
+                      border: `2px solid ${colors.camel}`,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <img
+                      src={headshotPhoto.thumbnail_url || headshotPhoto.url}
+                      alt=""
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      width: "80px",
+                      height: "100px",
+                      background: colors.background.primary,
+                      border: `1px dashed ${colors.border.light}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span style={{ fontSize: "24px", color: colors.text.muted }}>+</span>
+                  </div>
+                )}
+                <div style={{ flex: 1 }}>
+                  <p
+                    style={{
+                      fontFamily: typography.fontFamily.body,
+                      fontSize: typography.fontSize.bodySmall,
+                      color: headshotPhoto ? colors.text.primary : colors.text.muted,
+                      marginBottom: "8px",
+                    }}
+                  >
+                    {headshotPhoto ? "Headshot selected" : "No headshot selected"}
+                  </p>
+                  <button
+                    onClick={() => setShowHeadshotPicker(true)}
+                    style={{
+                      padding: "8px 16px",
+                      background: colors.charcoal,
+                      color: colors.cream,
+                      border: "none",
+                      cursor: "pointer",
+                      fontFamily: typography.fontFamily.body,
+                      fontSize: typography.fontSize.caption,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    {headshotPhoto ? "Change Photo" : "Browse Photos"}
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Back Photos Selection */}
+            {/* Back Photos Selection - Compact UI */}
             <div style={{ marginBottom: spacing.padding.lg }}>
               <label style={{
                 display: "block",
@@ -1000,63 +1467,113 @@ export function CompCardBuilder({ profile, photos, existingCompCards, onUpdate }
                 letterSpacing: "1px",
                 marginBottom: spacing.padding.sm,
               }}>
-                Back: Select 3-5 Photos ({backPhotoIds.length}/5)
+                Back: Photos ({backPhotoIds.length}/5)
               </label>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: spacing.gap.sm }}>
-                {photos.map((photo) => {
-                  const isHeadshot = headshotId === photo.id;
-                  const isSelected = backPhotoIds.includes(photo.id);
-                  const selectionIndex = backPhotoIds.indexOf(photo.id);
-                  return (
-                    <div
-                      key={photo.id}
-                      onClick={() => !isHeadshot && toggleBackPhoto(photo.id)}
-                      style={{
-                        aspectRatio: "3 / 4",
-                        position: "relative",
-                        cursor: isHeadshot ? "not-allowed" : "pointer",
-                        border: isSelected ? `3px solid ${colors.camel}` : `1px solid ${colors.border.subtle}`,
-                        overflow: "hidden",
-                        opacity: isHeadshot ? 0.3 : (!isSelected && backPhotoIds.length >= 5 ? 0.5 : 1),
-                      }}
-                    >
-                      <img src={photo.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      {isSelected && (
-                        <div style={{
-                          position: "absolute",
-                          top: "4px",
-                          left: "4px",
-                          width: "20px",
-                          height: "20px",
-                          borderRadius: "50%",
-                          background: colors.camel,
-                          color: colors.cream,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: "11px",
-                        }}>
-                          {selectionIndex + 1}
+              <div
+                style={{
+                  padding: spacing.padding.md,
+                  background: colors.background.card,
+                  border: `1px solid ${colors.border.subtle}`,
+                }}
+              >
+                {backPhotoIds.length > 0 ? (
+                  <div style={{ display: "flex", gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
+                    {backPhotoIds.map((photoId, index) => {
+                      const photo = photos.find(p => p.id === photoId);
+                      if (!photo) return null;
+                      return (
+                        <div
+                          key={photoId}
+                          style={{
+                            width: "60px",
+                            height: "75px",
+                            position: "relative",
+                            overflow: "hidden",
+                            border: `2px solid ${colors.camel}`,
+                          }}
+                        >
+                          <img
+                            src={photo.thumbnail_url || photo.url}
+                            alt=""
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          />
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: "2px",
+                              left: "2px",
+                              width: "16px",
+                              height: "16px",
+                              borderRadius: "50%",
+                              background: colors.camel,
+                              color: colors.cream,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "10px",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {index + 1}
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleBackPhoto(photoId);
+                            }}
+                            style={{
+                              position: "absolute",
+                              top: "2px",
+                              right: "2px",
+                              width: "16px",
+                              height: "16px",
+                              borderRadius: "50%",
+                              background: "rgba(0,0,0,0.6)",
+                              color: colors.cream,
+                              border: "none",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "12px",
+                              lineHeight: 1,
+                            }}
+                          >
+                            ×
+                          </button>
                         </div>
-                      )}
-                      {isHeadshot && (
-                        <div style={{
-                          position: "absolute",
-                          inset: 0,
-                          background: "rgba(0,0,0,0.5)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: colors.cream,
-                          fontSize: "9px",
-                          textTransform: "uppercase",
-                        }}>
-                          Used as headshot
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p
+                    style={{
+                      fontFamily: typography.fontFamily.body,
+                      fontSize: typography.fontSize.bodySmall,
+                      color: colors.text.muted,
+                      marginBottom: "12px",
+                    }}
+                  >
+                    Select 3-5 photos for the back of your comp card
+                  </p>
+                )}
+                <button
+                  onClick={() => setShowBackPhotosPicker(true)}
+                  style={{
+                    padding: "8px 16px",
+                    background: backPhotoIds.length >= 5 ? colors.background.card : colors.charcoal,
+                    color: backPhotoIds.length >= 5 ? colors.text.muted : colors.cream,
+                    border: backPhotoIds.length >= 5 ? `1px solid ${colors.border.light}` : "none",
+                    cursor: backPhotoIds.length >= 5 ? "not-allowed" : "pointer",
+                    fontFamily: typography.fontFamily.body,
+                    fontSize: typography.fontSize.caption,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                  }}
+                  disabled={backPhotoIds.length >= 5}
+                >
+                  {backPhotoIds.length === 0 ? "Browse Photos" : backPhotoIds.length >= 5 ? "Maximum Selected" : "Add More Photos"}
+                </button>
               </div>
             </div>
           </>
@@ -1356,6 +1873,43 @@ export function CompCardBuilder({ profile, photos, existingCompCards, onUpdate }
           )
         )}
       </div>
+
+      {/* Photo Picker Modals */}
+      <PhotoPickerModal
+        isOpen={showHeadshotPicker}
+        onClose={() => setShowHeadshotPicker(false)}
+        photos={photos}
+        selectedIds={headshotId ? [headshotId] : []}
+        onSelect={(photoId) => {
+          selectHeadshot(photoId);
+          setShowHeadshotPicker(false);
+        }}
+        mode="single"
+        title="Select Headshot"
+      />
+
+      <PhotoPickerModal
+        isOpen={showBackPhotosPicker}
+        onClose={() => setShowBackPhotosPicker(false)}
+        photos={photos}
+        selectedIds={backPhotoIds}
+        onSelect={toggleBackPhoto}
+        mode="multiple"
+        maxSelections={5}
+        title="Select Back Photos"
+        excludeIds={headshotId ? [headshotId] : []}
+      />
+
+      <PhotoPickerModal
+        isOpen={showSimplePhotoPicker}
+        onClose={() => setShowSimplePhotoPicker(false)}
+        photos={photos}
+        selectedIds={selectedPhotoIds}
+        onSelect={toggleSimplePhoto}
+        mode="multiple"
+        maxSelections={4}
+        title="Select Photos"
+      />
     </div>
   );
 }

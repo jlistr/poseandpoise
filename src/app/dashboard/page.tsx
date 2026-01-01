@@ -11,6 +11,7 @@ import {
   TemplatesIcon,
   PortfolioEditorIcon,
 } from "@/components/icons/Icons";
+import { PortfolioVisibilityToggle } from "@/components/dashboard/PortfolioVisibilityToggle";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -546,52 +547,12 @@ export default async function DashboardPage() {
           )}
         </div>
 
-        {/* Portfolio URL */}
+        {/* Portfolio URL & Visibility Toggle */}
         {profile?.username && (
-          <div
-            style={{
-              marginTop: spacing.padding.xl,
-              padding: spacing.padding.lg,
-              background: "rgba(196, 164, 132, 0.05)",
-              border: `1px solid ${colors.accent.light}`,
-            }}
-          >
-            <p
-              style={{
-                fontFamily: typography.fontFamily.body,
-                fontSize: typography.fontSize.caption,
-                color: colors.text.muted,
-                textTransform: "uppercase",
-                letterSpacing: "1px",
-                marginBottom: spacing.padding.xs,
-              }}
-            >
-              Your Portfolio URL
-            </p>
-            <p
-              style={{
-                fontFamily: typography.fontFamily.body,
-                fontSize: typography.fontSize.body,
-                color: colors.text.primary,
-              }}
-            >
-              <span style={{ color: colors.charcoal }}>{profile.username}</span>.poseandpoise.studio
-              {!profile.is_public && (
-                <span
-                  style={{
-                    marginLeft: "12px",
-                    fontSize: typography.fontSize.caption,
-                    color: colors.text.muted,
-                    background: "rgba(26, 26, 26, 0.05)",
-                    padding: "2px 8px",
-                    borderRadius: "4px",
-                  }}
-                >
-                  Private
-                </span>
-              )}
-            </p>
-          </div>
+          <PortfolioVisibilityToggle 
+            username={profile.username} 
+            initialIsPublic={profile.is_public || false}
+          />
         )}
       </main>
     </div>

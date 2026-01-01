@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { AnalyticsDashboard } from "@/components/analytics";
 import { colors, typography, spacing } from "@/styles/tokens";
 import { getProfile } from "@/app/actions/profile";
+import { getPortfolioUrl } from "@/lib/utils/portfolioUrl";
 import { TemplateSelector } from "@/components/dashboard/TemplateSelector";
 import { DEFAULT_TEMPLATE } from "@/config/template";
 import { EditorialTemplate } from "@/components/templates/EditorialTemplate";
@@ -33,7 +34,7 @@ export default async function AnalyticsPage() {
     .single();
 
   const portfolioUrl = profile?.username
-    ? `https://${profile.username}.poseandpoise.studio`
+    ? getPortfolioUrl(profile.username)
     : null;
 
   return (

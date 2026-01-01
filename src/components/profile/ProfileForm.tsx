@@ -913,45 +913,6 @@ export function ProfileForm({ profile }: ProfileFormProps) {
         </div>
       </div>
 
-      {/* Visibility */}
-      <div style={sectionStyle}>
-        <h3 style={sectionTitleStyle}>Portfolio Visibility</h3>
-        <label style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          cursor: "pointer",
-        }}>
-          <input
-            type="checkbox"
-            name="is_public"
-            value="true"
-            defaultChecked={profile.is_public}
-            style={{
-              width: "20px",
-              height: "20px",
-              accentColor: colors.camel,
-            }}
-          />
-          <span style={{
-            fontFamily: typography.fontFamily.body,
-            fontSize: typography.fontSize.body,
-            color: colors.text.primary,
-          }}>
-            Make my portfolio public
-          </span>
-        </label>
-        <p style={{
-          fontFamily: typography.fontFamily.body,
-          fontSize: typography.fontSize.caption,
-          color: colors.text.muted,
-          marginTop: "8px",
-          marginLeft: "32px",
-        }}>
-          When enabled, anyone can view your portfolio at {profile.username || "yourname"}.poseandpoise.studio
-        </p>
-      </div>
-
       {/* Submit */}
       <div style={{
         display: "flex",

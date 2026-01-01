@@ -135,9 +135,9 @@ export async function saveTemplate(templateId: string): Promise<{ success: boole
 }
 
 // =============================================================================
-// Publish/unpublish portfolio
+// Toggle portfolio visibility (syncs both is_public and is_published)
 // =============================================================================
-export async function togglePublished(isPublished: boolean): Promise<{ success: boolean; error?: string }> {
+export async function togglePortfolioVisibility(isVisible: boolean): Promise<{ success: boolean; error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   
@@ -146,23 +146,33 @@ export async function togglePublished(isPublished: boolean): Promise<{ success: 
   }
 
   try {
+    // Update both is_public and is_published together
     const { error } = await supabase
       .from('profiles')
-      .update({ is_published: isPublished })
+      .update({ 
+        is_public: isVisible,
+        is_published: isVisible 
+      })
       .eq('id', user.id);
 
     if (error) {
-      console.error('Error updating published status:', error);
-      return { success: false, error: `Failed to update published status: ${error.message}` };
+      console.error('Error updating visibility:', error);
+      return { success: false, error: `Failed to update visibility: ${error.message}` };
     }
 
+    revalidatePath('/dashboard');
     revalidatePath(`/[username]`, 'page');
     
     return { success: true };
   } catch (err) {
-    console.error('Error toggling published:', err);
+    console.error('Error toggling visibility:', err);
     return { success: false, error: 'An unexpected error occurred' };
   }
+}
+
+// Legacy function - kept for backwards compatibility
+export async function togglePublished(isPublished: boolean): Promise<{ success: boolean; error?: string }> {
+  return togglePortfolioVisibility(isPublished);
 }
 
 // =============================================================================

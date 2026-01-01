@@ -134,7 +134,8 @@ async function getPortfolioData(username: string): Promise<PortfolioData | null>
 export default async function PreviewPage({ params, searchParams }: PageProps) {
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
-  const username = resolvedParams.username;
+  // Normalize username to lowercase for consistent lookup
+  const username = resolvedParams.username.toLowerCase();
   const startInEditMode = resolvedSearchParams.edit === 'true';
   const supabase = await createClient();
   

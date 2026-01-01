@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { TEMPLATE_METADATA } from '@/templates';
-import { saveTemplate, togglePublished } from '@/app/actions/portfolio';
+import { getPortfolioUrl } from '@/lib/utils/portfolioUrl';
+import { saveTemplate } from '@/app/actions/portfolio';
 
 interface UserProfile {
   username: string;
@@ -61,20 +62,15 @@ export default function TemplateSettingsPage() {
     }
   };
 
-  const handleLaunch = async () => {
+  const handleSaveAndPreview = async () => {
     // Save first if there are changes
     if (hasChanges) {
       await handleSave();
     }
     
-    // Publish if not already published
-    if (profile && !profile.is_published) {
-      await togglePublished(true);
-    }
-    
-    // Open the portfolio
+    // Open the portfolio preview
     if (profile?.username) {
-      window.open(`/${profile.username}`, '_blank');
+      window.open(getPortfolioUrl(profile.username), '_blank');
     }
   };
 
@@ -108,8 +104,6 @@ export default function TemplateSettingsPage() {
     return isPaidUser || !template.isPremium;
   };
 
-  const selectedTemplateData = TEMPLATE_METADATA.find(t => t.id === selectedTemplate);
-
   return (
     <div style={{
       fontFamily: "'Outfit', sans-serif",
@@ -137,8 +131,10 @@ export default function TemplateSettingsPage() {
           marginBottom: '24px',
         }}>
           Select a design that reflects your unique style. Preview it live at{' '}
-          <Link 
-            href={`/${profile?.username || ''}`}
+          <a 
+            href={profile?.username ? getPortfolioUrl(profile.username) : '#'}
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
               color: '#C4A484',
               textDecoration: 'none',
@@ -147,10 +143,17 @@ export default function TemplateSettingsPage() {
               background: 'rgba(196, 164, 132, 0.1)',
               padding: '4px 8px',
               borderRadius: '4px',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(196, 164, 132, 0.2)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(196, 164, 132, 0.1)';
             }}
           >
             {profile?.username || 'username'}.poseandpoise.studio
-          </Link>
+          </a>
         </p>
 
         {/* Premium Templates Upgrade Banner - only shown to free users */}
@@ -238,114 +241,50 @@ export default function TemplateSettingsPage() {
               ))}
             </div>
 
-            {/* Action Buttons */}
+            {/* Save Button */}
             <div style={{
-              display: 'flex',
-              gap: '16px',
               paddingTop: '24px',
               borderTop: '1px solid rgba(26, 26, 26, 0.08)',
             }}>
-              {/* Save Button */}
               <button
                 onClick={handleSave}
                 disabled={!hasChanges && saveStatus !== 'saved'}
                 style={{
-                  flex: 1,
+                  width: '100%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
-                  padding: '20px 32px',
-                  background: saveStatus === 'saved' ? 'rgba(34, 197, 94, 0.1)' : '#f5f5f5',
+                  padding: '16px 32px',
+                  background: saveStatus === 'saved' ? 'rgba(34, 197, 94, 0.1)' : hasChanges ? '#1A1A1A' : '#f5f5f5',
                   border: 'none',
-                  borderRadius: '8px',
+                  borderRadius: '0',
                   fontFamily: "'Outfit', sans-serif",
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  letterSpacing: '1px',
-                  color: saveStatus === 'saved' ? '#22C55E' : hasChanges ? '#1A1A1A' : 'rgba(26, 26, 26, 0.4)',
+                  fontSize: '13px',
+                  fontWeight: 400,
+                  letterSpacing: '2px',
+                  textTransform: 'uppercase',
+                  color: saveStatus === 'saved' ? '#22C55E' : hasChanges ? '#fff' : 'rgba(26, 26, 26, 0.4)',
                   cursor: hasChanges ? 'pointer' : 'default',
                   transition: 'all 0.2s ease',
                 }}
               >
                 {saveStatus === 'saving' ? (
-                  <span>SAVING...</span>
+                  <span>Saving...</span>
                 ) : saveStatus === 'saved' ? (
                   <>
                     <CheckIcon />
-                    <span>SAVED</span>
+                    <span>Saved</span>
                   </>
                 ) : (
-                  <>
-                    {hasChanges && <CheckIcon />}
-                    <span>{hasChanges ? 'SAVE' : 'SAVED'}</span>
-                  </>
+                  <span>{hasChanges ? 'Save Template' : 'Saved'}</span>
                 )}
-              </button>
-
-              {/* Launch Button */}
-              <button
-                onClick={handleLaunch}
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '10px',
-                  padding: '20px 32px',
-                  background: '#1A1A1A',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontFamily: "'Outfit', sans-serif",
-                  fontSize: '14px',
-                  fontWeight: 500,
-                  letterSpacing: '1px',
-                  color: '#fff',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                <LinkIcon />
-                <span>LAUNCH PORTFOLIO</span>
               </button>
             </div>
           </div>
 
           {/* Live Preview */}
           <div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '16px',
-            }}>
-              <span style={{
-                fontSize: '11px',
-                fontWeight: 600,
-                letterSpacing: '2px',
-                color: 'rgba(26, 26, 26, 0.4)',
-                textTransform: 'uppercase',
-              }}>
-                Live Preview
-              </span>
-              
-              <Link
-                href={`/${profile?.username || ''}`}
-                target="_blank"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontSize: '13px',
-                  color: '#C4A484',
-                  textDecoration: 'none',
-                }}
-              >
-                <EyeIcon />
-                Open Full Preview
-              </Link>
-            </div>
-
             {/* Preview Frame */}
             <div style={{
               background: '#fff',
@@ -376,41 +315,6 @@ export default function TemplateSettingsPage() {
                   displayName={profile?.display_name || 'Your Name'}
                   username={profile?.username || 'username'}
                 />
-              </div>
-
-              {/* URL Bar */}
-              <div style={{
-                padding: '12px 16px',
-                borderTop: '1px solid rgba(26, 26, 26, 0.06)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}>
-                <span style={{
-                  fontFamily: "'SF Mono', monospace",
-                  fontSize: '12px',
-                  color: 'rgba(26, 26, 26, 0.5)',
-                }}>
-                  {profile?.username || 'username'}.poseandpoise.studio
-                </span>
-                
-                <Link
-                  href={`/${profile?.username || ''}`}
-                  target="_blank"
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
-                    background: selectedTemplateData?.accentColor || '#C4A484',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#fff',
-                    textDecoration: 'none',
-                  }}
-                >
-                  <ArrowIcon />
-                </Link>
               </div>
             </div>
           </div>
@@ -832,33 +736,6 @@ function CheckIcon({ color = 'currentColor', size = 16 }: { color?: string; size
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}
-
-function LinkIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-    </svg>
-  );
-}
-
-function EyeIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function ArrowIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="5" y1="12" x2="19" y2="12" />
-      <polyline points="12 5 19 12 12 19" />
     </svg>
   );
 }

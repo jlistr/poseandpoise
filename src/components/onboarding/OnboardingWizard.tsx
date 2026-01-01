@@ -367,8 +367,9 @@ export function OnboardingWizard({ userEmail, userId, existingProfile, existingS
         throw new Error(completeError.error || 'Failed to complete onboarding');
       }
 
-      // Redirect to dashboard
-      router.push('/dashboard');
+      // Redirect to the user's portfolio
+      const username = data.profile.username.toLowerCase().trim();
+      router.push(`/${username}`);
     } catch (error) {
       console.error('Error saving onboarding data:', error);
       setSaveError(error instanceof Error ? error.message : 'An unexpected error occurred');
