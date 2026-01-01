@@ -3,13 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { AnalyticsDashboard } from "@/components/analytics";
 import { colors, typography, spacing } from "@/styles/tokens";
-import { getProfile } from "@/app/actions/profile";
 import { getPortfolioUrl } from "@/lib/utils/portfolioUrl";
-import { TemplateSelector } from "@/components/dashboard/TemplateSelector";
-import { DEFAULT_TEMPLATE } from "@/config/template";
-import { EditorialTemplate } from "@/components/templates/EditorialTemplate";
-import { MinimalTemplate } from "@/components/templates/MinimalTemplate";
-import { ClassicTemplate } from "@/components/templates/ClassicTemplate";
 export const metadata = {
   title: "Analytics | Pose & Poise",
   description: "Track your portfolio views and visitor insights",
