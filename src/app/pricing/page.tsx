@@ -13,6 +13,7 @@ export const metadata = {
 interface UserData {
   isLoggedIn: boolean;
   currentTier: PlanId | null;
+  onboardingCompleted: boolean;
   user: {
     name: string | null;
     email: string | null;
@@ -25,18 +26,19 @@ async function getAuthStatus(): Promise<UserData> {
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
-    return { isLoggedIn: false, currentTier: null, user: null };
+    return { isLoggedIn: false, currentTier: null, onboardingCompleted: true, user: null };
   }
   
   const { data: profile } = await supabase
     .from('profiles')
-    .select('subscription_tier, display_name, avatar_url')
+    .select('subscription_tier, display_name, avatar_url, onboarding_completed')
     .eq('id', user.id)
     .single();
   
   return {
     isLoggedIn: true,
     currentTier: (profile?.subscription_tier as PlanId) || 'FREE',
+    onboardingCompleted: profile?.onboarding_completed || false,
     user: {
       name: profile?.display_name || null,
       email: user.email || null,
@@ -46,7 +48,7 @@ async function getAuthStatus(): Promise<UserData> {
 }
 
 export default async function PricingPage() {
-  const { isLoggedIn, currentTier, user } = await getAuthStatus();
+  const { isLoggedIn, currentTier, onboardingCompleted, user } = await getAuthStatus();
   
   return (
     <div
@@ -57,6 +59,74 @@ export default async function PricingPage() {
         color: colors.text.primary,
       }}
     >
+      {/* Onboarding Banner - shows for logged-in users who haven't completed setup */}
+      {isLoggedIn && !onboardingCompleted && (
+        <div
+          style={{
+            backgroundColor: colors.camel,
+            padding: `${spacing.padding.md} ${spacing.padding.lg}`,
+            position: "relative",
+            zIndex: 100,
+          }}
+        >
+          <div
+            style={{
+              maxWidth: "1400px",
+              margin: "0 auto",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: spacing.gap.lg,
+              flexWrap: "wrap",
+            }}
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={colors.charcoal}
+              strokeWidth="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="16" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12.01" y2="8" />
+            </svg>
+            <p
+              style={{
+                fontFamily: typography.fontFamily.body,
+                fontSize: typography.fontSize.bodySmall,
+                color: colors.charcoal,
+                margin: 0,
+                textAlign: "center",
+              }}
+            >
+              {user?.name ? `Hey ${user.name}! ` : ""}
+              Complete your profile setup to unlock your dashboard, portfolio builder, and more.
+            </p>
+            <Link
+              href="/onboarding"
+              style={{
+                fontFamily: typography.fontFamily.body,
+                fontSize: typography.fontSize.caption,
+                fontWeight: 500,
+                letterSpacing: typography.letterSpacing.wider,
+                textTransform: "uppercase",
+                padding: "8px 16px",
+                borderRadius: "6px",
+                border: "none",
+                backgroundColor: colors.charcoal,
+                color: colors.cream,
+                textDecoration: "none",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Continue Setup
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <PricingHeader 
         isLoggedIn={isLoggedIn} 

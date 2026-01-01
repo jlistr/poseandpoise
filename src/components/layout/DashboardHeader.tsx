@@ -94,7 +94,7 @@ export function DashboardHeader({ userEmail, userName, username, subscriptionTie
                   </div>
                   <div className={styles.dropdownDivider} />
                   <Link 
-                    href="/dashboard/settings" 
+                    href="/settings" 
                     className={styles.dropdownItem}
                     onClick={() => setIsMenuOpen(false)}
                   >

@@ -341,9 +341,9 @@ const styles = {
   container: {
     display: "flex",
     height: "100%",
-    minHeight: "600px",
     backgroundColor: "#FAF9F7",
     fontFamily: "'Cormorant Garamond', Georgia, serif",
+    overflow: "hidden",
   },
   
   // Left Panel - Tools
@@ -439,6 +439,7 @@ const styles = {
     display: "flex",
     flexDirection: "column" as const,
     overflow: "hidden",
+    minWidth: 0, // Allow flex item to shrink
   },
   chatHeader: {
     padding: "24px 32px",
@@ -487,6 +488,7 @@ const styles = {
     display: "flex",
     flexDirection: "column" as const,
     gap: "16px",
+    minHeight: 0, // Required for flex item to scroll properly
   },
   messageWrapper: (isUser: boolean) => ({
     display: "flex",
@@ -545,34 +547,82 @@ const styles = {
     animationDelay: `${delay}s`,
   }),
   
-  // Extracted Data Card
-  extractedCard: {
+  // Floating Data Summary
+  dataSummaryWrapper: {
+    position: "absolute" as const,
+    bottom: "16px",
+    right: "16px",
+    zIndex: 10,
+    maxWidth: "320px",
+  },
+  dataSummaryBadge: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "10px 16px",
+    backgroundColor: "#1A1A1A",
+    color: "#FAF9F7",
+    cursor: "pointer",
+    fontFamily: "'Outfit', sans-serif",
+    fontSize: "12px",
+    fontWeight: 500,
+    borderRadius: "24px",
+    boxShadow: "0 4px 20px rgba(26, 26, 26, 0.15)",
+    transition: "all 0.3s ease",
+  },
+  dataSummaryPanel: {
     backgroundColor: "white",
     border: "1px solid rgba(196, 164, 132, 0.3)",
-    padding: "20px",
-    marginTop: "16px",
+    borderRadius: "12px",
+    boxShadow: "0 8px 32px rgba(26, 26, 26, 0.12)",
+    overflow: "hidden",
+    marginBottom: "8px",
   },
-  extractedLabel: {
+  dataSummaryHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "16px 20px",
+    borderBottom: "1px solid rgba(26, 26, 26, 0.08)",
+    backgroundColor: "rgba(196, 164, 132, 0.05)",
+  },
+  dataSummaryTitle: {
     fontFamily: "'Outfit', sans-serif",
-    fontSize: "10px",
+    fontSize: "11px",
     fontWeight: 600,
-    letterSpacing: "2px",
+    letterSpacing: "1.5px",
     textTransform: "uppercase" as const,
     color: "#C4A484",
-    marginBottom: "12px",
     display: "flex",
     alignItems: "center",
     gap: "8px",
   },
+  dataSummaryContent: {
+    padding: "16px 20px",
+    maxHeight: "280px",
+    overflowY: "auto" as const,
+  },
   dataGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(2, 1fr)",
-    gap: "8px",
+    gridTemplateColumns: "1fr",
+    gap: "10px",
   },
   dataItem: {
     fontFamily: "'Outfit', sans-serif",
     fontSize: "13px",
     color: "#1A1A1A",
+    display: "flex",
+    gap: "8px",
+  },
+  dataLabel: {
+    fontWeight: 500,
+    color: "rgba(26, 26, 26, 0.6)",
+    minWidth: "80px",
+    flexShrink: 0,
+  },
+  dataValue: {
+    color: "#1A1A1A",
+    wordBreak: "break-word" as const,
   },
   
   // Input Area
@@ -746,6 +796,7 @@ export function AIOnboardingChat({
   const [socialHandles, setSocialHandles] = useState({ instagram: '', tiktok: '', website: '' });
   const [showAgencyForm, setShowAgencyForm] = useState(false);
   const [agencyDetails, setAgencyDetails] = useState({ name: '', website: '', email: '' });
+  const [showDataSummary, setShowDataSummary] = useState(false);
   
   // Guided flow state
   const [currentToolIndex, setCurrentToolIndex] = useState(-1); // -1 means greeting phase
@@ -756,6 +807,8 @@ export function AIOnboardingChat({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentToolRef = useRef<string | null>(null);
   const autoProgressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const locationRequestInProgressRef = useRef<boolean>(false);
+  const progressInProgressRef = useRef<boolean>(false);
 
   const steps: OnboardingStep[] = ["profile", "about", "services", "template", "photos"];
   const currentStepIndex = steps.indexOf(currentStep);
@@ -777,8 +830,29 @@ export function AIOnboardingChat({
     };
   }, []);
 
+  // Track if we've initialized this step to prevent re-initialization
+  const stepInitializedRef = useRef<string | null>(null);
+
   // Initial greeting and auto-start first tool
   useEffect(() => {
+    // Prevent re-initialization if we've already initialized this step
+    if (stepInitializedRef.current === currentStep) {
+      return;
+    }
+
+    // Clear any pending timers
+    if (autoProgressTimerRef.current) {
+      clearTimeout(autoProgressTimerRef.current);
+      autoProgressTimerRef.current = null;
+    }
+
+    // Mark this step as initialized
+    stepInitializedRef.current = currentStep;
+    
+    // Reset flags
+    locationRequestInProgressRef.current = false;
+    progressInProgressRef.current = false;
+
     const greeting = getStepGreeting(currentStep);
     setMessages([{
       id: "welcome",
@@ -792,6 +866,7 @@ export function AIOnboardingChat({
     setToolCompleted({});
     setShowSocialMediaForm(false);
     setShowAgencyForm(false);
+    setActiveTool(null);
     
     // Auto-start first tool after greeting delay
     if (isAutoProgressing && currentToolSequence.length > 0) {
@@ -804,6 +879,11 @@ export function AIOnboardingChat({
 
   // Function to progress to next tool in sequence
   const progressToNextTool = useCallback(() => {
+    // Prevent multiple simultaneous progressions
+    if (progressInProgressRef.current) {
+      return;
+    }
+
     const nextIndex = currentToolIndex + 1;
     
     if (nextIndex < currentToolSequence.length) {
@@ -811,6 +891,7 @@ export function AIOnboardingChat({
       const nextTool = STEP_TOOLS[currentStep]?.find(t => t.id === nextToolId);
       
       if (nextTool) {
+        progressInProgressRef.current = true;
         setCurrentToolIndex(nextIndex);
         
         // Announce the next tool
@@ -822,10 +903,12 @@ export function AIOnboardingChat({
         // Auto-trigger the tool after announcement
         autoProgressTimerRef.current = setTimeout(() => {
           handleToolClick(nextTool);
+          progressInProgressRef.current = false;
         }, 1500);
       }
     } else {
       // All tools completed for this step
+      progressInProgressRef.current = false;
       addAssistantMessage(getStepCompletionMessage(currentStep));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -927,7 +1010,11 @@ export function AIOnboardingChat({
     // Clear any pending auto-progress timer when user manually interacts
     if (autoProgressTimerRef.current) {
       clearTimeout(autoProgressTimerRef.current);
+      autoProgressTimerRef.current = null;
     }
+    
+    // Reset progress flag since we're manually triggering
+    progressInProgressRef.current = false;
     
     setActiveTool(tool.id);
     currentToolRef.current = tool.id;
@@ -952,11 +1039,19 @@ export function AIOnboardingChat({
   };
 
   const handleGetLocation = async () => {
-    if (!navigator.geolocation) {
-      addAssistantMessage("Geolocation is not supported by your browser. Please type your city and country, or click 'Skip' to continue.");
+    // Prevent multiple simultaneous location requests
+    if (locationRequestInProgressRef.current) {
       return;
     }
 
+    if (!navigator.geolocation) {
+      addAssistantMessage("Geolocation is not supported by your browser. Please type your city and country, or click 'Skip' to continue.");
+      // Mark as complete so we don't loop
+      completeCurrentTool("location");
+      return;
+    }
+
+    locationRequestInProgressRef.current = true;
     addAssistantMessage("Detecting your location...");
     setIsTyping(true);
 
@@ -980,15 +1075,20 @@ export function AIOnboardingChat({
           addAssistantMessage(`✓ Found you! Your location is **${locationString}**.\n\nThis will help us suggest appropriate services and pricing for your market.`);
           
           // Auto-progress to next tool
+          locationRequestInProgressRef.current = false;
           completeCurrentTool("location");
         } catch {
           setIsTyping(false);
           addAssistantMessage("I couldn't determine your exact location. Please type your city and country, or click 'Skip' to continue.");
+          locationRequestInProgressRef.current = false;
+          // Don't auto-complete on error - let user manually input or skip
         }
       },
       () => {
         setIsTyping(false);
         addAssistantMessage("Location access was denied. Please type your city and country (e.g., 'Los Angeles, USA'), or click 'Skip' to continue.");
+        locationRequestInProgressRef.current = false;
+        // Don't auto-complete on denial - let user manually input or skip
       },
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
     );
@@ -1225,7 +1325,24 @@ export function AIOnboardingChat({
     }
   };
 
-  const hasExtractedData = Object.keys(extractedData).length > 0;
+  const extractedDataItems = [
+    extractedData.displayName && { label: "Name", value: extractedData.displayName },
+    extractedData.location && { label: "Location", value: extractedData.location },
+    extractedData.instagram && { label: "Instagram", value: `@${extractedData.instagram}` },
+    extractedData.tiktok && { label: "TikTok", value: `@${extractedData.tiktok}` },
+    extractedData.website && { label: "Website", value: extractedData.website },
+    extractedData.agencyName && { label: "Agency", value: extractedData.agencyName },
+    extractedData.heightCm && { label: "Height", value: `${extractedData.heightCm} cm` },
+    extractedData.bustCm && { label: "Bust", value: `${extractedData.bustCm} cm` },
+    extractedData.waistCm && { label: "Waist", value: `${extractedData.waistCm} cm` },
+    extractedData.hipsCm && { label: "Hips", value: `${extractedData.hipsCm} cm` },
+    extractedData.shoeSize && { label: "Shoe", value: extractedData.shoeSize },
+    extractedData.hairColor && { label: "Hair", value: extractedData.hairColor },
+    extractedData.eyeColor && { label: "Eyes", value: extractedData.eyeColor },
+    extractedData.bio && { label: "Bio", value: extractedData.bio.length > 60 ? extractedData.bio.substring(0, 60) + "..." : extractedData.bio },
+  ].filter(Boolean) as { label: string; value: string }[];
+  
+  const hasExtractedData = extractedDataItems.length > 0;
   const currentTools = STEP_TOOLS[currentStep] || [];
 
   // Render Upsell when appropriate
@@ -1349,7 +1466,7 @@ export function AIOnboardingChat({
       </div>
 
       {/* Right Panel - Chat */}
-      <div style={styles.chatPanel}>
+      <div style={{ ...styles.chatPanel, position: "relative" as const }}>
         {/* Chat Header */}
         <div style={styles.chatHeader}>
           <div style={styles.stepIndicator}>
@@ -1886,34 +2003,81 @@ export function AIOnboardingChat({
             </div>
           )}
 
-          {/* Extracted Data Card */}
+          {/* Upsell */}
+          {renderUpsell()}
+          
+          {/* Floating Data Summary */}
           {hasExtractedData && (
-            <div style={styles.extractedCard}>
-              <div style={styles.extractedLabel}>
-                {Icons.check}
-                Information Captured
-              </div>
-              <div style={styles.dataGrid}>
-                {extractedData.location && <div style={styles.dataItem}><strong>Location:</strong> {extractedData.location}</div>}
-                {extractedData.displayName && <div style={styles.dataItem}><strong>Name:</strong> {extractedData.displayName}</div>}
-                {extractedData.instagram && <div style={styles.dataItem}><strong>Instagram:</strong> @{extractedData.instagram}</div>}
-                {extractedData.tiktok && <div style={styles.dataItem}><strong>TikTok:</strong> @{extractedData.tiktok}</div>}
-                {extractedData.website && <div style={styles.dataItem}><strong>Website:</strong> {extractedData.website}</div>}
-                {extractedData.agencyName && <div style={styles.dataItem}><strong>Agency:</strong> {extractedData.agencyName}</div>}
-                {extractedData.heightCm && <div style={styles.dataItem}><strong>Height:</strong> {extractedData.heightCm} cm</div>}
-                {extractedData.bustCm && <div style={styles.dataItem}><strong>Bust:</strong> {extractedData.bustCm} cm</div>}
-                {extractedData.waistCm && <div style={styles.dataItem}><strong>Waist:</strong> {extractedData.waistCm} cm</div>}
-                {extractedData.hipsCm && <div style={styles.dataItem}><strong>Hips:</strong> {extractedData.hipsCm} cm</div>}
-                {extractedData.shoeSize && <div style={styles.dataItem}><strong>Shoe:</strong> {extractedData.shoeSize}</div>}
-                {extractedData.hairColor && <div style={styles.dataItem}><strong>Hair:</strong> {extractedData.hairColor}</div>}
-                {extractedData.eyeColor && <div style={styles.dataItem}><strong>Eyes:</strong> {extractedData.eyeColor}</div>}
-                {extractedData.bio && <div style={{ ...styles.dataItem, gridColumn: "1 / -1" }}><strong>Bio:</strong> {extractedData.bio.substring(0, 100)}...</div>}
+            <div style={styles.dataSummaryWrapper}>
+              {showDataSummary && (
+                <div style={styles.dataSummaryPanel}>
+                  <div style={styles.dataSummaryHeader}>
+                    <div style={styles.dataSummaryTitle}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M9 11l3 3L22 4" />
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                      </svg>
+                      Collected Info
+                    </div>
+                    <button
+                      onClick={() => setShowDataSummary(false)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: "4px",
+                        color: "rgba(26, 26, 26, 0.4)",
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M6 9l6 6 6-6" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div style={styles.dataSummaryContent}>
+                    <div style={styles.dataGrid}>
+                      {extractedDataItems.map((item, i) => (
+                        <div key={i} style={styles.dataItem}>
+                          <span style={styles.dataLabel}>{item.label}</span>
+                          <span style={styles.dataValue}>{item.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div
+                style={styles.dataSummaryBadge}
+                onClick={() => setShowDataSummary(!showDataSummary)}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "#C4A484";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "#1A1A1A";
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 11l3 3L22 4" />
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                </svg>
+                {extractedDataItems.length} items collected
+                <svg 
+                  width="12" 
+                  height="12" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2"
+                  style={{ 
+                    transform: showDataSummary ? "rotate(180deg)" : "rotate(0deg)",
+                    transition: "transform 0.2s ease"
+                  }}
+                >
+                  <path d="M18 15l-6-6-6 6" />
+                </svg>
               </div>
             </div>
           )}
-
-          {/* Upsell */}
-          {renderUpsell()}
         </div>
 
         {/* Input Area */}

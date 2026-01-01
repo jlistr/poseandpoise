@@ -299,7 +299,7 @@ export function PricingHeader({ isLoggedIn, user, currentTier }: PricingHeaderPr
                       </Link>
 
                       <Link
-                        href="/dashboard/settings"
+                        href="/settings"
                         onClick={() => setDropdownOpen(false)}
                         style={{
                           display: "flex",

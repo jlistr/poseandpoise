@@ -96,10 +96,11 @@ interface OnboardingWizardProps {
 // =============================================================================
 const styles = {
   container: {
-    minHeight: "100vh",
+    height: "100vh",
     backgroundColor: "#FAF9F7",
     fontFamily: "'Cormorant Garamond', Georgia, serif",
     color: "#1A1A1A",
+    overflow: "hidden",
   },
   header: {
     padding: "16px 32px",
@@ -1384,7 +1385,7 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
   };
 
   return (
-    <div style={{ ...styles.container, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ ...styles.container, display: "flex", flexDirection: "column" }}>
       {/* Keyframes for spinner animation */}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       
@@ -1457,12 +1458,12 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
 
       {/* Main Content */}
       {currentStep === 0 ? (
-        // Step 0: AI Chat takes available space
-        <main style={{ ...styles.main, padding: 0, maxWidth: "100%", flex: 1 }}>
+        // Step 0: AI Chat takes available space with contained scrolling
+        <main style={{ ...styles.main, padding: 0, maxWidth: "100%", flex: 1, minHeight: 0, overflow: "hidden" }}>
           {renderStep0()}
         </main>
       ) : (
-        <main style={{ ...styles.main, flex: 1 }}>
+        <main style={{ ...styles.main, flex: 1, minHeight: 0, overflowY: "auto" }}>
           {currentStep === 1 && renderStep1()}
           {currentStep === 2 && renderStep2()}
           {currentStep === 3 && renderStep3()}

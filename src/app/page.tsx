@@ -5,7 +5,7 @@ import Link from "next/link";
 import { colors, typography, spacing, effects, zIndex } from "@/styles/tokens";
 import { FeatureCard, SectionLabel } from "@/components/ui";
 import type { Feature } from "@/types";
-import { Navbar, Footer } from "@/components/layout";
+import { Navbar, Footer, OnboardingBannerAuto } from "@/components/layout";
 import { EmailSignupForm, ContactForm } from "@/components/forms";
 import { CheckIcon } from "@/components/icons/Icons";
 
@@ -255,6 +255,9 @@ export default function LandingPage() {
           .decorative-circle { display: none !important; }
         }
       `}</style>
+
+      {/* Onboarding Banner - shows for logged-in users who haven't completed setup */}
+      <OnboardingBannerAuto />
 
       {/* Navigation */}
       <Navbar isAuthenticated={false} />
