@@ -149,7 +149,7 @@ export default function TemplateSettingsPage() {
               borderRadius: '4px',
             }}
           >
-            localhost:3000/{profile?.username || 'username'}
+            {profile?.username || 'username'}.poseandpoise.studio
           </Link>
         </p>
 
@@ -391,7 +391,7 @@ export default function TemplateSettingsPage() {
                   fontSize: '12px',
                   color: 'rgba(26, 26, 26, 0.5)',
                 }}>
-                  poseandpoise.studio/{profile?.username || 'username'}
+                  {profile?.username || 'username'}.poseandpoise.studio
                 </span>
                 
                 <Link

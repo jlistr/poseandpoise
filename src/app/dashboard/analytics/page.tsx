@@ -33,7 +33,7 @@ export default async function AnalyticsPage() {
     .single();
 
   const portfolioUrl = profile?.username
-    ? `${process.env.NEXT_PUBLIC_SITE_URL || "https://poseandpoise.studio"}/${profile.username}`
+    ? `https://${profile.username}.poseandpoise.studio`
     : null;
 
   return (

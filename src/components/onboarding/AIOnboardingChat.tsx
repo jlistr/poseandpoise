@@ -1150,6 +1150,12 @@ export function AIOnboardingChat({
         body: formData,
       });
 
+      // Check response status before parsing JSON
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "Unknown error");
+        throw new Error(`API error (${response.status}): ${errorText}`);
+      }
+
       const data = await response.json();
 
       if (data.extractedData && Object.keys(data.extractedData).length > 0) {
@@ -1253,6 +1259,12 @@ export function AIOnboardingChat({
         method: "POST",
         body: formData,
       });
+
+      // Check response status before parsing JSON
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "Unknown error");
+        throw new Error(`API error (${response.status}): ${errorText}`);
+      }
 
       const data = await response.json();
 

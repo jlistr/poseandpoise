@@ -569,8 +569,7 @@ export default async function DashboardPage() {
                 color: colors.text.primary,
               }}
             >
-              poseandpoise.studio/
-              <span style={{ color: colors.charcoal }}>{profile.username}</span>
+              <span style={{ color: colors.charcoal }}>{profile.username}</span>.poseandpoise.studio
               {!profile.is_public && (
                 <span
                   style={{

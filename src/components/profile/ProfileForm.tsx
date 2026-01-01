@@ -227,7 +227,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
               color: colors.text.muted,
               marginTop: "6px",
             }}>
-              poseandpoise.studio/{profile.username || "yourname"}
+              {profile.username || "yourname"}.poseandpoise.studio
             </p>
           </div>
         </div>
@@ -646,7 +646,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
           marginTop: "8px",
           marginLeft: "32px",
         }}>
-          When enabled, anyone can view your portfolio at poseandpoise.studio/{profile.username || "yourname"}
+          When enabled, anyone can view your portfolio at {profile.username || "yourname"}.poseandpoise.studio
         </p>
       </div>
 
