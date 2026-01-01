@@ -681,7 +681,32 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
   // =========================================================================
   // AI Onboarding Handlers
   // =========================================================================
-  const handleAIComplete = (aiData: Record<string, unknown>) => {
+  const handleAIComplete = (aiData: {
+    displayName?: string;
+    username?: string;
+    location?: string;
+    instagram?: string;
+    tiktok?: string;
+    website?: string;
+    bio?: string;
+    avatarUrl?: string;
+    heightCm?: string;
+    bustCm?: string;
+    waistCm?: string;
+    hipsCm?: string;
+    shoeSize?: string;
+    hairColor?: string;
+    eyeColor?: string;
+    isRepresented?: boolean;
+    agencyName?: string;
+    agencyContact?: string;
+    agencyWebsite?: string;
+    servicesTitle?: string;
+    services?: Array<{ title: string; description: string; price: string }>;
+    selectedTemplate?: string;
+    photos?: Array<{ url: string; photographer?: string; studio?: string; instagram?: string }>;
+    experienceLevel?: "beginner" | "intermediate" | "professional";
+  }) => {
     // Apply extracted data from AI chat
     const updates: Partial<OnboardingData> = {};
     

@@ -36,8 +36,8 @@ async function getIdentities(userId: string): Promise<{
     email: identity.identity_data?.email || null,
     name: identity.identity_data?.full_name || identity.identity_data?.name || null,
     avatarUrl: identity.identity_data?.avatar_url || identity.identity_data?.picture || null,
-    createdAt: identity.created_at,
-    lastSignInAt: identity.last_sign_in_at,
+    createdAt: identity.created_at || new Date().toISOString(),
+    lastSignInAt: identity.last_sign_in_at || null,
   }));
 
   return {

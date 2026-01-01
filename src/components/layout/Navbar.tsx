@@ -184,7 +184,7 @@ export function Navbar({
                     letterSpacing: typography.letterSpacing.wider,
                     textTransform: "uppercase",
                     padding: "8px 16px",
-                    background: `linear-gradient(135deg, ${colors.accent?.rose || '#FF7AA2'} 0%, ${colors.accent?.gold || '#C4A484'} 100%)`,
+                    background: `linear-gradient(135deg, #FF7AA2 0%, ${colors.accent.solid} 100%)`,
                     color: "#FFFFFF",
                     textDecoration: "none",
                     borderRadius: "6px",
@@ -295,7 +295,7 @@ export function Navbar({
                       boxShadow: "0 4px 20px rgba(0,0,0,0.12)",
                       border: `1px solid ${colors.border.divider}`,
                       overflow: "hidden",
-                      zIndex: zIndex.dropdown || 1000,
+                      zIndex: zIndex.modal,
                     }}
                   >
                     {/* User Info Header */}

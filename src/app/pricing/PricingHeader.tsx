@@ -224,7 +224,7 @@ export function PricingHeader({ isLoggedIn, user, currentTier }: PricingHeaderPr
                       boxShadow: "0 4px 20px rgba(0,0,0,0.12)",
                       border: `1px solid ${colors.border.divider}`,
                       overflow: "hidden",
-                      zIndex: zIndex.dropdown || 1000,
+                      zIndex: zIndex.modal,
                     }}
                   >
                     {/* User Info Header */}
