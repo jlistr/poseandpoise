@@ -12,6 +12,14 @@ export async function POST(request: Request) {
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
+    const photographer = formData.get("photographer") as string | null;
+    const studio = formData.get("studio") as string | null;
+    const visibleStr = formData.get("visible") as string | null;
+    const orderStr = formData.get("order") as string | null;
+
+    // Parse optional fields
+    const isVisible = visibleStr !== "false"; // Default to true
+    const sortOrder = orderStr ? parseInt(orderStr, 10) : null;
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });

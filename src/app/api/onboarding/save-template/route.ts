@@ -13,7 +13,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { templateId } = await request.json();
+    const body = await request.json();
+    // Support both snake_case (from frontend) and camelCase field names
+    const templateId = body.template_id || body.templateId;
 
     if (!templateId || !VALID_TEMPLATES.includes(templateId)) {
       return NextResponse.json(
