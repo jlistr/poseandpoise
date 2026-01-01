@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { AIOnboardingChat } from "./AIOnboardingChat";
+import { ProfileStep } from "./ProfileStep";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
@@ -757,129 +758,46 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
     />
   );
   
+  // Handler for ProfileStep component
+  const handleProfileStepContinue = (profileData: {
+    displayName: string;
+    username: string;
+    location: string;
+    instagram: string;
+    tiktok: string;
+    website: string;
+    agency: string;
+  }) => {
+    updateData({
+      displayName: profileData.displayName,
+      username: profileData.username,
+      location: profileData.location,
+      instagram: profileData.instagram,
+      tiktok: profileData.tiktok,
+      website: profileData.website,
+    });
+    handleNext();
+  };
+
+  const handleProfileStepSkip = () => {
+    handleSkip();
+  };
+
   const renderStep1 = () => (
-    <>
-      <div style={styles.stepHeader}>
-        <p style={styles.stepLabel}>Step 1 of 5</p>
-        <h1 style={styles.stepTitle}>Set Up Your Profile</h1>
-        <p style={styles.stepDescription}>
-          Let&apos;s start with the basics. Tell us who you are and how people can find you.
-        </p>
-      </div>
-      
-      <div style={styles.form}>
-        <div style={styles.fieldGroup}>
-          <label style={styles.label}>Display Name *</label>
-          <input
-            type="text"
-            placeholder="Your professional name"
-            value={data.displayName}
-            onChange={(e) => updateData({ displayName: e.target.value })}
-            style={styles.input}
-            required
-          />
-        </div>
-        
-        <div style={styles.fieldGroup}>
-          <label style={styles.label}>Username *</label>
-          <input
-            type="text"
-            placeholder="yourname (for your portfolio URL)"
-            value={data.username}
-            onChange={(e) => updateData({ username: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "") })}
-            style={styles.input}
-            required
-          />
-          <p style={{ ...styles.stepDescription, fontSize: "12px", marginTop: "4px" }}>
-            Your portfolio will be at poseandpoise.com/{data.username || "yourname"}
-          </p>
-        </div>
-        
-        <div style={styles.fieldGroup}>
-          <label style={styles.label}>Location</label>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <input
-              type="text"
-              placeholder="City, Country"
-              value={data.location}
-              onChange={(e) => updateData({ location: e.target.value })}
-              style={{ ...styles.input, flex: 1 }}
-            />
-            <button
-              type="button"
-              onClick={handleGetLocation}
-              disabled={locationLoading}
-              style={{
-                padding: "14px 16px",
-                border: "1px solid rgba(26, 26, 26, 0.15)",
-                borderRadius: "8px",
-                backgroundColor: "white",
-                cursor: locationLoading ? "wait" : "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "all 0.2s ease",
-              }}
-              title="Get my location"
-            >
-              {locationLoading ? (
-                <svg 
-                  width="20" 
-                  height="20" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="rgba(26,26,26,0.4)" 
-                  strokeWidth="2"
-                  style={{ animation: "spin 1s linear infinite" }}
-                >
-                  <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" />
-                </svg>
-              ) : (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(26,26,26,0.6)" strokeWidth="2">
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-                  <circle cx="12" cy="12" r="8" strokeDasharray="2 4" />
-                </svg>
-              )}
-            </button>
-          </div>
-        </div>
-        
-        <div style={styles.row}>
-          <div style={styles.fieldGroup}>
-            <label style={styles.label}>Instagram</label>
-            <input
-              type="text"
-              placeholder="@handle"
-              value={data.instagram}
-              onChange={(e) => updateData({ instagram: e.target.value })}
-              style={styles.input}
-            />
-          </div>
-          <div style={styles.fieldGroup}>
-            <label style={styles.label}>TikTok</label>
-            <input
-              type="text"
-              placeholder="@handle"
-              value={data.tiktok}
-              onChange={(e) => updateData({ tiktok: e.target.value })}
-              style={styles.input}
-            />
-          </div>
-        </div>
-        
-        <div style={styles.fieldGroup}>
-          <label style={styles.label}>Website</label>
-          <input
-            type="url"
-            placeholder="https://yourwebsite.com"
-            value={data.website}
-            onChange={(e) => updateData({ website: e.target.value })}
-            style={styles.input}
-          />
-        </div>
-      </div>
-    </>
+    <ProfileStep
+      onContinue={handleProfileStepContinue}
+      onSkip={handleProfileStepSkip}
+      standalone={false}
+      initialData={{
+        displayName: data.displayName,
+        username: data.username,
+        location: data.location,
+        instagram: data.instagram,
+        tiktok: data.tiktok,
+        website: data.website,
+        agency: "",
+      }}
+    />
   );
 
   const renderStep2 = () => (
