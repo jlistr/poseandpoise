@@ -32,18 +32,22 @@ interface PhotoGridProps {
 }
 
 export function PhotoGrid({ initialPhotos, onSave, onDelete, onUpdateCaption }: PhotoGridProps) {
-  const router = useRouter();
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showUploader, setShowUploader] = useState(false);
 
-  const handleUploadComplete = useCallback(() => {
-    // Refresh the page to get new photos from the server
-    router.refresh();
-    setShowUploader(false);
-  }, [router]);
+  const handleUploadComplete = useCallback((uploadedPhotos: UploadedPhoto[]) => {
+    // Add newly uploaded photos to state (they come with is_visible defaulting to true from the server)
+    const newPhotos: Photo[] = uploadedPhotos.map((p) => ({
+      ...p,
+      is_visible: true, // Default to visible
+    }));
+    
+    setPhotos((prev) => [...prev, ...newPhotos]);
+    // Keep the uploader open for more uploads
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

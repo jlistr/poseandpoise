@@ -1,10 +1,13 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { PhotoGrid } from '@/components/photos';
-import { revalidatePath } from 'next/cache';
-import type { Photo, PhotoUpdate } from '@/types/photo';
+import { MediaLibrary } from '@/components/photos/MediaLibrary';
 
-export default async function PhotosPage() {
+export const metadata = {
+  title: 'Media Library | Pose & Poise',
+  description: 'Track photo performance and engagement analytics',
+};
+
+export default async function MediaLibraryPage() {
   const supabase = await createClient();
 
   // Get current user
@@ -14,10 +17,17 @@ export default async function PhotosPage() {
     redirect('/login');
   }
 
-  // Fetch photos ordered by sort_order
+  // Get user's username for portfolio editor link
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('username')
+    .eq('id', user.id)
+    .single();
+
+  // Fetch photos with analytics data
   const { data: photos, error: photosError } = await supabase
     .from('photos')
-    .select('*')
+    .select('id, url, thumbnail_url, caption, sort_order, is_visible, view_count, click_count, created_at')
     .eq('profile_id', user.id)
     .order('sort_order', { ascending: true });
 
@@ -25,133 +35,24 @@ export default async function PhotosPage() {
     console.error('Error fetching photos:', photosError);
   }
 
-  // Normalize photos to ensure is_visible exists (defaults to true)
-  const normalizedPhotos: Photo[] = (photos || []).map((photo) => ({
+  // Normalize photos with defaults
+  const normalizedPhotos = (photos || []).map((photo) => ({
     ...photo,
     is_visible: photo.is_visible ?? true,
+    view_count: photo.view_count ?? 0,
+    click_count: photo.click_count ?? 0,
   }));
 
-  // Server action: Save photo order and visibility
-  async function savePhotos(updates: PhotoUpdate[]) {
-    'use server';
-    
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('Not authenticated');
-    }
-
-    for (const update of updates) {
-      const { error } = await supabase
-        .from('photos')
-        .update({
-          sort_order: update.sort_order,
-          is_visible: update.is_visible,
-        })
-        .eq('id', update.id)
-        .eq('profile_id', user.id);
-
-      if (error) {
-        console.error('Error updating photo:', update.id, error);
-        throw new Error(`Failed to update photo: ${error.message}`);
-      }
-    }
-
-    revalidatePath('/dashboard/photos');
-  }
-
-  // Server action: Update photo caption
-  async function updateCaption(photoId: string, caption: string) {
-    'use server';
-    
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('Not authenticated');
-    }
-
-    const { error } = await supabase
-      .from('photos')
-      .update({
-        caption: caption || null,
-      })
-      .eq('id', photoId)
-      .eq('profile_id', user.id);
-
-    if (error) {
-      console.error('Error updating caption:', error);
-      throw new Error(`Failed to update caption: ${error.message}`);
-    }
-
-    revalidatePath('/dashboard/photos');
-  }
-
-  // Server action: Delete a photo
-  async function deletePhoto(photoId: string) {
-    'use server';
-    
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('Not authenticated');
-    }
-
-    // Get the photo to delete from storage as well
-    const { data: photo } = await supabase
-      .from('photos')
-      .select('url, thumbnail_url')
-      .eq('id', photoId)
-      .eq('profile_id', user.id)
-      .single();
-
-    if (photo) {
-      try {
-        const urlPath = new URL(photo.url).pathname;
-        const storagePath = urlPath.split('/storage/v1/object/public/portfolio-photos/')[1];
-        
-        if (storagePath) {
-          await supabase.storage
-            .from('portfolio-photos')
-            .remove([storagePath]);
-        }
-
-        if (photo.thumbnail_url) {
-          const thumbPath = new URL(photo.thumbnail_url).pathname;
-          const thumbStoragePath = thumbPath.split('/storage/v1/object/public/portfolio-photos/')[1];
-          if (thumbStoragePath) {
-            await supabase.storage
-              .from('portfolio-photos')
-              .remove([thumbStoragePath]);
-          }
-        }
-      } catch (storageError) {
-        console.error('Error deleting from storage:', storageError);
-      }
-    }
-
-    const { error } = await supabase
-      .from('photos')
-      .delete()
-      .eq('id', photoId)
-      .eq('profile_id', user.id);
-
-    if (error) {
-      console.error('Error deleting photo:', error);
-      throw new Error(`Failed to delete photo: ${error.message}`);
-    }
-
-    revalidatePath('/dashboard/photos');
-  }
+  // Calculate totals
+  const totalViews = normalizedPhotos.reduce((sum, p) => sum + p.view_count, 0);
+  const totalClicks = normalizedPhotos.reduce((sum, p) => sum + p.click_count, 0);
 
   return (
-    <PhotoGrid
-      initialPhotos={normalizedPhotos}
-      onSave={savePhotos}
-      onDelete={deletePhoto}
-      onUpdateCaption={updateCaption}
+    <MediaLibrary
+      photos={normalizedPhotos}
+      totalViews={totalViews}
+      totalClicks={totalClicks}
+      username={profile?.username || null}
     />
   );
 }

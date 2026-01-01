@@ -7,7 +7,7 @@ import styles from './DashboardNav.module.css';
 const navItems = [
   { href: '/dashboard', label: 'Overview', icon: OverviewIcon },
   { href: '/dashboard/profile', label: 'Profile', icon: ProfileIcon },
-  { href: '/dashboard/photos', label: 'Photos', icon: PhotosIcon },
+  { href: '/dashboard/photos', label: 'Media', icon: PhotosIcon },
   { href: '/dashboard/templates', label: 'Templates', icon: TemplatesIcon },
   { href: '/dashboard/comp-card', label: 'Comp Card', icon: CompCardIcon },
   { href: '/dashboard/calendar', label: 'Calendar', icon: CalendarIcon },
