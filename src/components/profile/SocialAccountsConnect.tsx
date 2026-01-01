@@ -17,13 +17,16 @@ interface SocialAccount {
 
 interface SocialAccountsConnectProps {
   onAccountConnected?: (platform: string, username: string) => void;
+  onAccountDisconnected?: (platform: string) => void;
 }
 
-export function SocialAccountsConnect({ onAccountConnected }: SocialAccountsConnectProps) {
+export function SocialAccountsConnect({ onAccountConnected, onAccountDisconnected }: SocialAccountsConnectProps) {
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
+  const [disconnecting, setDisconnecting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   // Fetch connected accounts
   const fetchAccounts = useCallback(async () => {
@@ -57,6 +60,7 @@ export function SocialAccountsConnect({ onAccountConnected }: SocialAccountsConn
   const handleConnect = async (platform: 'instagram' | 'tiktok') => {
     setConnecting(platform);
     setError(null);
+    setSuccess(null);
 
     try {
       const response = await fetch('/api/social/connect', {
@@ -84,6 +88,7 @@ export function SocialAccountsConnect({ onAccountConnected }: SocialAccountsConn
               // Refresh accounts after popup closes
               await fetchAccounts();
               setConnecting(null);
+              setSuccess(`${platform} connection flow completed. Refresh to see changes.`);
             }
           } catch {
             // Cross-origin errors are expected, ignore them
@@ -95,12 +100,61 @@ export function SocialAccountsConnect({ onAccountConnected }: SocialAccountsConn
           clearInterval(pollInterval);
           setConnecting(null);
         }, 300000);
+      } else {
+        // Popup was blocked, just set connecting to null
+        setConnecting(null);
       }
     } catch (err) {
       console.error('Error connecting:', err);
       setError(`Failed to connect ${platform}`);
       setConnecting(null);
     }
+  };
+
+  // Disconnect an account
+  const handleDisconnect = async (account: SocialAccount) => {
+    if (!confirm(`Are you sure you want to disconnect your ${account.platform} account (@${account.username})?`)) {
+      return;
+    }
+
+    setDisconnecting(account.id);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await fetch('/api/social/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountId: account.id }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to disconnect account');
+      }
+
+      // Remove from local state
+      setAccounts(prev => prev.filter(a => a.id !== account.id));
+      setSuccess(`${account.platform} account disconnected successfully`);
+      
+      // Notify parent
+      if (onAccountDisconnected) {
+        onAccountDisconnected(account.platform);
+      }
+    } catch (err) {
+      console.error('Error disconnecting:', err);
+      setError(err instanceof Error ? err.message : `Failed to disconnect ${account.platform}`);
+    } finally {
+      setDisconnecting(null);
+    }
+  };
+
+  // Refresh accounts manually
+  const handleRefresh = async () => {
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    await fetchAccounts();
   };
 
   const instagramAccount = accounts.find(a => a.platform === 'instagram');
@@ -121,6 +175,17 @@ export function SocialAccountsConnect({ onAccountConnected }: SocialAccountsConn
     textTransform: 'uppercase' as const,
     cursor: 'pointer',
     transition: 'all 0.3s ease',
+  };
+
+  const disconnectButtonStyle = {
+    padding: '6px 12px',
+    background: 'transparent',
+    color: colors.text.muted,
+    border: `1px solid ${colors.border.light}`,
+    fontFamily: typography.fontFamily.body,
+    fontSize: typography.fontSize.caption,
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
   };
 
   const connectedStyle = {
@@ -148,6 +213,32 @@ export function SocialAccountsConnect({ onAccountConnected }: SocialAccountsConn
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.gap.md }}>
+      {/* Header with refresh button */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{
+          fontFamily: typography.fontFamily.body,
+          fontSize: typography.fontSize.bodySmall,
+          fontWeight: 500,
+          color: colors.text.primary,
+        }}>
+          Connect Social Accounts
+        </span>
+        <button
+          onClick={handleRefresh}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: colors.text.muted,
+            fontSize: typography.fontSize.caption,
+            cursor: 'pointer',
+            textDecoration: 'underline',
+            fontFamily: typography.fontFamily.body,
+          }}
+        >
+          Refresh
+        </button>
+      </div>
+
       {error && (
         <div style={{
           padding: spacing.padding.sm,
@@ -158,6 +249,19 @@ export function SocialAccountsConnect({ onAccountConnected }: SocialAccountsConn
           fontFamily: typography.fontFamily.body,
         }}>
           {error}
+        </div>
+      )}
+
+      {success && (
+        <div style={{
+          padding: spacing.padding.sm,
+          background: 'rgba(40, 167, 69, 0.1)',
+          border: '1px solid rgba(40, 167, 69, 0.3)',
+          color: '#28a745',
+          fontSize: typography.fontSize.bodySmall,
+          fontFamily: typography.fontFamily.body,
+        }}>
+          {success}
         </div>
       )}
 
@@ -204,13 +308,17 @@ export function SocialAccountsConnect({ onAccountConnected }: SocialAccountsConn
                 {instagramAccount.displayName}
               </p>
             </div>
-            <span style={{
-              fontSize: typography.fontSize.caption,
-              color: colors.accent.solid,
-              fontWeight: 500,
-            }}>
-              ✓ Connected
-            </span>
+            <button
+              onClick={() => handleDisconnect(instagramAccount)}
+              disabled={disconnecting === instagramAccount.id}
+              style={{
+                ...disconnectButtonStyle,
+                opacity: disconnecting === instagramAccount.id ? 0.5 : 1,
+                cursor: disconnecting === instagramAccount.id ? 'wait' : 'pointer',
+              }}
+            >
+              {disconnecting === instagramAccount.id ? 'Disconnecting...' : 'Disconnect'}
+            </button>
           </div>
         ) : (
           <button
@@ -271,13 +379,17 @@ export function SocialAccountsConnect({ onAccountConnected }: SocialAccountsConn
                 {tiktokAccount.displayName}
               </p>
             </div>
-            <span style={{
-              fontSize: typography.fontSize.caption,
-              color: colors.accent.solid,
-              fontWeight: 500,
-            }}>
-              ✓ Connected
-            </span>
+            <button
+              onClick={() => handleDisconnect(tiktokAccount)}
+              disabled={disconnecting === tiktokAccount.id}
+              style={{
+                ...disconnectButtonStyle,
+                opacity: disconnecting === tiktokAccount.id ? 0.5 : 1,
+                cursor: disconnecting === tiktokAccount.id ? 'wait' : 'pointer',
+              }}
+            >
+              {disconnecting === tiktokAccount.id ? 'Disconnecting...' : 'Disconnect'}
+            </button>
           </div>
         ) : (
           <button
@@ -324,4 +436,3 @@ function TikTokIcon({ style }: { style?: React.CSSProperties }) {
     </svg>
   );
 }
-
