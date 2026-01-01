@@ -1,0 +1,113 @@
+---
+alwaysApply: true
+description: Enforces Pose & Poise brand style guide for all UI/styling work
+---
+
+# Pose & Poise Brand Style Guide — STRICT ENFORCEMENT
+
+When writing CSS, styling components, or creating UI for this project, you MUST follow these standards exactly. Do not deviate.
+
+## Typography — REQUIRED
+
+**Fonts (no substitutes allowed):**
+- Display/Headlines: `'Cormorant Garamond', Georgia, serif` (weights: 300, 400, 500, 600)
+- Body/UI: `'Outfit', sans-serif` (weights: 300, 400, 500)
+
+**FORBIDDEN fonts:** Inter, Roboto, Arial, system-ui, sans-serif (as primary)
+
+**Type Scale:**
+| Element | Size | Weight | Font |
+|---------|------|--------|------|
+| Hero H1 | `clamp(48px, 8vw, 96px)` | 300 | Cormorant Garamond |
+| Section H2 | `clamp(36px, 6vw, 64px)` | 300 | Cormorant Garamond |
+| Card H3 | `24px` | 400 | Cormorant Garamond |
+| Body | `15px-16px` | 300 | Outfit |
+| Label/Overline | `12px` | 400, uppercase, `letter-spacing: 4px` | Outfit |
+
+## Colors — EXACT VALUES REQUIRED
+
+```css
+--color-cream: #FAF9F7;      /* Primary background */
+--color-charcoal: #1A1A1A;   /* Text, buttons, dark sections */
+--color-camel: #C4A484;      /* Accent, CTAs, highlights */
+--color-white: #FFFFFF;      /* Cards, feature backgrounds */
+```
+
+**Text opacity levels:**
+- Secondary: `rgba(26, 26, 26, 0.7)`
+- Tertiary: `rgba(26, 26, 26, 0.6)`
+- Muted: `rgba(26, 26, 26, 0.4)`
+
+**FORBIDDEN:** Purple gradients, blue accents, generic grays (#666, #999, etc.)
+
+## Border Radius — STRICT
+
+Use `border-radius: 0` throughout for sharp, editorial aesthetic.
+**Only exceptions:** Decorative circles (`50%`), code blocks (`4px`)
+
+**FORBIDDEN:** Rounded corners on buttons, cards, inputs, or containers
+
+## Buttons — EXACT SPEC
+
+```css
+.button {
+  background: #1A1A1A;
+  color: #FAF9F7;
+  padding: 18px 48px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 0;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.button:hover {
+  background: #C4A484;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px rgba(196, 164, 132, 0.3);
+}
+```
+
+## Transitions & Animations
+
+- Primary easing: `cubic-bezier(0.4, 0, 0.2, 1)` with `0.4s` duration
+- Simple easing: `0.3s ease`
+- Entrance animation: `fadeUp` (translateY 30px → 0, opacity 0 → 1)
+
+## Cards & Glass Effects
+
+```css
+.card {
+  padding: 40px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(26, 26, 26, 0.05);
+  border-radius: 0;
+}
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.06);
+  border-color: rgba(196, 164, 132, 0.3);
+}
+```
+
+## Spacing Scale
+
+| Name | Value | Usage |
+|------|-------|-------|
+| Section XL | 140px | CTA sections |
+| Section L | 120px | Feature sections |
+| Section M | 80px | Main content |
+| Container | 48px | Page padding |
+| Card | 40px | Feature cards |
+
+## ENFORCEMENT
+
+Before writing any CSS or styling:
+1. Reference this guide for exact values
+2. Use CSS variables from `src/styles/tokens.ts` or `globals.css` when available
+3. Never approximate colors—use exact hex values
+4. Never use rounded corners except where explicitly allowed
+5. Always use Cormorant Garamond for headlines, Outfit for body text

@@ -2151,9 +2151,133 @@ export function OnboardingWizard({
     setPhotos((prev) => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
   };
 
-  const handleLaunchPortfolio = (): void => {
-    // TODO: Implement actual portfolio launch logic
-    alert('Portfolio launched successfully! 🚀');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const handleLaunchPortfolio = async (): Promise<void> => {
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      // 1. Save profile data
+      const profileFormData = new FormData();
+      profileFormData.append('username', profileData.username.toLowerCase().trim());
+      profileFormData.append('display_name', profileData.displayName.trim());
+      if (profileData.location) profileFormData.append('location', profileData.location.trim());
+      if (profileData.instagram) profileFormData.append('instagram', profileData.instagram.trim());
+      if (profileData.tiktok) profileFormData.append('tiktok', profileData.tiktok.trim());
+      if (profileData.website) profileFormData.append('website', profileData.website.trim());
+      if (profileData.agency) profileFormData.append('agency', profileData.agency.trim());
+      
+      // Add about data to profile
+      if (aboutData.bio) profileFormData.append('bio', aboutData.bio.trim());
+      if (aboutData.stats.hairColor) profileFormData.append('hair_color', aboutData.stats.hairColor.trim());
+      if (aboutData.stats.eyeColor) profileFormData.append('eye_color', aboutData.stats.eyeColor.trim());
+      if (aboutData.stats.shoes) profileFormData.append('shoe_size', aboutData.stats.shoes.trim());
+      
+      // Convert measurements to cm if needed (assuming they're in inches with " suffix)
+      const parseHeight = (h: string): number | null => {
+        // Handle formats like "5'9\"" or "175"
+        const feetInches = h.match(/(\d+)'(\d+)"/);
+        if (feetInches) {
+          const feet = parseInt(feetInches[1], 10);
+          const inches = parseInt(feetInches[2], 10);
+          return Math.round((feet * 12 + inches) * 2.54);
+        }
+        const cm = parseInt(h, 10);
+        return isNaN(cm) ? null : cm;
+      };
+      
+      const parseMeasurement = (m: string): number | null => {
+        // Handle formats like "32\"" or "81"
+        const inches = m.replace('"', '').trim();
+        const num = parseInt(inches, 10);
+        if (isNaN(num)) return null;
+        // If it looks like inches (< 60), convert to cm
+        return num < 60 ? Math.round(num * 2.54) : num;
+      };
+
+      if (aboutData.stats.height) {
+        const heightCm = parseHeight(aboutData.stats.height);
+        if (heightCm) profileFormData.append('height_cm', heightCm.toString());
+      }
+      if (aboutData.stats.bust) {
+        const bustCm = parseMeasurement(aboutData.stats.bust);
+        if (bustCm) profileFormData.append('bust_cm', bustCm.toString());
+      }
+      if (aboutData.stats.waist) {
+        const waistCm = parseMeasurement(aboutData.stats.waist);
+        if (waistCm) profileFormData.append('waist_cm', waistCm.toString());
+      }
+      if (aboutData.stats.hips) {
+        const hipsCm = parseMeasurement(aboutData.stats.hips);
+        if (hipsCm) profileFormData.append('hips_cm', hipsCm.toString());
+      }
+
+      const profileResponse = await fetch('/api/onboarding/update-profile', {
+        method: 'POST',
+        body: profileFormData,
+      });
+
+      if (!profileResponse.ok) {
+        const data = await profileResponse.json();
+        throw new Error(data.error || 'Failed to save profile');
+      }
+
+      // 2. Save services data
+      const selectedCategories = servicesData.categories.filter(c => c.selected);
+      if (selectedCategories.length > 0) {
+        const services = selectedCategories.map(cat => ({
+          title: cat.name,
+          description: cat.description,
+          price: servicesData.pricing.hourly ? `$${servicesData.pricing.hourly}/hr` : '',
+        }));
+
+        const servicesResponse = await fetch('/api/onboarding/save-services', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ services }),
+        });
+
+        if (!servicesResponse.ok) {
+          const data = await servicesResponse.json();
+          throw new Error(data.error || 'Failed to save services');
+        }
+      }
+
+      // 3. Save template selection
+      if (selectedTemplate) {
+        const templateResponse = await fetch('/api/onboarding/save-template', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ templateId: selectedTemplate }),
+        });
+
+        if (!templateResponse.ok) {
+          const data = await templateResponse.json();
+          throw new Error(data.error || 'Failed to save template');
+        }
+      }
+
+      // 4. Mark onboarding as complete
+      const completeResponse = await fetch('/api/onboarding/complete', {
+        method: 'POST',
+      });
+
+      if (!completeResponse.ok) {
+        const data = await completeResponse.json();
+        throw new Error(data.error || 'Failed to complete onboarding');
+      }
+
+      // Success! Redirect to dashboard
+      router.push('/dashboard');
+      
+    } catch (error) {
+      console.error('Launch portfolio error:', error);
+      setSaveError(error instanceof Error ? error.message : 'Failed to launch portfolio. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleBack = (): void => {
@@ -2249,11 +2373,17 @@ export function OnboardingWizard({
       </header>
 
       {/* Main Content */}
-      <main className="max-w-2xl mx-auto px-6 pt-12 pb-24">
+      <main 
+        className="max-w-2xl mx-auto px-6 pt-12 pb-24"
+        style={{ maxWidth: '42rem', marginLeft: 'auto', marginRight: 'auto', paddingLeft: '1.5rem', paddingRight: '1.5rem', paddingTop: '3rem', paddingBottom: '6rem' }}
+      >
         <StepIndicator steps={steps} />
 
         {/* Form Card */}
-        <div className="bg-white rounded-2xl p-8 shadow-sm" style={{ border: `1px solid ${colors.border}` }}>
+        <div 
+          className="bg-white p-8 shadow-sm"
+          style={{ backgroundColor: 'white', borderRadius: 0, padding: '2rem', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)', border: `1px solid ${colors.border}` }}
+        >
           {currentStep === 'profile' && (
             <ProfileStepContent
               formData={profileData}
@@ -2317,6 +2447,16 @@ export function OnboardingWizard({
             />
           )}
 
+          {/* Error Message */}
+          {saveError && (
+            <div 
+              className="mt-6 p-4 text-sm"
+              style={{ backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626', borderRadius: 0 }}
+            >
+              {saveError}
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex gap-3 mt-8">
             {currentStep !== 'profile' && (
@@ -2354,11 +2494,21 @@ export function OnboardingWizard({
               <button
                 type="button"
                 onClick={handleLaunchPortfolio}
-                className="flex-1 py-3 px-6 rounded-lg text-sm font-medium transition-all hover:opacity-90 flex items-center justify-center gap-2"
+                disabled={isSaving}
+                className="flex-1 py-3 px-6 rounded-lg text-sm font-medium transition-all hover:opacity-90 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: colors.camel, color: colors.white }}
               >
-                <RocketIcon size={16} />
-                LAUNCH PORTFOLIO
+                {isSaving ? (
+                  <>
+                    <span className="animate-spin">⏳</span>
+                    LAUNCHING...
+                  </>
+                ) : (
+                  <>
+                    <RocketIcon size={16} />
+                    LAUNCH PORTFOLIO
+                  </>
+                )}
               </button>
             )}
           </div>

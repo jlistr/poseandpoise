@@ -212,8 +212,10 @@ export function ProfileStep({ onContinue, onSkip, initialData, standalone = true
   // Location detection on mount
   useEffect(() => {
     const detectLocation = async () => {
-      // Skip if location already set
-      if (formData.location) {
+      // Skip if location already provided via initialData prop
+      // Note: We check initialData directly instead of formData to avoid stale closure issues
+      // since this effect runs on mount before the sync effect updates formData
+      if (initialData?.location) {
         setLocationStatus("found");
         return;
       }
@@ -291,7 +293,7 @@ export function ProfileStep({ onContinue, onSkip, initialData, standalone = true
     };
 
     detectLocation();
-  }, []); // Only run on mount
+  }, [initialData?.location]); // Run on mount and if initialData.location changes
 
   // Handle form submission
   const handleContinue = () => {
