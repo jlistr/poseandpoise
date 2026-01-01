@@ -26,25 +26,6 @@ export function ServicesPage({ data }: ServicesPageProps) {
     ? compCards.find(c => c.id === selectedCompCardId) 
     : compCards.find(c => c.isPrimary);
   
-  // Debug logging (remove in production)
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-    console.log('[ServicesPage] Comp Card Debug:', {
-      selectedCompCardId,
-      compCardsCount: compCards.length,
-      selectedCompCard: selectedCompCard ? {
-        id: selectedCompCard.id,
-        name: selectedCompCard.name,
-        uploadedFileUrl: selectedCompCard.uploadedFileUrl,
-        pdfUrl: selectedCompCard.pdfUrl,
-        photoIds: selectedCompCard.photoIds,
-      } : null,
-      hasUploadedImage,
-      hasPdfOnly,
-      hasUploadedCompCard,
-      compCardPhotosCount: compCardPhotos.length,
-    });
-  }
-  
   // Get photos for the comp card - use photoIds if available, otherwise fall back to first 4 photos
   const compCardPhotos = (() => {
     if (!selectedCompCard) {
