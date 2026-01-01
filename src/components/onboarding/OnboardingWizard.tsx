@@ -1,54 +1,41 @@
-"use client";
+'use client';
 
-import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
-import Link from "next/link";
-import { AIOnboardingChat } from "./AIOnboardingChat";
-import { ProfileStep } from "./ProfileStep";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
+import React, { useState, useEffect, useRef, type ChangeEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import { Check, MapPin, Instagram, Globe, Building2, Sparkles, ChevronRight, ChevronLeft } from 'lucide-react';
 
-// Template metadata (inline to avoid import issues)
-const TEMPLATE_OPTIONS = [
-  {
-    id: 'rose',
-    name: 'Rosé',
-    description: 'Soft editorial blush with feminine elegance',
-    isPremium: false,
-    accentColor: '#FF7AA2',
-  },
-  {
-    id: 'poise',
-    name: 'Poise',
-    description: 'Timeless elegance with warm neutrals',
-    isPremium: false,
-    accentColor: '#C4A484',
-  },
-  {
-    id: 'lumiere',
-    name: 'Lumière',
-    description: 'Golden hour warmth with editorial flair',
-    isPremium: false,
-    accentColor: '#C8553D',
-  },
-  {
-    id: 'noir',
-    name: 'Noir',
-    description: 'Bold monochrome with dramatic contrast',
-    isPremium: true,
-    accentColor: '#FFFFFF',
-  },
-];
-
-// Step labels for progress indicator (Step 0 = AI Setup)
-const STEP_LABELS = ['AI Setup', 'Profile', 'About', 'Services', 'Template', 'Photos'];
-
-// =============================================================================
+// ============================================================================
 // Types
-// =============================================================================
-interface OnboardingData {
-  // Step 1: Profile
+// ============================================================================
+
+type LocationStatus = 'idle' | 'detecting' | 'found' | 'error';
+type CurrentStep = 'profile' | 'about' | 'services' | 'template' | 'photos';
+type UploadType = 'profile' | 'analyzer' | 'scanner' | null;
+type ExperienceLevel = 'beginner' | 'intermediate' | 'professional' | 'expert';
+
+interface ServiceCategory {
+  id: string;
+  name: string;
+  description: string;
+  selected: boolean;
+}
+
+interface PricingTier {
+  hourly: string;
+  halfDay: string;
+  fullDay: string;
+}
+
+interface ServicesFormData {
+  experienceLevel: ExperienceLevel;
+  categories: ServiceCategory[];
+  pricing: PricingTier;
+  travelAvailable: boolean;
+  travelRadius: string;
+  tfpAvailable: boolean;
+}
+
+interface ProfileFormData {
   displayName: string;
   username: string;
   location: string;
@@ -56,1666 +43,2359 @@ interface OnboardingData {
   tiktok: string;
   website: string;
   agency: string;
-  
-  // Step 2: About
-  bio: string;
-  avatarUrl: string | null;
-  avatarFile: File | null;
-  heightCm: string;
-  bustCm: string;
-  waistCm: string;
-  hipsCm: string;
-  shoeSize: string;
+}
+
+interface ModelStats {
+  height: string;
+  bust: string;
+  waist: string;
+  hips: string;
+  shoes: string;
+  dress: string;
   hairColor: string;
   eyeColor: string;
+}
+
+interface AboutFormData {
+  stats: ModelStats;
+  bio: string;
+  profilePhoto: string | null;
+}
+
+interface OnboardingStep {
+  id: CurrentStep;
+  name: string;
+  completed: boolean;
+  current: boolean;
+}
+
+interface Template {
+  id: string;
+  name: string;
+  description: string;
+  accentColor: string;
+  bgColor: string;
+  textColor: string;
+  isPro: boolean;
+}
+
+interface PortfolioPhoto {
+  id: string;
+  url: string;
+  photographer: string;
+  studio: string;
+  visible: boolean;
+  order: number;
+}
+
+// ============================================================================
+// Design Tokens
+// ============================================================================
+
+const colors = {
+  cream: '#FAF9F6',
+  charcoal: '#2D2D2D',
+  camel: '#C4A484',
+  white: '#FFFFFF',
+  border: '#E8E4DE',
+  borderLight: 'rgba(44, 44, 44, 0.05)',
+  textPrimary: '#2D2D2D',
+  textSecondary: '#666',
+  textMuted: '#999',
+  success: '#4CAF50',
+  successLight: '#E8F5E9',
+  instagram: '#E1306C',
+};
+
+// ============================================================================
+// Icons
+// ============================================================================
+
+const TikTokIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className ?? 'w-4 h-4'} aria-hidden="true">
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+  </svg>
+);
+
+const PhotoIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
+    <circle cx="8.5" cy="10.5" r="1.5" stroke="currentColor" strokeWidth="1.5" />
+    <path d="M21 15L16.5 11.5L12 15L8.5 12.5L3 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const ScanIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <path d="M3 7V5C3 3.89543 3.89543 3 5 3H7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M17 3H19C20.1046 3 21 3.89543 21 5V7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M21 17V19C21 20.1046 20.1046 21 19 21H17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M7 21H5C3.89543 21 3 20.1046 3 19V17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <rect x="6" y="6" width="12" height="12" rx="1" stroke="currentColor" strokeWidth="1.5" strokeDasharray="2 2" />
+  </svg>
+);
+
+const UserIcon: React.FC<{ size?: number }> = ({ size = 32 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5" />
+    <path d="M4 20C4 17 8 14 12 14C16 14 20 17 20 20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
+
+const PlusIcon: React.FC<{ size?: number }> = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
+
+const ChecklistIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5C15 6.10457 14.1046 7 13 7H11C9.89543 7 9 6.10457 9 5Z" stroke="currentColor" strokeWidth="1.5" />
+    <path d="M9 12L11 14L15 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const CompCardIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" />
+    <rect x="5" y="6" width="6" height="8" rx="1" stroke="currentColor" strokeWidth="1.5" />
+    <path d="M13 7H17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M13 10H17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M13 13H15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M5 17H19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
+
+const DollarIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
+    <path d="M12 7V17M15 9.5C15 8.11929 13.6569 7 12 7C10.3431 7 9 8.11929 9 9.5C9 10.8807 10.3431 12 12 12C13.6569 12 15 13.1193 15 14.5C15 15.8807 13.6569 17 12 17C10.3431 17 9 15.8807 9 14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
+
+const PlaneIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <path d="M21 16V14L13 9V3.5C13 2.67157 12.3284 2 11.5 2C10.6716 2 10 2.67157 10 3.5V9L2 14V16L10 13.5V19L8 20.5V22L11.5 21L15 22V20.5L13 19V13.5L21 16Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const CameraIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <path d="M23 19C23 20.1046 22.1046 21 21 21H3C1.89543 21 1 20.1046 1 19V8C1 6.89543 1.89543 6 3 6H7L9 3H15L17 6H21C22.1046 6 23 6.89543 23 8V19Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="12" cy="13" r="4" stroke="currentColor" strokeWidth="1.5" />
+  </svg>
+);
+
+const EyeIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5" />
+  </svg>
+);
+
+const EyeOffIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C5 20 1 12 1 12A18.45 18.45 0 0 1 5.06 6.06M9.9 4.24A9.12 9.12 0 0 1 12 4C19 4 23 12 23 12A18.5 18.5 0 0 1 19.73 16.74" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M1 1L23 23" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const UploadIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <path d="M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M17 8L12 3L7 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M12 3V15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const TrashIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <path d="M3 6H5H21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M8 6V4C8 3.44772 8.44772 3 9 3H15C15.5523 3 16 3.44772 16 4V6M19 6V20C19 20.5523 18.5523 21 18 21H6C5.44772 21 5 20.5523 5 20V6H19Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const LinkIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <path d="M10 13C10.4295 13.5741 10.9774 14.0491 11.6066 14.3929C12.2357 14.7367 12.9315 14.9411 13.6467 14.9923C14.3618 15.0435 15.0796 14.9403 15.7513 14.6897C16.4231 14.4392 17.0331 14.0471 17.54 13.54L20.54 10.54C21.4508 9.59695 21.9548 8.33394 21.9434 7.02296C21.932 5.71198 21.4061 4.45791 20.479 3.53087C19.552 2.60383 18.2979 2.07799 16.987 2.0666C15.676 2.0552 14.413 2.55918 13.47 3.47L11.75 5.18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M14 11C13.5705 10.4259 13.0226 9.95083 12.3934 9.60706C11.7642 9.26329 11.0685 9.05886 10.3533 9.00769C9.63816 8.95651 8.92037 9.05966 8.24861 9.31026C7.57685 9.56085 6.96684 9.95293 6.45996 10.46L3.45996 13.46C2.54917 14.403 2.04519 15.666 2.05659 16.977C2.06798 18.288 2.59382 19.5421 3.52086 20.4691C4.4479 21.3961 5.70197 21.922 7.01295 21.9334C8.32393 21.9448 9.58694 21.4408 10.53 20.53L12.24 18.82" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+const LayoutIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.5" />
+    <path d="M3 9H21" stroke="currentColor" strokeWidth="1.5" />
+    <path d="M9 21V9" stroke="currentColor" strokeWidth="1.5" />
+  </svg>
+);
+
+const RocketIcon: React.FC<{ size?: number }> = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <path d="M4.5 16.5C3 18 3 21 3 21C3 21 6 21 7.5 19.5C8.32843 18.6716 8.32843 17.3284 7.5 16.5C6.67157 15.6716 5.32843 15.6716 4.5 16.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M14.5 4.00001C14.5 4.00001 13 6.00001 13 10C13 14 18 19 18 19C18 19 22 19 22 15C22 11 18 6.00001 14 6.00001C10 6.00001 8 8.50001 8 8.50001" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M9 11L4 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M11 9L8 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const TEMPLATES: Template[] = [
+  { id: 'rose', name: 'Rosé', description: 'Soft editorial blush with feminine elegance', accentColor: '#F5D5D8', bgColor: '#FFF9F9', textColor: '#2D2D2D', isPro: false },
+  { id: 'poise', name: 'Poise', description: 'Timeless elegance with warm neutrals', accentColor: '#C4A484', bgColor: '#FAF9F6', textColor: '#2D2D2D', isPro: false },
+  { id: 'lumiere', name: 'Lumière', description: 'Golden hour warmth with editorial flair', accentColor: '#D4A574', bgColor: '#2C2420', textColor: '#F5F0EB', isPro: false },
+  { id: 'noir', name: 'Noir', description: 'Bold monochrome with dramatic contrast', accentColor: '#FFFFFF', bgColor: '#1A1A1A', textColor: '#FFFFFF', isPro: true },
+];
+
+// ============================================================================
+// Shared Sub-components
+// ============================================================================
+
+interface StepIndicatorProps {
+  steps: OnboardingStep[];
+}
+
+const StepIndicator: React.FC<StepIndicatorProps> = ({ steps }) => (
+  <div className="flex items-center justify-center gap-3 mb-12">
+    {steps.map((step, index) => (
+      <React.Fragment key={step.id}>
+        <div className="flex items-center gap-2">
+          <div 
+            className="w-2.5 h-2.5 rounded-full transition-colors"
+            style={{ backgroundColor: step.completed || step.current ? colors.camel : colors.border }}
+          />
+          <span 
+            className="text-xs tracking-widest"
+            style={{ color: step.current ? colors.textPrimary : colors.textMuted }}
+          >
+            {step.name}
+          </span>
+        </div>
+        {index < steps.length - 1 && (
+          <div className="w-8 h-px" style={{ backgroundColor: colors.border }} />
+        )}
+      </React.Fragment>
+    ))}
+  </div>
+);
+
+interface ProgressIndicatorProps {
+  collectedCount: number;
+}
+
+const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({ collectedCount }) => {
+  if (collectedCount === 0) return null;
   
-  // Step 3: Services
-  servicesTitle: string;
-  compCardImage: File | null;
-  services: Array<{ title: string; description: string; price: string }>;
-  
-  // Step 4: Template
+  return (
+    <div 
+      className="mt-6 p-4 rounded-xl flex items-center justify-between"
+      style={{ backgroundColor: colors.white, border: `1px solid ${colors.border}` }}
+    >
+      <div className="flex items-center gap-3">
+        <div 
+          className="w-8 h-8 rounded-full flex items-center justify-center"
+          style={{ backgroundColor: colors.camel, color: colors.white }}
+        >
+          <Check size={14} />
+        </div>
+        <span className="text-sm" style={{ color: colors.textPrimary }}>
+          <span className="font-medium">{collectedCount} field{collectedCount !== 1 ? 's' : ''}</span> collected
+        </span>
+      </div>
+      <span className="text-xs flex items-center gap-1" style={{ color: colors.success }}>
+        <Check size={12} />
+        Auto-saved
+      </span>
+    </div>
+  );
+};
+
+interface LocationDetectionProps {
+  status: LocationStatus;
+  location: string;
+}
+
+const LocationDetection: React.FC<LocationDetectionProps> = ({ status, location }) => (
+  <div className="mb-8 p-4 rounded-xl" style={{ backgroundColor: colors.cream }}>
+    <div className="flex items-start gap-3">
+      <div 
+        className="w-10 h-10 rounded-full flex items-center justify-center"
+        style={{ backgroundColor: status === 'found' ? colors.successLight : '#FFF8E7' }}
+      >
+        {status === 'found' ? (
+          <Check size={18} style={{ color: colors.success }} />
+        ) : (
+          <MapPin size={18} style={{ color: colors.camel }} className="animate-pulse" />
+        )}
+      </div>
+      <div className="flex-1">
+        {status === 'detecting' && (
+          <div>
+            <p className="font-medium text-sm" style={{ color: colors.textPrimary }}>
+              Detecting your location...
+            </p>
+            <p className="text-xs mt-1" style={{ color: colors.textMuted }}>
+              This helps us suggest relevant opportunities
+            </p>
+          </div>
+        )}
+        {status === 'found' && (
+          <div>
+            <p className="font-medium text-sm" style={{ color: colors.textPrimary }}>
+              Found you in {location}
+            </p>
+            <p className="text-xs mt-1" style={{ color: colors.textMuted }}>
+              This helps us suggest appropriate services and connect you with local markets
+            </p>
+          </div>
+        )}
+        {status === 'error' && (
+          <div>
+            <p className="font-medium text-sm" style={{ color: colors.textPrimary }}>
+              Couldn't detect your location
+            </p>
+            <p className="text-xs mt-1" style={{ color: colors.textMuted }}>
+              You can enter it manually in your profile settings
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+);
+
+interface SocialConnectionButtonsProps {
+  onConnectInstagram: () => void;
+  onConnectTikTok: () => void;
+}
+
+const SocialConnectionButtons: React.FC<SocialConnectionButtonsProps> = ({ 
+  onConnectInstagram, 
+  onConnectTikTok 
+}) => (
+  <div className="mb-6">
+    <h3 className="text-xs tracking-widest mb-4 flex items-center gap-2" style={{ color: colors.camel }}>
+      <Sparkles size={12} />
+      CONNECT YOUR SOCIALS
+    </h3>
+    
+    <div className="flex gap-3 mb-6">
+      <button 
+        type="button"
+        onClick={onConnectInstagram}
+        className="flex-1 py-3 px-4 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-all hover:opacity-90"
+        style={{ backgroundColor: colors.instagram, color: colors.white }}
+      >
+        <Instagram size={16} />
+        Connect Instagram
+      </button>
+      <button 
+        type="button"
+        onClick={onConnectTikTok}
+        className="flex-1 py-3 px-4 rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-all hover:opacity-90"
+        style={{ backgroundColor: colors.charcoal, color: colors.white }}
+      >
+        <TikTokIcon />
+        Connect TikTok
+      </button>
+    </div>
+
+    <div className="flex items-center gap-4 mb-6">
+      <div className="flex-1 h-px" style={{ backgroundColor: colors.border }} />
+      <span className="text-xs" style={{ color: colors.textMuted }}>OR ENTER MANUALLY</span>
+      <div className="flex-1 h-px" style={{ backgroundColor: colors.border }} />
+    </div>
+  </div>
+);
+
+interface TextInputWithPrefixProps {
+  label: string;
+  icon: React.ReactNode;
+  prefix: string;
+  placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
+}
+
+const TextInputWithPrefix: React.FC<TextInputWithPrefixProps> = ({
+  label,
+  icon,
+  prefix,
+  placeholder,
+  value,
+  onChange,
+}) => (
+  <div>
+    <label className="flex items-center gap-2 text-sm mb-2" style={{ color: colors.textPrimary }}>
+      {icon}
+      {label}
+    </label>
+    <div className="flex">
+      <span 
+        className="px-3 py-2.5 text-sm rounded-l-lg"
+        style={{ backgroundColor: colors.cream, color: colors.textMuted, border: `1px solid ${colors.border}`, borderRight: 'none' }}
+      >
+        {prefix}
+      </span>
+      <input
+        type="text"
+        placeholder={placeholder}
+        value={value}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+        className="flex-1 px-3 py-2.5 text-sm rounded-r-lg outline-none transition-all"
+        style={{ border: `1px solid ${colors.border}`, borderLeft: 'none' }}
+      />
+    </div>
+  </div>
+);
+
+interface TextInputProps {
+  label: string;
+  icon: React.ReactNode;
+  placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
+  optional?: boolean;
+}
+
+const TextInput: React.FC<TextInputProps> = ({
+  label,
+  icon,
+  placeholder,
+  value,
+  onChange,
+  optional = false,
+}) => (
+  <div>
+    <label className="flex items-center gap-2 text-sm mb-2" style={{ color: colors.textPrimary }}>
+      {icon}
+      {label}
+      {optional && <span style={{ color: colors.textMuted }}>(optional)</span>}
+    </label>
+    <input
+      type="text"
+      placeholder={placeholder}
+      value={value}
+      onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+      className="w-full px-3 py-2.5 text-sm rounded-lg outline-none transition-all"
+      style={{ border: `1px solid ${colors.border}` }}
+    />
+  </div>
+);
+
+// ============================================================================
+// About Section Sub-components
+// ============================================================================
+
+interface AIToolButtonProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  onClick: () => void;
+  disabled?: boolean;
+}
+
+const AIToolButton: React.FC<AIToolButtonProps> = ({ icon, title, description, onClick, disabled }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    className="flex-1 min-w-[180px] flex items-center gap-3 p-4 transition-all hover:opacity-90"
+    style={{
+      backgroundColor: colors.white,
+      border: `1px solid ${colors.border}`,
+      cursor: disabled ? 'wait' : 'pointer',
+      opacity: disabled ? 0.7 : 1,
+    }}
+  >
+    <div
+      className="w-10 h-10 flex items-center justify-center flex-shrink-0"
+      style={{ backgroundColor: colors.cream }}
+    >
+      {icon}
+    </div>
+    <div className="text-left">
+      <div className="flex items-center gap-1.5">
+        <span className="text-sm font-medium" style={{ color: colors.textPrimary }}>{title}</span>
+        <span
+          className="text-[9px] px-1.5 py-0.5 rounded"
+          style={{ backgroundColor: colors.camel, color: colors.white }}
+        >
+          AI
+        </span>
+      </div>
+      <span className="text-xs" style={{ color: colors.textMuted }}>{description}</span>
+    </div>
+  </button>
+);
+
+interface StatsGridProps {
+  stats: ModelStats;
+  onChange: (field: keyof ModelStats, value: string) => void;
+}
+
+const StatsGrid: React.FC<StatsGridProps> = ({ stats, onChange }) => {
+  const fields: { key: keyof ModelStats; label: string; placeholder: string }[] = [
+    { key: 'height', label: 'Height', placeholder: "5'9\"" },
+    { key: 'bust', label: 'Bust', placeholder: '32"' },
+    { key: 'waist', label: 'Waist', placeholder: '24"' },
+    { key: 'hips', label: 'Hips', placeholder: '34"' },
+    { key: 'shoes', label: 'Shoes', placeholder: '8' },
+    { key: 'dress', label: 'Dress', placeholder: '4' },
+    { key: 'hairColor', label: 'Hair', placeholder: 'Brunette' },
+    { key: 'eyeColor', label: 'Eyes', placeholder: 'Hazel' },
+  ];
+
+  return (
+    <div className="grid grid-cols-4 gap-3">
+      {fields.map(({ key, label, placeholder }) => (
+        <div key={key}>
+          <label className="block text-[10px] mb-1" style={{ color: colors.textMuted }}>
+            {label}
+          </label>
+          <input
+            type="text"
+            value={stats[key]}
+            onChange={(e) => onChange(key, e.target.value)}
+            placeholder={placeholder}
+            className="w-full px-3 py-2.5 text-sm outline-none transition-all"
+            style={{ border: `1px solid ${colors.border}`, backgroundColor: colors.white }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ============================================================================
+// Step Content Components
+// ============================================================================
+
+interface ProfileStepProps {
+  formData: ProfileFormData;
+  locationStatus: LocationStatus;
+  onInputChange: (field: keyof ProfileFormData, value: string) => void;
+  onConnectInstagram: () => void;
+  onConnectTikTok: () => void;
+  validationErrors?: Record<string, string>;
+}
+
+const ProfileStepContent: React.FC<ProfileStepProps> = ({
+  formData,
+  locationStatus,
+  onInputChange,
+  onConnectInstagram,
+  onConnectTikTok,
+  validationErrors = {},
+}) => (
+  <>
+    <h1
+      className="text-3xl mb-2"
+      style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', color: colors.textPrimary }}
+    >
+      Your Profile
+    </h1>
+    <p className="text-sm mb-8" style={{ color: colors.textSecondary }}>
+      Let's establish your professional identity. We'll auto-detect what we can.
+    </p>
+
+    {/* Display Name & Username */}
+    <div className="space-y-4 mb-8">
+      <div>
+        <label className="flex items-center gap-2 text-sm mb-2" style={{ color: colors.textPrimary }}>
+          Display Name <span style={{ color: colors.instagram }}>*</span>
+        </label>
+        <input
+          type="text"
+          placeholder="Your professional name"
+          value={formData.displayName}
+          onChange={(e) => onInputChange('displayName', e.target.value)}
+          className="w-full px-3 py-2.5 text-sm rounded-lg outline-none transition-all"
+          style={{ 
+            border: `1px solid ${validationErrors.displayName ? '#dc2626' : colors.border}`,
+            backgroundColor: validationErrors.displayName ? '#fef2f2' : undefined
+          }}
+        />
+        {validationErrors.displayName && (
+          <p className="text-xs mt-1" style={{ color: '#dc2626' }}>
+            {validationErrors.displayName}
+          </p>
+        )}
+      </div>
+
+      <div>
+        <label className="flex items-center gap-2 text-sm mb-2" style={{ color: colors.textPrimary }}>
+          Username <span style={{ color: colors.instagram }}>*</span>
+        </label>
+        <div className="flex">
+          <span 
+            className="px-3 py-2.5 text-sm rounded-l-lg"
+            style={{ 
+              backgroundColor: colors.cream, 
+              color: colors.textMuted, 
+              borderTop: `1px solid ${validationErrors.username ? '#dc2626' : colors.border}`,
+              borderBottom: `1px solid ${validationErrors.username ? '#dc2626' : colors.border}`,
+              borderLeft: `1px solid ${validationErrors.username ? '#dc2626' : colors.border}`,
+              borderRight: 'none',
+            }}
+          >
+            poseandpoise.com/
+          </span>
+          <input
+            type="text"
+            placeholder="yourname"
+            value={formData.username}
+            onChange={(e) => onInputChange('username', e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
+            className="flex-1 px-3 py-2.5 text-sm rounded-r-lg outline-none transition-all"
+            style={{ 
+              borderTop: `1px solid ${validationErrors.username ? '#dc2626' : colors.border}`,
+              borderBottom: `1px solid ${validationErrors.username ? '#dc2626' : colors.border}`,
+              borderRight: `1px solid ${validationErrors.username ? '#dc2626' : colors.border}`,
+              borderLeft: 'none',
+              backgroundColor: validationErrors.username ? '#fef2f2' : undefined
+            }}
+          />
+        </div>
+        {validationErrors.username ? (
+          <p className="text-xs mt-1" style={{ color: '#dc2626' }}>
+            {validationErrors.username}
+          </p>
+        ) : (
+          <p className="text-xs mt-1" style={{ color: colors.textMuted }}>
+            Your portfolio will be at poseandpoise.com/{formData.username || 'yourname'}
+          </p>
+        )}
+      </div>
+    </div>
+
+    <LocationDetection status={locationStatus} location={formData.location} />
+
+    <SocialConnectionButtons
+      onConnectInstagram={onConnectInstagram}
+      onConnectTikTok={onConnectTikTok}
+    />
+
+    <div className="space-y-4">
+      <TextInputWithPrefix
+        label="Instagram"
+        icon={<Instagram size={14} />}
+        prefix="@"
+        placeholder="yourhandle"
+        value={formData.instagram}
+        onChange={(value) => onInputChange('instagram', value)}
+      />
+
+      <TextInputWithPrefix
+        label="TikTok"
+        icon={<TikTokIcon className="w-3.5 h-3.5" />}
+        prefix="@"
+        placeholder="yourhandle"
+        value={formData.tiktok}
+        onChange={(value) => onInputChange('tiktok', value)}
+      />
+
+      <TextInput
+        label="Website"
+        icon={<Globe size={14} />}
+        placeholder="https://yourwebsite.com"
+        value={formData.website}
+        onChange={(value) => onInputChange('website', value)}
+      />
+
+      <TextInput
+        label="Agency"
+        icon={<Building2 size={14} />}
+        placeholder="Your representation"
+        value={formData.agency}
+        onChange={(value) => onInputChange('agency', value)}
+        optional
+      />
+    </div>
+  </>
+);
+
+interface AboutStepProps {
+  formData: AboutFormData;
+  isAnalyzing: boolean;
+  isGeneratingBio: boolean;
+  analysisComplete: boolean;
+  onStatsChange: (field: keyof ModelStats, value: string) => void;
+  onBioChange: (value: string) => void;
+  onPhotoUpload: () => void;
+  onAnalyzerClick: () => void;
+  onScannerClick: () => void;
+  onGenerateBio: () => void;
+}
+
+const AboutStep: React.FC<AboutStepProps> = ({
+  formData,
+  isAnalyzing,
+  isGeneratingBio,
+  analysisComplete,
+  onStatsChange,
+  onBioChange,
+  onPhotoUpload,
+  onAnalyzerClick,
+  onScannerClick,
+  onGenerateBio,
+}) => (
+  <>
+    <h1
+      className="text-3xl mb-2"
+      style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', color: colors.textPrimary }}
+    >
+      About You
+    </h1>
+    <p className="text-sm mb-8" style={{ color: colors.textSecondary }}>
+      Share your story and stats. Use AI tools to speed things up, or fill in manually.
+    </p>
+
+    {/* AI Tools Section */}
+    <div className="p-6 rounded-xl mb-8" style={{ backgroundColor: colors.cream }}>
+      <div className="flex items-center gap-2 mb-4">
+        <Sparkles size={14} style={{ color: colors.camel }} />
+        <span className="text-xs tracking-widest font-medium" style={{ color: colors.camel }}>
+          AI-POWERED SHORTCUTS
+        </span>
+      </div>
+
+      <div className="flex gap-3 flex-wrap">
+        <AIToolButton
+          icon={<PhotoIcon size={20} />}
+          title="Photo Analyzer"
+          description="Extract stats from photo"
+          onClick={onAnalyzerClick}
+          disabled={isAnalyzing}
+        />
+        <AIToolButton
+          icon={<ScanIcon size={20} />}
+          title="Comp Card Scanner"
+          description="Import all stats instantly"
+          onClick={onScannerClick}
+          disabled={isAnalyzing}
+        />
+      </div>
+
+      {/* Analysis Status */}
+      {isAnalyzing && (
+        <div
+          className="flex items-center gap-2 mt-4 p-3"
+          style={{ backgroundColor: colors.white, border: `1px solid ${colors.border}` }}
+        >
+          <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: colors.camel, borderTopColor: 'transparent' }} />
+          <span className="text-sm" style={{ color: colors.textSecondary }}>Analyzing your image...</span>
+        </div>
+      )}
+
+      {analysisComplete && (
+        <div
+          className="flex items-center gap-2 mt-4 p-3"
+          style={{ backgroundColor: colors.successLight, border: `1px solid ${colors.success}` }}
+        >
+          <Check size={16} style={{ color: colors.success }} />
+          <span className="text-sm" style={{ color: colors.success }}>Stats extracted successfully! Review below.</span>
+        </div>
+      )}
+    </div>
+
+    {/* Divider */}
+    <div className="flex items-center gap-4 mb-8">
+      <div className="flex-1 h-px" style={{ backgroundColor: colors.border }} />
+      <span className="text-xs tracking-wider" style={{ color: colors.textMuted }}>OR FILL MANUALLY</span>
+      <div className="flex-1 h-px" style={{ backgroundColor: colors.border }} />
+    </div>
+
+    {/* Profile Photo + Stats Row */}
+    <div className="flex gap-8 mb-8">
+      {/* Profile Photo */}
+      <div className="flex-shrink-0">
+        <label className="block text-xs tracking-wider mb-2 uppercase" style={{ color: colors.textMuted }}>
+          Profile Photo
+        </label>
+        <button
+          type="button"
+          onClick={onPhotoUpload}
+          className="w-36 h-44 flex flex-col items-center justify-center gap-2 cursor-pointer overflow-hidden"
+          style={{ backgroundColor: colors.cream, border: `1px dashed ${colors.border}` }}
+        >
+          {formData.profilePhoto ? (
+            <img src={formData.profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+          ) : (
+            <>
+              <UserIcon size={32} />
+              <div className="flex items-center gap-1 text-xs" style={{ color: colors.textMuted }}>
+                <PlusIcon size={14} />
+                Add Photo
+              </div>
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="flex-1">
+        <label className="block text-xs tracking-wider mb-2 uppercase" style={{ color: colors.textMuted }}>
+          Your Stats
+        </label>
+        <StatsGrid stats={formData.stats} onChange={onStatsChange} />
+      </div>
+    </div>
+
+    {/* Bio Section */}
+    <div className="mb-8">
+      <div className="flex items-center justify-between mb-2">
+        <label className="text-xs tracking-wider uppercase" style={{ color: colors.textMuted }}>
+          Your Bio
+        </label>
+        <button
+          type="button"
+          onClick={onGenerateBio}
+          disabled={isGeneratingBio}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all"
+          style={{
+            backgroundColor: 'transparent',
+            border: `1px solid ${colors.camel}`,
+            color: colors.camel,
+            opacity: isGeneratingBio ? 0.7 : 1,
+            cursor: isGeneratingBio ? 'wait' : 'pointer',
+          }}
+        >
+          <Sparkles size={12} />
+          {isGeneratingBio ? 'Generating...' : 'Generate with AI'}
+        </button>
+      </div>
+      <textarea
+        value={formData.bio}
+        onChange={(e) => onBioChange(e.target.value)}
+        placeholder="Tell your story... What draws you to modeling? What makes you unique? What type of work excites you?"
+        rows={5}
+        className="w-full px-4 py-3 text-sm outline-none resize-y transition-all"
+        style={{
+          border: `1px solid ${colors.border}`,
+          backgroundColor: colors.white,
+          lineHeight: 1.7,
+          fontFamily: 'Outfit, system-ui, sans-serif',
+        }}
+      />
+      <p className="text-xs mt-2" style={{ color: colors.textMuted }}>
+        This will appear on your public portfolio page.
+      </p>
+    </div>
+
+    {/* Beginner Tip */}
+    <div
+      className="p-4"
+      style={{ backgroundColor: colors.cream, borderLeft: `3px solid ${colors.camel}` }}
+    >
+      <p className="text-xs font-medium mb-1" style={{ color: colors.textPrimary }}>
+        Don't have a comp card yet?
+      </p>
+      <p className="text-xs" style={{ color: colors.textSecondary, lineHeight: 1.5 }}>
+        No problem! Fill in your stats here and we'll generate a professional comp card for you in the next step.
+      </p>
+    </div>
+  </>
+);
+
+// ============================================================================
+// Services Step Sub-components
+// ============================================================================
+
+interface ServiceCategoryCardProps {
+  category: ServiceCategory;
+  onToggle: (id: string) => void;
+}
+
+const ServiceCategoryCard: React.FC<ServiceCategoryCardProps> = ({ category, onToggle }) => (
+  <button
+    type="button"
+    onClick={() => onToggle(category.id)}
+    className="flex items-center gap-3 p-4 text-left transition-all"
+    style={{
+      backgroundColor: category.selected ? colors.cream : colors.white,
+      border: `1px solid ${category.selected ? colors.camel : colors.border}`,
+    }}
+  >
+    <div
+      className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-colors"
+      style={{
+        backgroundColor: category.selected ? colors.camel : 'transparent',
+        border: category.selected ? 'none' : `1px solid ${colors.border}`,
+      }}
+    >
+      {category.selected && <Check size={12} color={colors.white} />}
+    </div>
+    <div>
+      <span className="text-sm font-medium block" style={{ color: colors.textPrimary }}>
+        {category.name}
+      </span>
+      <span className="text-xs" style={{ color: colors.textMuted }}>
+        {category.description}
+      </span>
+    </div>
+  </button>
+);
+
+interface ExperienceLevelSelectorProps {
+  value: ExperienceLevel;
+  onChange: (level: ExperienceLevel) => void;
+}
+
+const ExperienceLevelSelector: React.FC<ExperienceLevelSelectorProps> = ({ value, onChange }) => {
+  const levels: { id: ExperienceLevel; label: string; description: string }[] = [
+    { id: 'beginner', label: 'Beginner', description: '< 1 year' },
+    { id: 'intermediate', label: 'Intermediate', description: '1-3 years' },
+    { id: 'professional', label: 'Professional', description: '3-5 years' },
+    { id: 'expert', label: 'Expert', description: '5+ years' },
+  ];
+
+  return (
+    <div className="grid grid-cols-4 gap-3">
+      {levels.map((level) => (
+        <button
+          key={level.id}
+          type="button"
+          onClick={() => onChange(level.id)}
+          className="p-3 text-center transition-all"
+          style={{
+            backgroundColor: value === level.id ? colors.charcoal : colors.white,
+            border: `1px solid ${value === level.id ? colors.charcoal : colors.border}`,
+            color: value === level.id ? colors.white : colors.textPrimary,
+          }}
+        >
+          <span className="text-sm font-medium block">{level.label}</span>
+          <span className="text-xs opacity-70">{level.description}</span>
+        </button>
+      ))}
+    </div>
+  );
+};
+
+interface PricingInputsProps {
+  pricing: PricingTier;
+  onChange: (field: keyof PricingTier, value: string) => void;
+}
+
+const PricingInputs: React.FC<PricingInputsProps> = ({ pricing, onChange }) => (
+  <div className="grid grid-cols-3 gap-4">
+    {[
+      { key: 'hourly' as const, label: 'Hourly Rate', placeholder: '150' },
+      { key: 'halfDay' as const, label: 'Half-Day (4hr)', placeholder: '500' },
+      { key: 'fullDay' as const, label: 'Full-Day (8hr)', placeholder: '900' },
+    ].map(({ key, label, placeholder }) => (
+      <div key={key}>
+        <label className="block text-xs mb-2" style={{ color: colors.textMuted }}>
+          {label}
+        </label>
+        <div className="flex">
+          <span
+            className="px-3 py-2.5 text-sm"
+            style={{
+              backgroundColor: colors.cream,
+              color: colors.textMuted,
+              border: `1px solid ${colors.border}`,
+              borderRight: 'none',
+            }}
+          >
+            $
+          </span>
+          <input
+            type="text"
+            value={pricing[key]}
+            onChange={(e) => onChange(key, e.target.value)}
+            placeholder={placeholder}
+            className="flex-1 px-3 py-2.5 text-sm outline-none transition-all"
+            style={{ border: `1px solid ${colors.border}`, borderLeft: 'none' }}
+          />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+interface ServicesStepProps {
+  formData: ServicesFormData;
+  isSuggesting: boolean;
+  suggestionsApplied: boolean;
+  onExperienceChange: (level: ExperienceLevel) => void;
+  onCategoryToggle: (id: string) => void;
+  onPricingChange: (field: keyof PricingTier, value: string) => void;
+  onTravelToggle: () => void;
+  onTravelRadiusChange: (value: string) => void;
+  onTfpToggle: () => void;
+  onSuggestServices: () => void;
+}
+
+const ServicesStep: React.FC<ServicesStepProps> = ({
+  formData,
+  isSuggesting,
+  suggestionsApplied,
+  onExperienceChange,
+  onCategoryToggle,
+  onPricingChange,
+  onTravelToggle,
+  onTravelRadiusChange,
+  onTfpToggle,
+  onSuggestServices,
+}) => (
+  <>
+    <h1
+      className="text-3xl mb-2"
+      style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', color: colors.textPrimary }}
+    >
+      Your Services
+    </h1>
+    <p className="text-sm mb-8" style={{ color: colors.textSecondary }}>
+      Showcase what you offer. We'll suggest competitive pricing based on your market and experience.
+    </p>
+
+    {/* AI Tools Section */}
+    <div className="p-6 rounded-xl mb-8" style={{ backgroundColor: colors.cream }}>
+      <div className="flex items-center gap-2 mb-4">
+        <Sparkles size={14} style={{ color: colors.camel }} />
+        <span className="text-xs tracking-widest font-medium" style={{ color: colors.camel }}>
+          AI-POWERED SHORTCUTS
+        </span>
+      </div>
+
+      <div className="flex gap-3 flex-wrap">
+        <AIToolButton
+          icon={<ChecklistIcon size={20} />}
+          title="Smart Suggestions"
+          description="Recommend services & pricing"
+          onClick={onSuggestServices}
+          disabled={isSuggesting}
+        />
+        <div
+          className="flex-1 min-w-[180px] flex items-center gap-3 p-4"
+          style={{
+            backgroundColor: colors.white,
+            border: `1px solid ${colors.border}`,
+            opacity: 0.6,
+          }}
+        >
+          <div
+            className="w-10 h-10 flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: colors.cream }}
+          >
+            <CompCardIcon size={20} />
+          </div>
+          <div className="text-left">
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-medium" style={{ color: colors.textPrimary }}>Comp Card Generator</span>
+              <span
+                className="text-[9px] px-1.5 py-0.5 rounded"
+                style={{ backgroundColor: colors.charcoal, color: colors.white }}
+              >
+                PRO
+              </span>
+            </div>
+            <span className="text-xs" style={{ color: colors.textMuted }}>Upgrade to unlock</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Suggestion Status */}
+      {isSuggesting && (
+        <div
+          className="flex items-center gap-2 mt-4 p-3"
+          style={{ backgroundColor: colors.white, border: `1px solid ${colors.border}` }}
+        >
+          <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: colors.camel, borderTopColor: 'transparent' }} />
+          <span className="text-sm" style={{ color: colors.textSecondary }}>Analyzing your market and generating suggestions...</span>
+        </div>
+      )}
+
+      {suggestionsApplied && (
+        <div
+          className="flex items-center gap-2 mt-4 p-3"
+          style={{ backgroundColor: colors.successLight, border: `1px solid ${colors.success}` }}
+        >
+          <Check size={16} style={{ color: colors.success }} />
+          <span className="text-sm" style={{ color: colors.success }}>Services and pricing suggestions applied! Review below.</span>
+        </div>
+      )}
+    </div>
+
+    {/* Divider */}
+    <div className="flex items-center gap-4 mb-8">
+      <div className="flex-1 h-px" style={{ backgroundColor: colors.border }} />
+      <span className="text-xs tracking-wider" style={{ color: colors.textMuted }}>OR CONFIGURE MANUALLY</span>
+      <div className="flex-1 h-px" style={{ backgroundColor: colors.border }} />
+    </div>
+
+    {/* Experience Level */}
+    <div className="mb-8">
+      <label className="block text-xs tracking-wider mb-3 uppercase" style={{ color: colors.textMuted }}>
+        Experience Level
+      </label>
+      <ExperienceLevelSelector value={formData.experienceLevel} onChange={onExperienceChange} />
+    </div>
+
+    {/* Service Categories */}
+    <div className="mb-8">
+      <label className="block text-xs tracking-wider mb-3 uppercase" style={{ color: colors.textMuted }}>
+        Services You Offer
+      </label>
+      <div className="grid grid-cols-2 gap-3">
+        {formData.categories.map((category) => (
+          <ServiceCategoryCard
+            key={category.id}
+            category={category}
+            onToggle={onCategoryToggle}
+          />
+        ))}
+      </div>
+    </div>
+
+    {/* Pricing */}
+    <div className="mb-8">
+      <div className="flex items-center gap-2 mb-3">
+        <DollarIcon size={14} />
+        <label className="text-xs tracking-wider uppercase" style={{ color: colors.textMuted }}>
+          Your Rates (USD)
+        </label>
+      </div>
+      <PricingInputs pricing={formData.pricing} onChange={onPricingChange} />
+      <p className="text-xs mt-2" style={{ color: colors.textMuted }}>
+        Based on your experience and location, similar models charge $100-200/hr in your market.
+      </p>
+    </div>
+
+    {/* Travel & TFP */}
+    <div className="grid grid-cols-2 gap-6 mb-8">
+      {/* Travel */}
+      <div className="p-4" style={{ backgroundColor: colors.cream }}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <PlaneIcon size={16} />
+            <span className="text-sm font-medium" style={{ color: colors.textPrimary }}>Available for Travel</span>
+          </div>
+          <button
+            type="button"
+            onClick={onTravelToggle}
+            className="w-10 h-6 rounded-full transition-colors relative"
+            style={{ backgroundColor: formData.travelAvailable ? colors.camel : colors.border }}
+          >
+            <div
+              className="w-4 h-4 rounded-full bg-white absolute top-1 transition-all"
+              style={{ left: formData.travelAvailable ? '22px' : '4px' }}
+            />
+          </button>
+        </div>
+        {formData.travelAvailable && (
+          <div>
+            <label className="block text-xs mb-1" style={{ color: colors.textMuted }}>Travel Radius</label>
+            <input
+              type="text"
+              value={formData.travelRadius}
+              onChange={(e) => onTravelRadiusChange(e.target.value)}
+              placeholder="e.g., 100 miles or Nationwide"
+              className="w-full px-3 py-2 text-sm outline-none"
+              style={{ border: `1px solid ${colors.border}`, backgroundColor: colors.white }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* TFP */}
+      <div className="p-4" style={{ backgroundColor: colors.cream }}>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <CameraIcon size={16} />
+            <span className="text-sm font-medium" style={{ color: colors.textPrimary }}>Open to TFP</span>
+          </div>
+          <button
+            type="button"
+            onClick={onTfpToggle}
+            className="w-10 h-6 rounded-full transition-colors relative"
+            style={{ backgroundColor: formData.tfpAvailable ? colors.camel : colors.border }}
+          >
+            <div
+              className="w-4 h-4 rounded-full bg-white absolute top-1 transition-all"
+              style={{ left: formData.tfpAvailable ? '22px' : '4px' }}
+            />
+          </button>
+        </div>
+        <p className="text-xs" style={{ color: colors.textMuted }}>
+          {formData.tfpAvailable
+            ? "You're open to trade collaborations (Time for Print)"
+            : "Toggle on if you're open to unpaid creative collaborations"}
+        </p>
+      </div>
+    </div>
+
+    {/* Upsell Banner */}
+    <div
+      className="p-4 flex items-center justify-between"
+      style={{ backgroundColor: '#FFF8E7', border: `1px solid ${colors.camel}` }}
+    >
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <Sparkles size={14} style={{ color: colors.camel }} />
+          <span className="text-sm font-medium" style={{ color: colors.textPrimary }}>
+            Unlock Comp Card Generator
+          </span>
+        </div>
+        <p className="text-xs" style={{ color: colors.textSecondary }}>
+          Professional and Deluxe members can generate unlimited comp cards for different markets.
+        </p>
+      </div>
+      <button
+        type="button"
+        className="px-4 py-2 text-xs font-medium tracking-wider"
+        style={{ backgroundColor: colors.camel, color: colors.white }}
+      >
+        VIEW PLANS
+      </button>
+    </div>
+  </>
+);
+
+// ============================================================================
+// Template Step Component
+// ============================================================================
+
+interface TemplateStepProps {
+  templates: Template[];
   selectedTemplate: string;
-  
-  // Step 5: Photos
-  photos: File[];
+  onSelectTemplate: (id: string) => void;
+  modelName: string;
+}
+
+const TemplateStep: React.FC<TemplateStepProps> = ({
+  templates,
+  selectedTemplate,
+  onSelectTemplate,
+  modelName,
+}) => {
+  const selected = templates.find(t => t.id === selectedTemplate) || templates[0];
+
+  return (
+    <>
+      <h1
+        className="text-3xl mb-2"
+        style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', color: colors.textPrimary }}
+      >
+        Choose Your Template
+      </h1>
+      <p className="text-sm mb-2" style={{ color: colors.textSecondary }}>
+        Select a design that reflects your unique style.
+      </p>
+      <p className="text-xs mb-8 flex items-center gap-2">
+        <span style={{ color: colors.textMuted }}>Preview it live at</span>
+        <code 
+          className="px-2 py-1 rounded text-xs"
+          style={{ backgroundColor: colors.cream, color: colors.camel }}
+        >
+          poseandpoise.com/{modelName.toLowerCase().replace(' ', '')}
+        </code>
+      </p>
+
+      <div className="flex gap-8">
+        <div className="flex-1">
+          <div className="grid grid-cols-2 gap-4">
+            {templates.map((template) => (
+              <button
+                key={template.id}
+                type="button"
+                onClick={() => !template.isPro && onSelectTemplate(template.id)}
+                className={`text-left transition-all relative overflow-hidden rounded-lg ${
+                  selectedTemplate === template.id ? 'ring-2 ring-offset-2' : ''
+                } ${template.isPro ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer hover:shadow-md'}`}
+                style={{ 
+                  border: `1px solid ${selectedTemplate === template.id ? colors.camel : colors.border}`,
+                }}
+              >
+                {template.isPro && (
+                  <div 
+                    className="absolute top-3 right-3 z-10 flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium"
+                    style={{ backgroundColor: colors.charcoal, color: colors.white }}
+                  >
+                    <Sparkles size={10} />
+                    PRO
+                  </div>
+                )}
+                <div className="p-4 h-32" style={{ backgroundColor: template.bgColor }}>
+                  <div className="w-8 h-1 rounded mb-3" style={{ backgroundColor: template.accentColor }} />
+                  <div className="flex gap-2">
+                    <div className="w-6 h-6 rounded" style={{ backgroundColor: template.textColor, opacity: 0.2 }} />
+                    <div className="w-6 h-6 rounded" style={{ backgroundColor: template.textColor, opacity: 0.2 }} />
+                    <div className="w-6 h-6 rounded" style={{ backgroundColor: template.textColor, opacity: 0.2 }} />
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <div className="w-6 h-6 rounded" style={{ backgroundColor: template.textColor, opacity: 0.2 }} />
+                    <div className="w-6 h-6 rounded" style={{ backgroundColor: template.textColor, opacity: 0.2 }} />
+                    <div className="w-6 h-6 rounded" style={{ backgroundColor: template.textColor, opacity: 0.2 }} />
+                  </div>
+                </div>
+                <div className="p-4 bg-white">
+                  <h3 className="text-sm font-medium" style={{ color: colors.textPrimary }}>{template.name}</h3>
+                  <p className="text-xs" style={{ color: colors.textMuted }}>{template.description}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <div 
+            className="mt-6 p-4 flex items-center justify-between"
+            style={{ backgroundColor: '#FFF8E7', border: `1px solid ${colors.camel}` }}
+          >
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Sparkles size={14} style={{ color: colors.camel }} />
+                <span className="text-sm font-medium" style={{ color: colors.textPrimary }}>Unlock All Templates</span>
+              </div>
+              <p className="text-xs" style={{ color: colors.textSecondary }}>
+                Professional and Deluxe members get access to all premium templates.
+              </p>
+            </div>
+            <button 
+              type="button" 
+              className="px-4 py-2 text-xs font-medium tracking-wider transition-opacity hover:opacity-90"
+              style={{ backgroundColor: colors.camel, color: colors.white }}
+            >
+              VIEW PLANS
+            </button>
+          </div>
+        </div>
+
+        <div className="w-80 flex-shrink-0">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs tracking-wider uppercase" style={{ color: colors.textMuted }}>LIVE PREVIEW</span>
+            <button 
+              type="button" 
+              className="flex items-center gap-1 text-xs hover:underline"
+              style={{ color: colors.camel }}
+            >
+              <EyeIcon size={12} />
+              Open Full Preview
+            </button>
+          </div>
+          <div className="rounded-lg overflow-hidden shadow-lg" style={{ border: `1px solid ${colors.border}` }}>
+            <div className="flex items-center gap-1.5 px-3 py-2" style={{ backgroundColor: '#F5F5F5' }}>
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#FF5F56' }} />
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#FFBD2E' }} />
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#27CA40' }} />
+            </div>
+            <div className="p-4 min-h-[300px]" style={{ backgroundColor: selected.bgColor }}>
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h3 
+                    className="text-lg font-medium"
+                    style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', color: selected.textColor }}
+                  >
+                    {modelName}
+                  </h3>
+                  <span 
+                    className="text-[10px] tracking-widest uppercase"
+                    style={{ color: selected.textColor, opacity: 0.6 }}
+                  >
+                    MODEL
+                  </span>
+                </div>
+                <div className="flex gap-4 text-[10px]" style={{ color: selected.textColor, opacity: 0.8 }}>
+                  <span>PORTFOLIO</span>
+                  <span>ABOUT</span>
+                  <span>CONTACT</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {[...Array(6)].map((_, i) => (
+                  <div 
+                    key={i} 
+                    className="aspect-[3/4] rounded" 
+                    style={{ backgroundColor: selected.textColor, opacity: 0.15 }} 
+                  />
+                ))}
+              </div>
+            </div>
+            <div 
+              className="px-3 py-2 text-[10px]"
+              style={{ backgroundColor: '#F5F5F5', color: colors.textMuted }}
+            >
+              poseandpoise.com/{modelName.toLowerCase().replace(' ', '')}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ============================================================================
+// Photos Step Component
+// ============================================================================
+
+interface PhotosStepProps {
+  photos: PortfolioPhoto[];
+  onAddPhotos: (files: FileList) => void;
+  onToggleVisibility: (id: string) => void;
+  onRemovePhoto: (id: string) => void;
+  onUpdateCredit: (id: string, field: 'photographer' | 'studio', value: string) => void;
+  selectedTemplate: string;
+  templates: Template[];
+  modelName: string;
+}
+
+const PhotosStep: React.FC<PhotosStepProps> = ({
+  photos,
+  onAddPhotos,
+  onToggleVisibility,
+  onRemovePhoto,
+  onUpdateCredit,
+  selectedTemplate,
+  templates,
+  modelName,
+}) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const [editingPhoto, setEditingPhoto] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => setIsDragging(false);
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files) {
+      onAddPhotos(e.dataTransfer.files);
+    }
+  };
+
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      onAddPhotos(e.target.files);
+    }
+  };
+
+  const visibleCount = photos.filter(p => p.visible).length;
+  const hiddenCount = photos.filter(p => !p.visible).length;
+  const selected = templates.find(t => t.id === selectedTemplate) || templates[0];
+
+  return (
+    <>
+      <h1
+        className="text-3xl mb-2"
+        style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', color: colors.textPrimary }}
+      >
+        Upload Your Photos
+      </h1>
+      <p className="text-sm mb-8" style={{ color: colors.textSecondary }}>
+        Add your best shots and give credit to photographers and studios.
+      </p>
+
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onClick={() => photoInputRef.current?.click()}
+        className={`mb-8 p-8 text-center cursor-pointer transition-all border-2 border-dashed rounded-xl ${
+          isDragging ? 'border-camel' : ''
+        }`}
+        style={{ 
+          backgroundColor: isDragging ? colors.cream : colors.white, 
+          borderColor: isDragging ? colors.camel : colors.border 
+        }}
+      >
+        <div className="flex flex-col items-center" style={{ color: colors.charcoal }}>
+          <UploadIcon size={32} />
+          <p className="text-sm font-medium mt-3" style={{ color: colors.textPrimary }}>
+            Drag & drop photos here, or click to browse
+          </p>
+          <p className="text-xs mt-1" style={{ color: colors.textMuted }}>
+            Supports JPG, PNG, WEBP up to 10MB each
+          </p>
+        </div>
+        <input
+          ref={photoInputRef}
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+      </div>
+
+      {photos.length > 0 && (
+        <>
+          <div className="flex items-center gap-4 mb-4">
+            <span className="text-sm" style={{ color: colors.success }}>{visibleCount} visible</span>
+            <span className="text-sm" style={{ color: colors.textMuted }}>{hiddenCount} hidden</span>
+            <span className="text-xs" style={{ color: colors.textMuted }}>
+              Drag to reorder • Click eye to show/hide
+            </span>
+          </div>
+
+          <div className="grid grid-cols-4 gap-4 mb-8">
+            {photos.map((photo, index) => (
+              <div key={photo.id} className="relative group">
+                <div
+                  className="aspect-[3/4] bg-cover bg-center relative overflow-hidden rounded-lg"
+                  style={{
+                    backgroundImage: `url(${photo.url})`,
+                    opacity: photo.visible ? 1 : 0.5,
+                  }}
+                >
+                  <div 
+                    className="absolute bottom-2 left-2 px-2 py-1 text-[10px] font-medium rounded"
+                    style={{ backgroundColor: 'rgba(0,0,0,0.7)', color: colors.white }}
+                  >
+                    #{index + 1}
+                  </div>
+
+                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onToggleVisibility(photo.id); }}
+                      className="w-7 h-7 rounded-full flex items-center justify-center"
+                      style={{ 
+                        backgroundColor: photo.visible ? colors.success : colors.textMuted,
+                        color: colors.white 
+                      }}
+                    >
+                      {photo.visible ? <EyeIcon size={12} /> : <EyeOffIcon size={12} />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setEditingPhoto(editingPhoto === photo.id ? null : photo.id); }}
+                      className="w-7 h-7 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: colors.camel, color: colors.white }}
+                    >
+                      <LinkIcon size={12} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onRemovePhoto(photo.id); }}
+                      className="w-7 h-7 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: '#FF5F56', color: colors.white }}
+                    >
+                      <TrashIcon size={12} />
+                    </button>
+                  </div>
+                </div>
+
+                {editingPhoto === photo.id && (
+                  <div 
+                    className="absolute inset-x-0 bottom-0 p-3 z-10 rounded-b-lg"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.95)' }}
+                  >
+                    <input
+                      type="text"
+                      placeholder="Photographer name"
+                      value={photo.photographer}
+                      onChange={(e) => onUpdateCredit(photo.id, 'photographer', e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full px-2 py-1.5 text-xs mb-2 outline-none"
+                      style={{ border: `1px solid ${colors.border}` }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Studio name"
+                      value={photo.studio}
+                      onChange={(e) => onUpdateCredit(photo.id, 'studio', e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full px-2 py-1.5 text-xs outline-none"
+                      style={{ border: `1px solid ${colors.border}` }}
+                    />
+                  </div>
+                )}
+
+                {editingPhoto !== photo.id && (photo.photographer || photo.studio) && (
+                  <div className="mt-1">
+                    {photo.photographer && (
+                      <p className="text-[10px]" style={{ color: colors.textMuted }}>📸 {photo.photographer}</p>
+                    )}
+                    {photo.studio && (
+                      <p className="text-[10px]" style={{ color: colors.textMuted }}>🏠 {photo.studio}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {photos.length > 0 && (
+        <div className="p-6 rounded-xl" style={{ backgroundColor: colors.cream }}>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-medium" style={{ color: colors.textPrimary }}>Ready to launch?</h3>
+              <p className="text-xs" style={{ color: colors.textMuted }}>Your portfolio is looking great! Here's a preview.</p>
+            </div>
+            <div className="flex gap-3">
+              <button 
+                type="button" 
+                className="flex items-center gap-2 px-4 py-2 text-xs font-medium transition-colors hover:opacity-80"
+                style={{ 
+                  border: `1px solid ${colors.border}`, 
+                  backgroundColor: colors.white, 
+                  color: colors.textPrimary 
+                }}
+              >
+                <EyeIcon size={14} />
+                Preview Portfolio
+              </button>
+              <button 
+                type="button" 
+                className="flex items-center gap-2 px-4 py-2 text-xs font-medium transition-all hover:opacity-80"
+                style={{ 
+                  border: `1px solid ${colors.camel}`, 
+                  backgroundColor: 'transparent', 
+                  color: colors.camel 
+                }}
+              >
+                <LayoutIcon size={14} />
+                Open Editor
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-lg overflow-hidden" style={{ border: `1px solid ${colors.border}` }}>
+            <div className="flex items-center gap-1.5 px-3 py-2" style={{ backgroundColor: '#F5F5F5' }}>
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#FF5F56' }} />
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#FFBD2E' }} />
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#27CA40' }} />
+            </div>
+            <div className="p-4" style={{ backgroundColor: selected.bgColor }}>
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 
+                    className="text-sm font-medium"
+                    style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', color: selected.textColor }}
+                  >
+                    {modelName}
+                  </h3>
+                  <span 
+                    className="text-[8px] tracking-widest uppercase"
+                    style={{ color: selected.textColor, opacity: 0.6 }}
+                  >
+                    MODEL
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-5 gap-1">
+                {photos.filter(p => p.visible).slice(0, 5).map((photo) => (
+                  <div 
+                    key={photo.id} 
+                    className="aspect-[3/4] bg-cover bg-center rounded" 
+                    style={{ backgroundImage: `url(${photo.url})` }} 
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+// ============================================================================
+// Main Component Props
+// ============================================================================
+
+interface ExistingProfile {
+  display_name?: string | null;
+  username?: string | null;
+  location?: string | null;
+  bio?: string | null;
+  avatar_url?: string | null;
+  agency?: string | null;
 }
 
 interface OnboardingWizardProps {
   userEmail: string;
   userId: string;
-  existingProfile?: {
-    display_name?: string | null;
-    username?: string | null;
-    location?: string | null;
-    bio?: string | null;
-    avatar_url?: string | null;
-    agency?: string | null;
-  };
+  existingProfile?: ExistingProfile;
 }
 
-// =============================================================================
-// Styles
-// =============================================================================
-const styles = {
-  container: {
-    height: "100vh",
-    backgroundColor: "#FAF9F7",
-    fontFamily: "'Cormorant Garamond', Georgia, serif",
-    color: "#1A1A1A",
-    overflow: "hidden",
-  },
-  header: {
-    padding: "16px 32px",
-    borderBottom: "1px solid rgba(26, 26, 26, 0.08)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: "24px",
-    backgroundColor: "#FAF9F7",
-  },
-  progressContainer: {
-    display: "flex",
-    gap: "4px",
-    alignItems: "center",
-  },
-  progressStep: (active: boolean, completed: boolean, clickable: boolean) => ({
-    display: "flex",
-    flexDirection: "column" as const,
-    alignItems: "center",
-    gap: "6px",
-    cursor: clickable ? "pointer" : "default",
-    padding: "4px 8px",
-    borderRadius: "6px",
-    transition: "all 0.2s ease",
-    backgroundColor: active ? "rgba(196, 164, 132, 0.1)" : "transparent",
-  }),
-  progressDot: (active: boolean, completed: boolean) => ({
-    width: "10px",
-    height: "10px",
-    borderRadius: "50%",
-    backgroundColor: completed ? "#1A1A1A" : active ? "#C4A484" : "rgba(26, 26, 26, 0.15)",
-    transition: "all 0.3s ease",
-  }),
-  progressLabel: (active: boolean, completed: boolean) => ({
-    fontFamily: "'Outfit', sans-serif",
-    fontSize: "10px",
-    fontWeight: active ? 600 : 400,
-    letterSpacing: "0.5px",
-    color: completed ? "#1A1A1A" : active ? "#C4A484" : "rgba(26, 26, 26, 0.4)",
-    textTransform: "uppercase" as const,
-    transition: "all 0.2s ease",
-    whiteSpace: "nowrap" as const,
-  }),
-  progressLine: (completed: boolean) => ({
-    width: "20px",
-    height: "2px",
-    backgroundColor: completed ? "#1A1A1A" : "rgba(26, 26, 26, 0.1)",
-    transition: "all 0.3s ease",
-    flexShrink: 0,
-  }),
-  main: {
-    maxWidth: "680px",
-    margin: "0 auto",
-    padding: "48px 24px 120px",
-  },
-  stepHeader: {
-    textAlign: "center" as const,
-    marginBottom: "40px",
-  },
-  stepLabel: {
-    fontFamily: "'Outfit', sans-serif",
-    fontSize: "12px",
-    fontWeight: 500,
-    letterSpacing: "2px",
-    textTransform: "uppercase" as const,
-    color: "#FF7AA2",
-    marginBottom: "12px",
-  },
-  stepTitle: {
-    fontSize: "clamp(28px, 5vw, 40px)",
-    fontWeight: 300,
-    marginBottom: "12px",
-  },
-  stepDescription: {
-    fontFamily: "'Outfit', sans-serif",
-    fontSize: "15px",
-    color: "rgba(26, 26, 26, 0.6)",
-    lineHeight: 1.6,
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: "24px",
-  },
-  fieldGroup: {
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: "8px",
-  },
-  label: {
-    fontFamily: "'Outfit', sans-serif",
-    fontSize: "13px",
-    fontWeight: 500,
-    color: "#1A1A1A",
-    letterSpacing: "0.5px",
-  },
-  input: {
-    padding: "14px 16px",
-    fontSize: "15px",
-    fontFamily: "'Outfit', sans-serif",
-    border: "1px solid rgba(26, 26, 26, 0.15)",
-    borderRadius: "8px",
-    backgroundColor: "white",
-    color: "#1A1A1A",
-    outline: "none",
-    transition: "border-color 0.2s ease",
-  },
-  textarea: {
-    padding: "14px 16px",
-    fontSize: "15px",
-    fontFamily: "'Outfit', sans-serif",
-    border: "1px solid rgba(26, 26, 26, 0.15)",
-    borderRadius: "8px",
-    backgroundColor: "white",
-    color: "#1A1A1A",
-    outline: "none",
-    resize: "vertical" as const,
-    minHeight: "120px",
-    lineHeight: 1.6,
-  },
-  row: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "16px",
-  },
-  row3: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr",
-    gap: "16px",
-  },
-  footer: {
-    position: "fixed" as const,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: "20px 32px",
-    backgroundColor: "white",
-    borderTop: "1px solid rgba(26, 26, 26, 0.08)",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    zIndex: 100,
-  },
-  button: (primary: boolean) => ({
-    padding: "14px 32px",
-    fontSize: "14px",
-    fontFamily: "'Outfit', sans-serif",
-    fontWeight: 500,
-    letterSpacing: "1px",
-    border: primary ? "none" : "1px solid rgba(26, 26, 26, 0.2)",
-    borderRadius: "8px",
-    backgroundColor: primary ? "#1A1A1A" : "transparent",
-    color: primary ? "white" : "#1A1A1A",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-  }),
-  skipButton: {
-    padding: "14px 24px",
-    fontSize: "13px",
-    fontFamily: "'Outfit', sans-serif",
-    fontWeight: 400,
-    border: "none",
-    backgroundColor: "transparent",
-    color: "rgba(26, 26, 26, 0.5)",
-    cursor: "pointer",
-    textDecoration: "underline",
-  },
-  avatarUpload: {
-    display: "flex",
-    flexDirection: "column" as const,
-    alignItems: "center",
-    gap: "16px",
-  },
-  avatarPreview: {
-    width: "120px",
-    height: "120px",
-    borderRadius: "50%",
-    backgroundColor: "rgba(26, 26, 26, 0.05)",
-    border: "3px solid #FF7AA2",
-    overflow: "hidden",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    position: "relative" as const,
-  },
-  photoGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-    gap: "12px",
-  },
-  photoUploadBox: {
-    aspectRatio: "1",
-    border: "2px dashed rgba(26, 26, 26, 0.15)",
-    borderRadius: "12px",
-    display: "flex",
-    flexDirection: "column" as const,
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-    backgroundColor: "white",
-  },
-  photoPreview: {
-    aspectRatio: "1",
-    borderRadius: "12px",
-    overflow: "hidden",
-    position: "relative" as const,
-  },
-  serviceCard: {
-    padding: "20px",
-    backgroundColor: "white",
-    border: "1px solid rgba(26, 26, 26, 0.1)",
-    borderRadius: "12px",
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: "12px",
-  },
-  upsellCard: {
-    background: "linear-gradient(135deg, #FFF5F7 0%, #FFF9F0 100%)",
-    border: "2px solid #FF7AA2",
-    borderRadius: "16px",
-    padding: "32px",
-    textAlign: "center" as const,
-    marginTop: "32px",
-  },
-  error: {
-    fontFamily: "'Outfit', sans-serif",
-    fontSize: "13px",
-    color: "#D64545",
-    marginTop: "4px",
-  },
-};
+// ============================================================================
+// Main Component
+// ============================================================================
 
-// =============================================================================
-// Component
-// =============================================================================
-export function OnboardingWizard({ userEmail, userId, existingProfile }: OnboardingWizardProps) {
+export function OnboardingWizard({ 
+  userEmail, 
+  userId, 
+  existingProfile 
+}: OnboardingWizardProps): React.JSX.Element {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
-  const [loading, setLoading] = useState(false);
-  const [locationLoading, setLocationLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const avatarInputRef = useRef<HTMLInputElement>(null);
-  const photosInputRef = useRef<HTMLInputElement>(null);
-  const compCardInputRef = useRef<HTMLInputElement>(null);
+  const [currentStep, setCurrentStep] = useState<CurrentStep>('profile');
+  const [locationStatus, setLocationStatus] = useState<LocationStatus>('detecting');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isGeneratingBio, setIsGeneratingBio] = useState(false);
+  const [analysisComplete, setAnalysisComplete] = useState(false);
+  const [activeUploadType, setActiveUploadType] = useState<UploadType>(null);
+  const [isConnectingInstagram, setIsConnectingInstagram] = useState(false);
+  const [isConnectingTikTok, setIsConnectingTikTok] = useState(false);
+  const [socialConnectError, setSocialConnectError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-  const [data, setData] = useState<OnboardingData>({
-    // Step 1
-    displayName: existingProfile?.display_name || "",
-    username: existingProfile?.username || "",
-    location: existingProfile?.location || "",
-    instagram: "",
-    tiktok: "",
-    website: "",
-    agency: existingProfile?.agency || "",
-    // Step 2
-    bio: existingProfile?.bio || "",
-    avatarUrl: existingProfile?.avatar_url || null,
-    avatarFile: null,
-    heightCm: "",
-    bustCm: "",
-    waistCm: "",
-    hipsCm: "",
-    shoeSize: "",
-    hairColor: "",
-    eyeColor: "",
-    // Step 3
-    servicesTitle: "My Services",
-    compCardImage: null,
-    services: [{ title: "", description: "", price: "" }],
-    // Step 4
-    selectedTemplate: "rose",
-    // Step 5
-    photos: [],
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [profileData, setProfileData] = useState<ProfileFormData>({
+    displayName: existingProfile?.display_name || '',
+    username: existingProfile?.username || '',
+    location: existingProfile?.location || '',
+    instagram: '',
+    tiktok: '',
+    website: '',
+    agency: existingProfile?.agency || '',
   });
 
-  const totalSteps = 6; // Including AI Setup step (step 0)
+  const [aboutData, setAboutData] = useState<AboutFormData>({
+    stats: {
+      height: '',
+      bust: '',
+      waist: '',
+      hips: '',
+      shoes: '',
+      dress: '',
+      hairColor: '',
+      eyeColor: '',
+    },
+    bio: existingProfile?.bio || '',
+    profilePhoto: existingProfile?.avatar_url || null,
+  });
 
-  // =========================================================================
-  // Handlers
-  // =========================================================================
-  const updateData = (updates: Partial<OnboardingData>) => {
-    setData(prev => ({ ...prev, ...updates }));
-    setError(null);
-  };
+  const [servicesData, setServicesData] = useState<ServicesFormData>({
+    experienceLevel: 'beginner',
+    categories: [
+      { id: 'editorial', name: 'Editorial', description: 'Magazine & fashion spreads', selected: false },
+      { id: 'commercial', name: 'Commercial', description: 'Advertising & brands', selected: false },
+      { id: 'runway', name: 'Runway', description: 'Fashion shows & events', selected: false },
+      { id: 'lifestyle', name: 'Lifestyle', description: 'Casual & everyday looks', selected: false },
+      { id: 'fitness', name: 'Fitness', description: 'Athletic & wellness', selected: false },
+      { id: 'beauty', name: 'Beauty', description: 'Makeup & skincare', selected: false },
+      { id: 'catalog', name: 'Catalog', description: 'E-commerce & product', selected: false },
+      { id: 'promotional', name: 'Promotional', description: 'Events & brand ambassador', selected: false },
+    ],
+    pricing: {
+      hourly: '',
+      halfDay: '',
+      fullDay: '',
+    },
+    travelAvailable: false,
+    travelRadius: '',
+    tfpAvailable: false,
+  });
 
-  const handleGetLocation = async () => {
-    if (!navigator.geolocation) {
-      setError("Geolocation is not supported by your browser");
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [suggestionsApplied, setSuggestionsApplied] = useState(false);
+
+  // Template and Photos state
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('poise');
+  const [photos, setPhotos] = useState<PortfolioPhoto[]>([]);
+
+  // Model name derived from profile data
+  const modelName = profileData.displayName || 'Your Name';
+
+  const steps: OnboardingStep[] = [
+    { id: 'profile', name: 'PROFILE', completed: ['about', 'services', 'template', 'photos'].includes(currentStep), current: currentStep === 'profile' },
+    { id: 'about', name: 'ABOUT', completed: ['services', 'template', 'photos'].includes(currentStep), current: currentStep === 'about' },
+    { id: 'services', name: 'SERVICES', completed: ['template', 'photos'].includes(currentStep), current: currentStep === 'services' },
+    { id: 'template', name: 'TEMPLATE', completed: currentStep === 'photos', current: currentStep === 'template' },
+    { id: 'photos', name: 'PHOTOS', completed: false, current: currentStep === 'photos' },
+  ];
+
+  // Location detection - use existing profile location or detect via geolocation API
+  useEffect(() => {
+    // If we already have a location from existing profile, use it
+    if (existingProfile?.location) {
+      setLocationStatus('found');
       return;
     }
 
-    setLocationLoading(true);
-    setError(null);
+    // Otherwise, try to detect location via browser geolocation
+    if (!navigator.geolocation) {
+      setLocationStatus('error');
+      return;
+    }
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         try {
-          const { latitude, longitude } = position.coords;
-          
-          // Use BigDataCloud's free reverse geocoding API (no API key needed)
+          // Use reverse geocoding to get location name
+          // Note: Nominatim requires a User-Agent header per their usage policy
+          // https://operations.osmfoundation.org/policies/nominatim/
           const response = await fetch(
-            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+            `https://nominatim.openstreetmap.org/reverse?lat=${position.coords.latitude}&lon=${position.coords.longitude}&format=json`,
+            {
+              headers: {
+                'User-Agent': 'PoseAndPoise/1.0 (https://poseandpoise.com; contact@poseandpoise.com)',
+              },
+            }
           );
+          const data = await response.json();
+          const city = data.address?.city || data.address?.town || data.address?.village || '';
+          const state = data.address?.state || '';
+          const country = data.address?.country_code?.toUpperCase() || '';
+          const locationString = [city, state, country].filter(Boolean).join(', ');
           
-          if (!response.ok) throw new Error("Failed to get location");
-          
-          const locationData = await response.json();
-          const city = locationData.city || locationData.locality || locationData.principalSubdivision || "";
-          const country = locationData.countryName || "";
-          
-          const locationString = [city, country].filter(Boolean).join(", ");
-          updateData({ location: locationString });
-        } catch {
-          setError("Could not determine your location");
-        } finally {
-          setLocationLoading(false);
-        }
-      },
-      (err) => {
-        setLocationLoading(false);
-        switch (err.code) {
-          case err.PERMISSION_DENIED:
-            setError("Location permission denied. Please enable it in your browser settings.");
-            break;
-          case err.POSITION_UNAVAILABLE:
-            setError("Location information unavailable");
-            break;
-          case err.TIMEOUT:
-            setError("Location request timed out");
-            break;
-          default:
-            setError("Could not get your location");
-        }
-      },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
-    );
-  };
-
-  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      updateData({ 
-        avatarFile: file,
-        avatarUrl: URL.createObjectURL(file),
-      });
-    }
-  };
-
-  const handlePhotosSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const maxPhotos = 10;
-    const remainingSlots = maxPhotos - data.photos.length;
-    const newPhotos = files.slice(0, remainingSlots);
-    updateData({ photos: [...data.photos, ...newPhotos] });
-  };
-
-  const removePhoto = (index: number) => {
-    updateData({ photos: data.photos.filter((_, i) => i !== index) });
-  };
-
-  const addService = () => {
-    if (data.services.length < 10) {
-      updateData({ 
-        services: [...data.services, { title: "", description: "", price: "" }] 
-      });
-    }
-  };
-
-  const removeService = (index: number) => {
-    updateData({ services: data.services.filter((_, i) => i !== index) });
-  };
-
-  const updateService = (index: number, field: string, value: string) => {
-    const newServices = [...data.services];
-    newServices[index] = { ...newServices[index], [field]: value };
-    updateData({ services: newServices });
-  };
-
-  const validateStep = (): boolean => {
-    switch (currentStep) {
-      case 1:
-        if (!data.displayName.trim()) {
-          setError("Please enter your display name");
-          return false;
-        }
-        if (!data.username.trim()) {
-          setError("Please choose a username");
-          return false;
-        }
-        if (!/^[a-z0-9_-]{3,20}$/.test(data.username.toLowerCase())) {
-          setError("Username must be 3-20 characters (letters, numbers, hyphens, underscores)");
-          return false;
-        }
-        return true;
-      case 2:
-      case 3:
-      case 4:
-      case 5:
-        return true; // These steps are optional
-      default:
-        return true;
-    }
-  };
-
-  const saveStepData = async (): Promise<boolean> => {
-    try {
-      const formData = new FormData();
-      
-      // Always include basic profile data
-      formData.append("username", data.username.toLowerCase().trim());
-      formData.append("display_name", data.displayName.trim());
-      
-      if (currentStep === 1) {
-        formData.append("location", data.location.trim());
-        formData.append("instagram", data.instagram.trim());
-        formData.append("tiktok", data.tiktok.trim());
-        formData.append("website", data.website.trim());
-        formData.append("agency", data.agency.trim());
-      }
-      
-      if (currentStep === 2) {
-        formData.append("bio", data.bio.trim());
-        formData.append("height_cm", data.heightCm);
-        formData.append("bust_cm", data.bustCm);
-        formData.append("waist_cm", data.waistCm);
-        formData.append("hips_cm", data.hipsCm);
-        formData.append("shoe_size", data.shoeSize);
-        formData.append("hair_color", data.hairColor);
-        formData.append("eye_color", data.eyeColor);
-        
-        // Upload avatar if new file selected
-        if (data.avatarFile) {
-          const avatarFormData = new FormData();
-          avatarFormData.append("file", data.avatarFile);
-          
-          const avatarRes = await fetch("/api/onboarding/upload-avatar", {
-            method: "POST",
-            body: avatarFormData,
-          });
-          
-          if (!avatarRes.ok) {
-            const err = await avatarRes.json();
-            throw new Error(err.error || "Failed to upload avatar");
+          if (locationString) {
+            setProfileData(prev => ({ ...prev, location: locationString }));
+            setLocationStatus('found');
+          } else {
+            setLocationStatus('error');
           }
+        } catch {
+          setLocationStatus('error');
         }
-      }
-      
-      // Save profile updates
-      const res = await fetch("/api/onboarding/update-profile", {
-        method: "POST",
-        body: formData,
+      },
+      () => {
+        setLocationStatus('error');
+      },
+      { timeout: 10000 }
+    );
+  }, [existingProfile?.location]);
+
+  // Calculate collected fields
+  const profileCollected = Object.values(profileData).filter(Boolean).length;
+  const aboutCollected =
+    Object.values(aboutData.stats).filter(Boolean).length +
+    (aboutData.bio ? 1 : 0) +
+    (aboutData.profilePhoto ? 1 : 0);
+  const servicesCollected =
+    servicesData.categories.filter(c => c.selected).length +
+    Object.values(servicesData.pricing).filter(Boolean).length +
+    (servicesData.travelAvailable ? 1 : 0) +
+    (servicesData.tfpAvailable ? 1 : 0);
+  
+  const photosCollected = photos.length;
+  
+  const collectedFields = 
+    currentStep === 'profile' ? profileCollected : 
+    currentStep === 'about' ? aboutCollected : 
+    currentStep === 'services' ? servicesCollected :
+    currentStep === 'photos' ? photosCollected : 0;
+
+  // ============================================================================
+  // Handlers
+  // ============================================================================
+
+  const handleProfileInputChange = (field: keyof ProfileFormData, value: string): void => {
+    setProfileData(prev => ({ ...prev, [field]: value }));
+    // Clear validation error for this field when user types
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const updated = { ...prev };
+        delete updated[field];
+        return updated;
       });
-      
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to save");
-      }
-      
-      // Step 3: Save services
-      if (currentStep === 3 && data.services.some(s => s.title.trim())) {
-        const servicesRes = await fetch("/api/onboarding/save-services", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            services: data.services.filter(s => s.title.trim()),
-          }),
-        });
-        
-        if (!servicesRes.ok) {
-          console.error("Failed to save services");
-        }
-      }
-      
-      // Step 4: Save template selection
-      if (currentStep === 4) {
-        const templateRes = await fetch("/api/onboarding/save-template", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            templateId: data.selectedTemplate,
-          }),
-        });
-        
-        if (!templateRes.ok) {
-          console.error("Failed to save template");
-        }
-      }
-      
-      // Step 5: Upload photos
-      if (currentStep === 5 && data.photos.length > 0) {
-        for (const photo of data.photos) {
-          const photoFormData = new FormData();
-          photoFormData.append("file", photo);
-          
-          await fetch("/api/onboarding/upload-photo", {
-            method: "POST",
-            body: photoFormData,
-          });
-        }
-      }
-      
-      return true;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      return false;
     }
   };
 
-  const handleNext = async () => {
-    if (!validateStep()) return;
+  const handleStatsChange = (field: keyof ModelStats, value: string): void => {
+    setAboutData(prev => ({
+      ...prev,
+      stats: { ...prev.stats, [field]: value },
+    }));
+  };
+
+  const handleBioChange = (value: string): void => {
+    setAboutData(prev => ({ ...prev, bio: value }));
+  };
+
+  const handleConnectInstagram = async (): Promise<void> => {
+    setIsConnectingInstagram(true);
+    setSocialConnectError(null);
     
-    setLoading(true);
-    const saved = await saveStepData();
-    setLoading(false);
-    
-    if (saved) {
-      // Mark current step as completed
-      setCompletedSteps(prev => new Set([...prev, currentStep]));
+    try {
+      const response = await fetch('/api/social-profiles/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform: 'instagram' }),
+      });
       
-      if (currentStep < totalSteps) {
-        setCurrentStep(prev => prev + 1);
-        window.scrollTo({ top: 0, behavior: "smooth" });
+      const data = await response.json();
+      
+      if (data.success && data.authUrl) {
+        // Redirect to OAuth provider - loading state will be cleared by page navigation
+        // but we reset it here in case the redirect is blocked or delayed
+        setIsConnectingInstagram(false);
+        window.location.href = data.authUrl;
       } else {
-        await completeOnboarding();
+        setSocialConnectError(data.error || 'Failed to connect Instagram');
+        setIsConnectingInstagram(false);
       }
+    } catch (error) {
+      console.error('Instagram connection error:', error);
+      setSocialConnectError('Failed to connect Instagram. Please try again.');
+      setIsConnectingInstagram(false);
     }
   };
 
-  const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(prev => prev - 1);
-      setError(null);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
-
-  const handleSkip = async () => {
-    // Mark current step as completed (skipped)
-    setCompletedSteps(prev => new Set([...prev, currentStep]));
-    
-    if (currentStep < totalSteps) {
-      setCurrentStep(prev => prev + 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } else {
-      await completeOnboarding();
-    }
-  };
-
-  const handleStepClick = (step: number) => {
-    // Can only navigate to completed steps or current step
-    if (step <= currentStep || completedSteps.has(step)) {
-      setCurrentStep(step);
-      setError(null);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
-
-  const completeOnboarding = async () => {
-    setLoading(true);
+  const handleConnectTikTok = async (): Promise<void> => {
+    setIsConnectingTikTok(true);
+    setSocialConnectError(null);
     
     try {
-      const res = await fetch("/api/onboarding/complete", {
-        method: "POST",
+      const response = await fetch('/api/social-profiles/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform: 'tiktok' }),
       });
       
-      if (!res.ok) {
-        throw new Error("Failed to complete onboarding");
+      const data = await response.json();
+      
+      if (data.success && data.authUrl) {
+        // Redirect to OAuth provider - loading state will be cleared by page navigation
+        // but we reset it here in case the redirect is blocked or delayed
+        setIsConnectingTikTok(false);
+        window.location.href = data.authUrl;
+      } else {
+        setSocialConnectError(data.error || 'Failed to connect TikTok');
+        setIsConnectingTikTok(false);
+      }
+    } catch (error) {
+      console.error('TikTok connection error:', error);
+      setSocialConnectError('Failed to connect TikTok. Please try again.');
+      setIsConnectingTikTok(false);
+    }
+  };
+
+  const triggerFileUpload = (type: UploadType): void => {
+    setActiveUploadType(type);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>): void => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const imageUrl = event.target?.result as string;
+
+      if (activeUploadType === 'profile') {
+        setAboutData(prev => ({ ...prev, profilePhoto: imageUrl }));
+      } else if (activeUploadType === 'analyzer') {
+        simulatePhotoAnalysis();
+      } else if (activeUploadType === 'scanner') {
+        simulateCompCardScan();
       }
       
-      router.push("/dashboard?welcome=true");
-    } catch (err) {
-      setError("Failed to complete setup. Please try again.");
-      setLoading(false);
-    }
+      // Reset upload type after processing is complete
+      setActiveUploadType(null);
+    };
+    reader.readAsDataURL(file);
   };
 
-  // =========================================================================
-  // AI Onboarding Handlers
-  // =========================================================================
-  const handleAIComplete = (aiData: {
-    displayName?: string;
-    username?: string;
-    location?: string;
-    instagram?: string;
-    tiktok?: string;
-    website?: string;
-    bio?: string;
-    avatarUrl?: string;
-    heightCm?: string;
-    bustCm?: string;
-    waistCm?: string;
-    hipsCm?: string;
-    shoeSize?: string;
-    hairColor?: string;
-    eyeColor?: string;
-    isRepresented?: boolean;
-    agencyName?: string;
-    agencyContact?: string;
-    agencyWebsite?: string;
-    servicesTitle?: string;
-    services?: Array<{ title: string; description: string; price: string }>;
-    selectedTemplate?: string;
-    photos?: Array<{ url: string; photographer?: string; studio?: string; instagram?: string }>;
-    experienceLevel?: "beginner" | "intermediate" | "professional";
-  }) => {
-    // Apply extracted data from AI chat
-    const updates: Partial<OnboardingData> = {};
+  const simulatePhotoAnalysis = (): void => {
+    setIsAnalyzing(true);
+    setAnalysisComplete(false);
+
+    setTimeout(() => {
+      setAboutData(prev => ({
+        ...prev,
+        stats: {
+          ...prev.stats,
+          hairColor: 'Brunette',
+          eyeColor: 'Hazel',
+          height: "5'9\"",
+        },
+      }));
+      setIsAnalyzing(false);
+      setAnalysisComplete(true);
+      setTimeout(() => setAnalysisComplete(false), 3000);
+    }, 2000);
+  };
+
+  const simulateCompCardScan = (): void => {
+    setIsAnalyzing(true);
+    setAnalysisComplete(false);
+
+    setTimeout(() => {
+      setAboutData(prev => ({
+        ...prev,
+        stats: {
+          height: "5'9\"",
+          bust: '32"',
+          waist: '24"',
+          hips: '34"',
+          shoes: '8',
+          dress: '4',
+          hairColor: 'Brunette',
+          eyeColor: 'Hazel',
+        },
+      }));
+      setIsAnalyzing(false);
+      setAnalysisComplete(true);
+      setTimeout(() => setAnalysisComplete(false), 3000);
+    }, 2500);
+  };
+
+  const handleGenerateBio = (): void => {
+    setIsGeneratingBio(true);
+    setTimeout(() => {
+      setAboutData(prev => ({
+        ...prev,
+        bio: `A rising face in contemporary fashion, known for striking versatility and effortless presence. Equally at home in high-fashion editorials as in commercial lifestyle campaigns. Brings quiet confidence to every shoot with intentional movement and fluid poses. Drawn to work that tells a story, collaborating with photographers and creatives who push boundaries.`,
+      }));
+      setIsGeneratingBio(false);
+    }, 1500);
+  };
+
+  // Services Handlers
+  const handleExperienceChange = (level: ExperienceLevel): void => {
+    setServicesData(prev => ({ ...prev, experienceLevel: level }));
+  };
+
+  const handleCategoryToggle = (id: string): void => {
+    setServicesData(prev => ({
+      ...prev,
+      categories: prev.categories.map(cat =>
+        cat.id === id ? { ...cat, selected: !cat.selected } : cat
+      ),
+    }));
+  };
+
+  const handlePricingChange = (field: keyof PricingTier, value: string): void => {
+    setServicesData(prev => ({
+      ...prev,
+      pricing: { ...prev.pricing, [field]: value },
+    }));
+  };
+
+  const handleTravelToggle = (): void => {
+    setServicesData(prev => ({ ...prev, travelAvailable: !prev.travelAvailable }));
+  };
+
+  const handleTravelRadiusChange = (value: string): void => {
+    setServicesData(prev => ({ ...prev, travelRadius: value }));
+  };
+
+  const handleTfpToggle = (): void => {
+    setServicesData(prev => ({ ...prev, tfpAvailable: !prev.tfpAvailable }));
+  };
+
+  const handleSuggestServices = (): void => {
+    setIsSuggesting(true);
+    setSuggestionsApplied(false);
+
+    setTimeout(() => {
+      setServicesData(prev => ({
+        ...prev,
+        experienceLevel: 'intermediate',
+        categories: prev.categories.map(cat => ({
+          ...cat,
+          selected: ['editorial', 'commercial', 'lifestyle', 'beauty'].includes(cat.id),
+        })),
+        pricing: {
+          hourly: '150',
+          halfDay: '500',
+          fullDay: '900',
+        },
+        travelAvailable: true,
+        travelRadius: '50 miles',
+        tfpAvailable: true,
+      }));
+      setIsSuggesting(false);
+      setSuggestionsApplied(true);
+      setTimeout(() => setSuggestionsApplied(false), 3000);
+    }, 2000);
+  };
+
+  // Photo handlers
+  const handleAddPhotos = (files: FileList): void => {
+    const timestamp = Date.now();
+    Array.from(files).forEach((file, index) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const newPhoto: PortfolioPhoto = {
+          id: `photo-${timestamp}-${index}`,
+          url: e.target?.result as string,
+          photographer: '',
+          studio: '',
+          visible: true,
+          // Calculate order based on current state length inside the callback
+          // to handle async completion correctly
+          order: 0, // Will be set correctly in setPhotos
+        };
+        setPhotos((prev) => {
+          const updatedPhoto = { ...newPhoto, order: prev.length };
+          return [...prev, updatedPhoto];
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleTogglePhotoVisibility = (id: string): void => {
+    setPhotos((prev) => prev.map(p => p.id === id ? { ...p, visible: !p.visible } : p));
+  };
+
+  const handleRemovePhoto = (id: string): void => {
+    setPhotos((prev) => prev.filter(p => p.id !== id));
+  };
+
+  const handleUpdatePhotoCredit = (id: string, field: 'photographer' | 'studio', value: string): void => {
+    setPhotos((prev) => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
+  };
+
+  const handleLaunchPortfolio = (): void => {
+    // TODO: Implement actual portfolio launch logic
+    alert('Portfolio launched successfully! 🚀');
+  };
+
+  const handleBack = (): void => {
+    if (currentStep === 'about') setCurrentStep('profile');
+    else if (currentStep === 'services') setCurrentStep('about');
+    else if (currentStep === 'template') setCurrentStep('services');
+    else if (currentStep === 'photos') setCurrentStep('template');
+  };
+
+  const validateProfileStep = (): boolean => {
+    const errors: Record<string, string> = {};
     
-    if (aiData.displayName) updates.displayName = aiData.displayName as string;
-    if (aiData.username) updates.username = aiData.username as string;
-    if (aiData.location) updates.location = aiData.location as string;
-    if (aiData.instagram) updates.instagram = aiData.instagram as string;
-    if (aiData.tiktok) updates.tiktok = aiData.tiktok as string;
-    if (aiData.website) updates.website = aiData.website as string;
-    if (aiData.agencyName) updates.agency = aiData.agencyName as string;
-    if (aiData.bio) updates.bio = aiData.bio as string;
-    if (aiData.heightCm) updates.heightCm = aiData.heightCm as string;
-    if (aiData.bustCm) updates.bustCm = aiData.bustCm as string;
-    if (aiData.waistCm) updates.waistCm = aiData.waistCm as string;
-    if (aiData.hipsCm) updates.hipsCm = aiData.hipsCm as string;
-    if (aiData.shoeSize) updates.shoeSize = aiData.shoeSize as string;
-    if (aiData.hairColor) updates.hairColor = aiData.hairColor as string;
-    if (aiData.eyeColor) updates.eyeColor = aiData.eyeColor as string;
-    if (aiData.servicesTitle) updates.servicesTitle = aiData.servicesTitle as string;
-    if (aiData.services && Array.isArray(aiData.services)) {
-      updates.services = aiData.services as Array<{ title: string; description: string; price: string }>;
-    }
-    if (aiData.selectedTemplate) updates.selectedTemplate = aiData.selectedTemplate as string;
-    
-    updateData(updates);
-    setCompletedSteps(prev => new Set([...prev, 0]));
-    setCurrentStep(1);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleAISkip = () => {
-    setCompletedSteps(prev => new Set([...prev, 0]));
-    setCurrentStep(1);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  // =========================================================================
-  // Render Steps
-  // =========================================================================
-  
-  // Step 0: AI-Powered Setup
-  const renderStep0 = () => (
-    <AIOnboardingChat
-      onComplete={handleAIComplete}
-      onSkip={handleAISkip}
-      userEmail={userEmail}
-      userName={data.displayName || existingProfile?.display_name || undefined}
-      subscriptionTier="free"
-    />
-  );
-  
-  // Handler for ProfileStep component
-  // Note: This handler validates and saves using the passed data directly,
-  // rather than relying on async state updates from updateData()
-  const handleProfileStepContinue = async (profileData: {
-    displayName: string;
-    username: string;
-    location: string;
-    instagram: string;
-    tiktok: string;
-    website: string;
-    agency: string;
-  }) => {
-    // Validate the passed data directly (not from state)
     if (!profileData.displayName.trim()) {
-      setError("Please enter your display name");
-      return;
+      errors.displayName = 'Display name is required';
     }
+    
     if (!profileData.username.trim()) {
-      setError("Please choose a username");
-      return;
+      errors.username = 'Username is required';
+    } else if (!/^[a-zA-Z0-9_-]+$/.test(profileData.username)) {
+      errors.username = 'Username can only contain letters, numbers, underscores, and hyphens';
+    } else if (profileData.username.length < 3) {
+      errors.username = 'Username must be at least 3 characters';
     }
-    if (!/^[a-z0-9_-]{3,20}$/.test(profileData.username.toLowerCase())) {
-      setError("Username must be 3-20 characters (letters, numbers, hyphens, underscores)");
-      return;
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleContinue = (): void => {
+    // Validate current step before proceeding
+    if (currentStep === 'profile') {
+      if (!validateProfileStep()) return;
+      setCurrentStep('about');
+    } else if (currentStep === 'about') {
+      setCurrentStep('services');
+    } else if (currentStep === 'services') {
+      setCurrentStep('template');
+    } else if (currentStep === 'template') {
+      setCurrentStep('photos');
     }
+    // photos is the last step - could redirect to dashboard or show completion
+  };
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Build FormData using the passed data directly
-      const formData = new FormData();
-      formData.append("username", profileData.username.toLowerCase().trim());
-      formData.append("display_name", profileData.displayName.trim());
-      formData.append("location", profileData.location.trim());
-      formData.append("instagram", profileData.instagram.trim());
-      formData.append("tiktok", profileData.tiktok.trim());
-      formData.append("website", profileData.website.trim());
-      formData.append("agency", profileData.agency.trim());
-
-      const res = await fetch("/api/onboarding/update-profile", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to save profile");
-      }
-
-      // Update state after successful save
-      updateData({
-        displayName: profileData.displayName,
-        username: profileData.username,
-        location: profileData.location,
-        instagram: profileData.instagram,
-        tiktok: profileData.tiktok,
-        website: profileData.website,
-        agency: profileData.agency,
-      });
-
-      // Mark step as completed and advance
-      setCompletedSteps(prev => new Set([...prev, currentStep]));
-      setCurrentStep(prev => prev + 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setLoading(false);
+  const handleSkip = (): void => {
+    // Skip bypasses validation and moves to the next step
+    setValidationErrors({});
+    if (currentStep === 'profile') {
+      setCurrentStep('about');
+    } else if (currentStep === 'about') {
+      setCurrentStep('services');
+    } else if (currentStep === 'services') {
+      setCurrentStep('template');
+    } else if (currentStep === 'template') {
+      setCurrentStep('photos');
     }
   };
 
-  const handleProfileStepSkip = () => {
-    handleSkip();
-  };
-
-  const renderStep1 = () => (
-    <ProfileStep
-      onContinue={handleProfileStepContinue}
-      onSkip={handleProfileStepSkip}
-      standalone={false}
-      initialData={{
-        displayName: data.displayName,
-        username: data.username,
-        location: data.location,
-        instagram: data.instagram,
-        tiktok: data.tiktok,
-        website: data.website,
-        agency: data.agency,
-      }}
-    />
-  );
-
-  const renderStep2 = () => (
-    <>
-      <div style={styles.stepHeader}>
-        <p style={styles.stepLabel}>Step 2 of 5</p>
-        <h1 style={styles.stepTitle}>About You</h1>
-        <p style={styles.stepDescription}>
-          Share your story and measurements. This information appears on your About page.
-        </p>
-      </div>
-      
-      <div style={styles.form}>
-        {/* Avatar Upload */}
-        <div style={styles.avatarUpload}>
-          <div 
-            style={styles.avatarPreview}
-            onClick={() => avatarInputRef.current?.click()}
-          >
-            {data.avatarUrl ? (
-              <Image
-                src={data.avatarUrl}
-                alt="Profile"
-                fill
-                style={{ objectFit: "cover" }}
-              />
-            ) : (
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(26,26,26,0.3)" strokeWidth="1.5">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            )}
-          </div>
-          <input
-            ref={avatarInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleAvatarSelect}
-            style={{ display: "none" }}
-          />
-          <button
-            type="button"
-            onClick={() => avatarInputRef.current?.click()}
-            style={{ ...styles.button(false), padding: "10px 20px", fontSize: "13px" }}
-          >
-            {data.avatarUrl ? "Change Photo" : "Upload Photo"}
-          </button>
-        </div>
-        
-        <div style={styles.fieldGroup}>
-          <label style={styles.label}>Bio</label>
-          <textarea
-            placeholder="Tell your story... What makes you unique? What are your goals?"
-            value={data.bio}
-            onChange={(e) => updateData({ bio: e.target.value })}
-            style={styles.textarea}
-            rows={5}
-          />
-        </div>
-        
-        <div style={{ marginTop: "16px" }}>
-          <label style={{ ...styles.label, marginBottom: "16px", display: "block" }}>
-            Measurements (Optional)
-          </label>
-          
-          <div style={styles.row3}>
-            <div style={styles.fieldGroup}>
-              <label style={{ ...styles.label, fontSize: "11px", color: "rgba(26,26,26,0.5)" }}>Height (cm)</label>
-              <input
-                type="number"
-                placeholder="175"
-                value={data.heightCm}
-                onChange={(e) => updateData({ heightCm: e.target.value })}
-                style={styles.input}
-              />
-            </div>
-            <div style={styles.fieldGroup}>
-              <label style={{ ...styles.label, fontSize: "11px", color: "rgba(26,26,26,0.5)" }}>Bust (cm)</label>
-              <input
-                type="number"
-                placeholder="86"
-                value={data.bustCm}
-                onChange={(e) => updateData({ bustCm: e.target.value })}
-                style={styles.input}
-              />
-            </div>
-            <div style={styles.fieldGroup}>
-              <label style={{ ...styles.label, fontSize: "11px", color: "rgba(26,26,26,0.5)" }}>Waist (cm)</label>
-              <input
-                type="number"
-                placeholder="61"
-                value={data.waistCm}
-                onChange={(e) => updateData({ waistCm: e.target.value })}
-                style={styles.input}
-              />
-            </div>
-          </div>
-          
-          <div style={{ ...styles.row3, marginTop: "12px" }}>
-            <div style={styles.fieldGroup}>
-              <label style={{ ...styles.label, fontSize: "11px", color: "rgba(26,26,26,0.5)" }}>Hips (cm)</label>
-              <input
-                type="number"
-                placeholder="89"
-                value={data.hipsCm}
-                onChange={(e) => updateData({ hipsCm: e.target.value })}
-                style={styles.input}
-              />
-            </div>
-            <div style={styles.fieldGroup}>
-              <label style={{ ...styles.label, fontSize: "11px", color: "rgba(26,26,26,0.5)" }}>Shoe Size</label>
-              <input
-                type="text"
-                placeholder="EU 39"
-                value={data.shoeSize}
-                onChange={(e) => updateData({ shoeSize: e.target.value })}
-                style={styles.input}
-              />
-            </div>
-            <div style={styles.fieldGroup}>
-              <label style={{ ...styles.label, fontSize: "11px", color: "rgba(26,26,26,0.5)" }}>Hair Color</label>
-              <input
-                type="text"
-                placeholder="Brunette"
-                value={data.hairColor}
-                onChange={(e) => updateData({ hairColor: e.target.value })}
-                style={styles.input}
-              />
-            </div>
-          </div>
-          
-          <div style={{ ...styles.row, marginTop: "12px", gridTemplateColumns: "1fr 2fr" }}>
-            <div style={styles.fieldGroup}>
-              <label style={{ ...styles.label, fontSize: "11px", color: "rgba(26,26,26,0.5)" }}>Eye Color</label>
-              <input
-                type="text"
-                placeholder="Brown"
-                value={data.eyeColor}
-                onChange={(e) => updateData({ eyeColor: e.target.value })}
-                style={styles.input}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-
-  const renderStep3 = () => (
-    <>
-      <div style={styles.stepHeader}>
-        <p style={styles.stepLabel}>Step 3 of 5</p>
-        <h1 style={styles.stepTitle}>Your Services</h1>
-        <p style={styles.stepDescription}>
-          What services do you offer? Add your rates and let clients know what you can do.
-        </p>
-      </div>
-      
-      <div style={styles.form}>
-        <div style={styles.fieldGroup}>
-          <label style={styles.label}>Services Page Title</label>
-          <input
-            type="text"
-            placeholder="My Services"
-            value={data.servicesTitle}
-            onChange={(e) => updateData({ servicesTitle: e.target.value })}
-            style={styles.input}
-          />
-        </div>
-        
-        <div>
-          <label style={{ ...styles.label, marginBottom: "16px", display: "block" }}>
-            Services
-          </label>
-          
-          {data.services.map((service, index) => (
-            <div key={index} style={{ ...styles.serviceCard, marginBottom: "12px" }}>
-              <div style={styles.row}>
-                <input
-                  type="text"
-                  placeholder="Service name (e.g., Editorial Shoot)"
-                  value={service.title}
-                  onChange={(e) => updateService(index, "title", e.target.value)}
-                  style={styles.input}
-                />
-                <input
-                  type="text"
-                  placeholder="Price (e.g., $500/day)"
-                  value={service.price}
-                  onChange={(e) => updateService(index, "price", e.target.value)}
-                  style={styles.input}
-                />
-              </div>
-              <textarea
-                placeholder="Brief description of this service..."
-                value={service.description}
-                onChange={(e) => updateService(index, "description", e.target.value)}
-                style={{ ...styles.textarea, minHeight: "80px" }}
-              />
-              {data.services.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeService(index)}
-                  style={{
-                    ...styles.skipButton,
-                    color: "#D64545",
-                    alignSelf: "flex-start",
-                    padding: "4px 0",
-                  }}
-                >
-                  Remove
-                </button>
-              )}
-            </div>
-          ))}
-          
-          {data.services.length < 10 && (
-            <button
-              type="button"
-              onClick={addService}
-              style={{
-                ...styles.button(false),
-                width: "100%",
-                marginTop: "8px",
-                borderStyle: "dashed",
-              }}
-            >
-              + Add Another Service
-            </button>
-          )}
-        </div>
-      </div>
-    </>
-  );
-
-  const renderStep4 = () => (
-    <>
-      <div style={styles.stepHeader}>
-        <p style={styles.stepLabel}>Step 4 of 5</p>
-        <h1 style={styles.stepTitle}>Choose Your Template</h1>
-        <p style={styles.stepDescription}>
-          Select a template for your portfolio. You can always change it later.
-        </p>
-      </div>
-      
-      <div style={styles.form}>
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(2, 1fr)",
-          gap: "20px",
-        }}>
-          {TEMPLATE_OPTIONS.map((template) => {
-            const isSelected = data.selectedTemplate === template.id;
-            const isLocked = template.isPremium;
-            const isDark = template.id === 'noir';
-            
-            return (
-              <button
-                type="button"
-                key={template.id}
-                onClick={() => {
-                  if (!isLocked) {
-                    updateData({ selectedTemplate: template.id });
-                  }
-                }}
-                style={{
-                  position: "relative",
-                  padding: 0,
-                  borderRadius: "12px",
-                  border: isSelected 
-                    ? `2px solid ${template.accentColor}` 
-                    : "1px solid rgba(26, 26, 26, 0.1)",
-                  backgroundColor: "white",
-                  cursor: isLocked ? "not-allowed" : "pointer",
-                  opacity: isLocked ? 0.6 : 1,
-                  transition: "all 0.2s ease",
-                  textAlign: "left",
-                  overflow: "hidden",
-                  boxShadow: isSelected ? `0 4px 20px ${template.accentColor}25` : "0 2px 8px rgba(26, 26, 26, 0.04)",
-                }}
-              >
-                {/* PRO Badge */}
-                {isLocked && (
-                  <span style={{
-                    position: "absolute",
-                    top: "12px",
-                    left: "12px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    padding: "4px 10px",
-                    fontSize: "10px",
-                    fontWeight: 600,
-                    fontFamily: "'Outfit', sans-serif",
-                    letterSpacing: "0.5px",
-                    backgroundColor: "rgba(26, 26, 26, 0.9)",
-                    color: "white",
-                    borderRadius: "4px",
-                    zIndex: 10,
-                  }}>
-                    <span style={{ fontSize: "10px" }}>🔒</span>
-                    PRO
-                  </span>
-                )}
-                
-                {/* Selected Check */}
-                {isSelected && (
-                  <div style={{
-                    position: "absolute",
-                    top: "12px",
-                    right: "12px",
-                    width: "24px",
-                    height: "24px",
-                    borderRadius: "50%",
-                    backgroundColor: template.accentColor,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    zIndex: 10,
-                  }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={isDark ? "#1A1A1A" : "white"} strokeWidth="3">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  </div>
-                )}
-                
-                {/* Template Thumbnail */}
-                <div style={{
-                  padding: "20px",
-                  paddingBottom: "16px",
-                  background: isDark ? "#1A1A1A" : "#f8f8f8",
-                }}>
-                  <TemplateThumbnail templateId={template.id} accentColor={template.accentColor} />
-                </div>
-                
-                {/* Template Info */}
-                <div style={{ padding: "16px 20px 20px" }}>
-                  <h3 style={{
-                    fontFamily: "'Cormorant Garamond', Georgia, serif",
-                    fontSize: "20px",
-                    fontWeight: 500,
-                    color: "#1A1A1A",
-                    marginBottom: "6px",
-                  }}>
-                    {template.name}
-                  </h3>
-                  <p style={{
-                    fontFamily: "'Outfit', sans-serif",
-                    fontSize: "13px",
-                    color: "rgba(26, 26, 26, 0.5)",
-                    lineHeight: 1.4,
-                  }}>
-                    {template.description}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-        
-        {/* Upgrade prompt for premium templates */}
-        <div style={{
-          marginTop: "24px",
-          padding: "20px",
-          backgroundColor: "rgba(26, 26, 26, 0.03)",
-          borderRadius: "12px",
-          textAlign: "center",
-        }}>
-          <p style={{
-            fontFamily: "'Outfit', sans-serif",
-            fontSize: "14px",
-            color: "rgba(26, 26, 26, 0.6)",
-            marginBottom: "12px",
-          }}>
-            Want access to <strong>Noir</strong> and future premium templates?
-          </p>
-          <Link
-            href="/pricing"
-            style={{
-              display: "inline-block",
-              padding: "10px 24px",
-              backgroundColor: "#1A1A1A",
-              color: "white",
-              textDecoration: "none",
-              borderRadius: "6px",
-              fontFamily: "'Outfit', sans-serif",
-              fontWeight: 500,
-              fontSize: "13px",
-            }}
-          >
-            Upgrade to Pro
-          </Link>
-        </div>
-      </div>
-    </>
-  );
-
-  const renderStep5 = () => (
-    <>
-      <div style={styles.stepHeader}>
-        <p style={styles.stepLabel}>Step 5 of 5</p>
-        <h1 style={styles.stepTitle}>Your Portfolio</h1>
-        <p style={styles.stepDescription}>
-          Upload up to 10 photos to showcase your best work. You can always add more later.
-        </p>
-      </div>
-      
-      <div style={styles.form}>
-        <div style={styles.photoGrid}>
-          {data.photos.map((photo, index) => (
-            <div key={index} style={styles.photoPreview}>
-              <Image
-                src={URL.createObjectURL(photo)}
-                alt={`Photo ${index + 1}`}
-                fill
-                style={{ objectFit: "cover" }}
-              />
-              <button
-                type="button"
-                onClick={() => removePhoto(index)}
-                style={{
-                  position: "absolute",
-                  top: "8px",
-                  right: "8px",
-                  width: "28px",
-                  height: "28px",
-                  borderRadius: "50%",
-                  backgroundColor: "rgba(0,0,0,0.6)",
-                  border: "none",
-                  color: "white",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                ×
-              </button>
-            </div>
-          ))}
-          
-          {data.photos.length < 10 && (
-            <div 
-              style={styles.photoUploadBox}
-              onClick={() => photosInputRef.current?.click()}
-            >
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(26,26,26,0.3)" strokeWidth="1.5">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <path d="M21 15l-5-5L5 21" />
-              </svg>
-              <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: "12px", color: "rgba(26,26,26,0.5)", marginTop: "8px" }}>
-                Add Photo
-              </span>
-            </div>
-          )}
-        </div>
-        
-        <input
-          ref={photosInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={handlePhotosSelect}
-          style={{ display: "none" }}
-        />
-        
-        <p style={{ ...styles.stepDescription, textAlign: "center", marginTop: "8px" }}>
-          {data.photos.length}/10 photos uploaded
-        </p>
-        
-        {/* Upsell Card */}
-        <div style={styles.upsellCard}>
-          <h3 style={{ fontSize: "24px", fontWeight: 300, marginBottom: "12px" }}>
-            Ready to Go Pro?
-          </h3>
-          <p style={{ ...styles.stepDescription, marginBottom: "20px" }}>
-            Upgrade to <strong>Professional</strong> or <strong>Deluxe</strong> to unlock:
-          </p>
-          <ul style={{ 
-            listStyle: "none", 
-            padding: 0, 
-            margin: "0 0 24px 0",
-            fontFamily: "'Outfit', sans-serif",
-            fontSize: "14px",
-          }}>
-            <li style={{ padding: "8px 0", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-              <span style={{ color: "#22C55E" }}>✓</span> Up to 50+ portfolio photos
-            </li>
-            <li style={{ padding: "8px 0", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-              <span style={{ color: "#22C55E" }}>✓</span> All premium templates
-            </li>
-            <li style={{ padding: "8px 0", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-              <span style={{ color: "#22C55E" }}>✓</span> PDF comp card export
-            </li>
-            <li style={{ padding: "8px 0", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-              <span style={{ color: "#22C55E" }}>✓</span> Advanced analytics & more
-            </li>
-          </ul>
-          <Link
-            href="/pricing"
-            style={{
-              display: "inline-block",
-              padding: "14px 40px",
-              backgroundColor: "#FF7AA2",
-              color: "white",
-              textDecoration: "none",
-              borderRadius: "8px",
-              fontFamily: "'Outfit', sans-serif",
-              fontWeight: 500,
-              fontSize: "14px",
-              letterSpacing: "0.5px",
-            }}
-          >
-            View Pricing Plans
-          </Link>
-        </div>
-      </div>
-    </>
-  );
-
-  // =========================================================================
-  // Main Render
-  // =========================================================================
-  // Check if a step can be navigated to
-  const canNavigateToStep = (step: number) => {
-    return step <= currentStep || completedSteps.has(step);
-  };
+  // ============================================================================
+  // Render
+  // ============================================================================
 
   return (
-    <div style={{ ...styles.container, display: "flex", flexDirection: "column" }}>
-      {/* Keyframes for spinner animation */}
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-      
-      {/* Global Navbar - Onboarding specific links */}
-      <Navbar 
-        variant="solid" 
-        isAuthenticated={true} 
-        showLinks={true}
-        links={[]}
-        user={{
-          name: data.displayName || undefined,
-          email: userEmail,
-          avatarUrl: data.avatarUrl || undefined,
-        }}
-        userPlan="trial"
-      />
-
-      {/* Step Progress Header - Hidden on step 0 (AI chat has its own header) */}
-      {currentStep > 0 && (
-        <header style={styles.header}>
-          {/* Progress Indicator with Labels */}
-          <div style={styles.progressContainer}>
-            {[0, 1, 2, 3, 4, 5].map((step, index) => {
-              const isActive = step === currentStep;
-              const isCompleted = completedSteps.has(step) || step < currentStep;
-              const clickable = canNavigateToStep(step);
-              
-              return (
-                <div key={step} style={{ display: "flex", alignItems: "center" }}>
-                  <div 
-                    style={styles.progressStep(isActive, isCompleted, clickable)}
-                    onClick={() => clickable && handleStepClick(step)}
-                    onMouseEnter={(e) => {
-                      if (clickable) {
-                        e.currentTarget.style.backgroundColor = isActive 
-                          ? "rgba(196, 164, 132, 0.15)" 
-                          : "rgba(26, 26, 26, 0.04)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = isActive 
-                        ? "rgba(196, 164, 132, 0.1)" 
-                        : "transparent";
-                    }}
-                  >
-                    <div style={styles.progressDot(isActive, isCompleted)} />
-                    <span style={styles.progressLabel(isActive, isCompleted)}>
-                      {STEP_LABELS[index]}
-                    </span>
-                  </div>
-                  {index < 5 && <div style={styles.progressLine(isCompleted)} />}
-                </div>
-              );
-            })}
+    <div className="min-h-screen" style={{ backgroundColor: colors.cream, fontFamily: 'Outfit, system-ui, sans-serif' }}>
+      {/* Header */}
+      <header className="flex items-center justify-between px-8 py-4 border-b" style={{ borderColor: colors.border }}>
+        <div
+          style={{
+            fontFamily: 'Cormorant Garamond, Georgia, serif',
+            fontSize: '14px',
+            letterSpacing: '0.2em',
+            color: colors.textPrimary,
+          }}
+        >
+          POSE & POISE
+        </div>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => router.push('/pricing')}
+            className="px-4 py-2 text-sm font-medium rounded-full flex items-center gap-2 hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: colors.camel, color: colors.white }}
+          >
+            <Sparkles size={14} />
+            UPGRADE
+          </button>
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-medium"
+            style={{ backgroundColor: colors.charcoal, color: colors.cream }}
+          >
+            JL
           </div>
-          
-          {/* Hide skip button on last step */}
-          {currentStep < totalSteps ? (
-            <button 
-              onClick={handleSkip}
-              style={styles.skipButton}
-            >
-              Skip for now
-            </button>
-          ) : (
-            <div style={{ width: "100px" }} /> // Spacer to maintain layout
-          )}
-        </header>
-      )}
+        </div>
+      </header>
 
       {/* Main Content */}
-      {currentStep === 0 ? (
-        // Step 0: AI Chat takes available space with contained scrolling
-        <main style={{ ...styles.main, padding: 0, maxWidth: "100%", flex: 1, minHeight: 0, overflow: "hidden" }}>
-          {renderStep0()}
-        </main>
-      ) : (
-        <main style={{ ...styles.main, flex: 1, minHeight: 0, overflowY: "auto" }}>
-          {currentStep === 1 && renderStep1()}
-          {currentStep === 2 && renderStep2()}
-          {currentStep === 3 && renderStep3()}
-          {currentStep === 4 && renderStep4()}
-          {currentStep === 5 && renderStep5()}
-          
-          {error && (
-            <p style={{ ...styles.error, textAlign: "center", marginTop: "16px" }}>
-              {error}
-            </p>
+      <main className="max-w-2xl mx-auto px-6 pt-12 pb-24">
+        <StepIndicator steps={steps} />
+
+        {/* Form Card */}
+        <div className="bg-white rounded-2xl p-8 shadow-sm" style={{ border: `1px solid ${colors.border}` }}>
+          {currentStep === 'profile' && (
+            <ProfileStepContent
+              formData={profileData}
+              locationStatus={locationStatus}
+              onInputChange={handleProfileInputChange}
+              onConnectInstagram={handleConnectInstagram}
+              onConnectTikTok={handleConnectTikTok}
+              validationErrors={validationErrors}
+            />
           )}
-        </main>
-      )}
 
-      {/* Step Navigation Footer - Hidden on step 0 (AI chat has its own controls) */}
-      {currentStep > 0 && (
-        <footer style={styles.footer}>
-          <button
-            type="button"
-            onClick={handleBack}
-            style={{
-              ...styles.button(false),
-              visibility: currentStep === 1 ? "hidden" : "visible",
-            }}
-          >
-            Back
-          </button>
-          
-          <button
-            type="button"
-            onClick={handleNext}
-            disabled={loading}
-            style={styles.button(true)}
-          >
-            {loading 
-              ? "Saving..." 
-              : currentStep === totalSteps - 1
-                ? "Complete Setup" 
-                : "Continue"
-            }
-          </button>
-        </footer>
-      )}
+          {currentStep === 'about' && (
+            <AboutStep
+              formData={aboutData}
+              isAnalyzing={isAnalyzing}
+              isGeneratingBio={isGeneratingBio}
+              analysisComplete={analysisComplete}
+              onStatsChange={handleStatsChange}
+              onBioChange={handleBioChange}
+              onPhotoUpload={() => triggerFileUpload('profile')}
+              onAnalyzerClick={() => triggerFileUpload('analyzer')}
+              onScannerClick={() => triggerFileUpload('scanner')}
+              onGenerateBio={handleGenerateBio}
+            />
+          )}
 
-      {/* Global Footer */}
-      <Footer />
-    </div>
-  );
-}
+          {currentStep === 'services' && (
+            <ServicesStep
+              formData={servicesData}
+              isSuggesting={isSuggesting}
+              suggestionsApplied={suggestionsApplied}
+              onExperienceChange={handleExperienceChange}
+              onCategoryToggle={handleCategoryToggle}
+              onPricingChange={handlePricingChange}
+              onTravelToggle={handleTravelToggle}
+              onTravelRadiusChange={handleTravelRadiusChange}
+              onTfpToggle={handleTfpToggle}
+              onSuggestServices={handleSuggestServices}
+            />
+          )}
 
-// =============================================================================
-// Template Thumbnail Component (matches dashboard/templates)
-// =============================================================================
-function TemplateThumbnail({ templateId, accentColor }: { templateId: string; accentColor: string }) {
-  const isDark = templateId === 'noir';
-  const isLumiere = templateId === 'lumiere';
-  
-  // Lumière has a unique filmstrip design
-  if (isLumiere) {
-    const warmCream = '#FFF8F0';
-    const portfolioDark = '#1F1816';
-    const terracotta = '#C8553D';
-    
-    return (
-      <div style={{
-        aspectRatio: '4/3',
-        background: warmCream,
-        borderRadius: '6px',
-        border: '1px solid rgba(200, 85, 61, 0.15)',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-      }}>
-        {/* Hero Section with gradient */}
-        <div style={{
-          flex: '0 0 45%',
-          background: `linear-gradient(180deg, ${portfolioDark} 0%, ${portfolioDark}F0 70%, ${warmCream} 100%)`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          position: 'relative',
-        }}>
-          <div style={{
-            fontFamily: "'Cormorant Garamond', Georgia, serif",
-            fontSize: '14px',
-            fontWeight: 200,
-            color: warmCream,
-            letterSpacing: '0.1em',
-            textShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-          }}>
-            Lumière
+          {currentStep === 'template' && (
+            <TemplateStep
+              templates={TEMPLATES}
+              selectedTemplate={selectedTemplate}
+              onSelectTemplate={setSelectedTemplate}
+              modelName={modelName}
+            />
+          )}
+
+          {currentStep === 'photos' && (
+            <PhotosStep
+              photos={photos}
+              onAddPhotos={handleAddPhotos}
+              onToggleVisibility={handleTogglePhotoVisibility}
+              onRemovePhoto={handleRemovePhoto}
+              onUpdateCredit={handleUpdatePhotoCredit}
+              selectedTemplate={selectedTemplate}
+              templates={TEMPLATES}
+              modelName={modelName}
+            />
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 mt-8">
+            {currentStep !== 'profile' && (
+              <button
+                type="button"
+                onClick={handleBack}
+                className="py-3 px-6 rounded-lg text-sm font-medium transition-all hover:opacity-80 flex items-center justify-center gap-2"
+                style={{ border: `1px solid ${colors.border}`, color: colors.textSecondary }}
+              >
+                <ChevronLeft size={16} />
+                BACK
+              </button>
+            )}
+            {currentStep === 'profile' && (
+              <button
+                type="button"
+                onClick={handleSkip}
+                className="flex-1 py-3 px-6 rounded-lg text-sm font-medium transition-all hover:opacity-80"
+                style={{ border: `1px solid ${colors.border}`, color: colors.textSecondary }}
+              >
+                SKIP
+              </button>
+            )}
+            {currentStep !== 'photos' ? (
+              <button
+                type="button"
+                onClick={handleContinue}
+                className="flex-1 py-3 px-6 rounded-lg text-sm font-medium transition-all hover:opacity-90 flex items-center justify-center gap-2"
+                style={{ backgroundColor: colors.charcoal, color: colors.white }}
+              >
+                CONTINUE
+                <ChevronRight size={16} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleLaunchPortfolio}
+                className="flex-1 py-3 px-6 rounded-lg text-sm font-medium transition-all hover:opacity-90 flex items-center justify-center gap-2"
+                style={{ backgroundColor: colors.camel, color: colors.white }}
+              >
+                <RocketIcon size={16} />
+                LAUNCH PORTFOLIO
+              </button>
+            )}
           </div>
         </div>
+
+        <ProgressIndicator collectedCount={collectedFields} />
+      </main>
+
+      {/* Footer */}
+      <footer
+        className="fixed bottom-0 left-0 right-0 px-8 py-4 flex items-center justify-between text-xs"
+        style={{ backgroundColor: colors.cream, borderTop: `1px solid ${colors.border}`, color: colors.textMuted }}
+      >
+        <span style={{ fontFamily: 'Cormorant Garamond, Georgia, serif', letterSpacing: '0.15em' }}>
+          POSE & POISE
+        </span>
+        <div className="flex gap-6">
+          <a href="/pricing" className="hover:opacity-70">Pricing</a>
+          <a href="/dashboard/support" className="hover:opacity-70">Contact</a>
+          <a href="/privacy" className="hover:opacity-70">Privacy</a>
+          <a href="/terms" className="hover:opacity-70">Terms</a>
+        </div>
+        <span>© 2025 Pose & Poise. All rights reserved.</span>
+      </footer>
+
+      {/* Hidden File Input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileUpload}
+        accept="image/*"
+        style={{ display: 'none' }}
+      />
+
+      {/* Global Styles */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&family=Outfit:wght@300;400;500&display=swap');
         
-        {/* Filmstrip Gallery */}
-        <div style={{
-          flex: 1,
-          background: portfolioDark,
-          padding: '6px 0',
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '6px',
-        }}>
-          {/* Sprocket holes top */}
-          <div style={{
-            position: 'absolute',
-            top: '2px',
-            left: 0,
-            right: 0,
-            height: '4px',
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '8px',
-          }}>
-            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-              <div key={`top-${i}`} style={{
-                width: '4px',
-                height: '3px',
-                borderRadius: '1px',
-                background: '#0a0a0a',
-              }} />
-            ))}
-          </div>
-          
-          {/* Film frames */}
-          {[1, 2, 3].map(i => (
-            <div key={i} style={{
-              width: '32px',
-              background: warmCream,
-              padding: '3px',
-              borderRadius: '2px',
-              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.25)',
-            }}>
-              <div style={{
-                aspectRatio: '3/4',
-                background: `linear-gradient(135deg, ${terracotta}20 0%, rgba(26, 26, 26, 0.08) 100%)`,
-                borderRadius: '1px',
-              }} />
-            </div>
-          ))}
-          
-          {/* Sprocket holes bottom */}
-          <div style={{
-            position: 'absolute',
-            bottom: '2px',
-            left: 0,
-            right: 0,
-            height: '4px',
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '8px',
-          }}>
-            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-              <div key={`bottom-${i}`} style={{
-                width: '4px',
-                height: '3px',
-                borderRadius: '1px',
-                background: '#0a0a0a',
-              }} />
-            ))}
-          </div>
-        </div>
+        input:focus, textarea:focus {
+          border-color: ${colors.camel} !important;
+        }
         
-        {/* Footer with accent */}
-        <div style={{
-          padding: '8px 10px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
-          <div style={{
-            width: '30px',
-            height: '4px',
-            background: terracotta,
-            borderRadius: '2px',
-          }} />
-          <div style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            background: terracotta,
-            boxShadow: `0 0 6px ${terracotta}40`,
-          }} />
-        </div>
-      </div>
-    );
-  }
-  
-  // Default thumbnail for other templates
-  const bgColor = isDark ? '#2a2a2a' : '#fff';
-  const borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(26, 26, 26, 0.08)';
-  
-  return (
-    <div style={{
-      aspectRatio: '4/3',
-      background: bgColor,
-      borderRadius: '6px',
-      border: `1px solid ${borderColor}`,
-      padding: '12px',
-      display: 'flex',
-      flexDirection: 'column',
-    }}>
-      {/* Header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: '12px',
-      }}>
-        <div style={{
-          width: '40px',
-          height: '6px',
-          background: accentColor,
-          borderRadius: '3px',
-        }} />
-        <div style={{ display: 'flex', gap: '4px' }}>
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} style={{
-              width: '20px',
-              height: '4px',
-              background: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(26, 26, 26, 0.15)',
-              borderRadius: '2px',
-            }} />
-          ))}
-        </div>
-      </div>
-      
-      {/* Photo Grid */}
-      <div style={{
-        flex: 1,
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gridTemplateRows: 'repeat(2, 1fr)',
-        gap: '4px',
-      }}>
-        {[1, 2, 3, 4, 5, 6].map(i => (
-          <div key={i} style={{
-            background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(26, 26, 26, 0.06)',
-            borderRadius: '2px',
-          }} />
-        ))}
-      </div>
-      
-      {/* Accent Dot */}
-      <div style={{
-        width: '10px',
-        height: '10px',
-        borderRadius: '50%',
-        background: accentColor,
-        marginTop: '10px',
-      }} />
+        input::placeholder, textarea::placeholder {
+          color: ${colors.textMuted};
+        }
+      `}</style>
     </div>
   );
 }
