@@ -21,7 +21,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { PortfolioData, PortfolioPhoto } from '@/types/portfolio';
-import { useEditMode } from '@/components/portfolio/PortfolioPreview';
+import { useEditMode, PhotoUploadZone } from '@/components/portfolio';
 
 interface LumiereTemplateProps {
   data: PortfolioData;
@@ -461,6 +461,9 @@ export function LumiereTemplate({ data }: LumiereTemplateProps) {
         {/* Edit Mode - Keep Grid for easier editing */}
         {editMode?.isEditMode ? (
           <div style={{ padding: '0 2rem', maxWidth: '1400px', margin: '0 auto' }}>
+            {/* Photo Upload Zone (Edit Mode) */}
+            <PhotoUploadZone accentColor={accentColor} />
+
             {/* Edit Mode Stats */}
             <div
               style={{

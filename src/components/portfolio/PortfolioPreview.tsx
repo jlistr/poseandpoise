@@ -4,13 +4,15 @@ import { useState, useCallback, useMemo, useTransition, createContext, useContex
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getTemplate, TEMPLATE_METADATA } from '@/templates';
-import { 
+import {
   savePhotoUpdates, 
   saveTemplate, 
   togglePublished,
   saveProfileUpdate,
   saveServices,
   uploadAvatar,
+  uploadPortfolioPhoto,
+  deletePortfolioPhoto,
 } from '@/app/actions/portfolio';
 import type { PortfolioData, PortfolioPhoto, ServiceItem, SavedCompCard } from '@/types/portfolio';
 import {
@@ -31,6 +33,9 @@ interface EditModeContextValue {
   onPhotosChange: (photos: PortfolioPhoto[]) => void;
   onTogglePhotoVisibility: (photoId: string) => void;
   onReorderPhotos: (fromIndex: number, toIndex: number) => void;
+  onAddPhotos: (files: FileList) => Promise<void>;
+  onDeletePhoto: (photoId: string) => Promise<void>;
+  isUploadingPhotos: boolean;
   // Profile editing
   bio: string;
   onBioChange: (value: string) => void;
@@ -91,6 +96,7 @@ export function PortfolioPreview({ data, username, canEdit = true, initialEditMo
     data.compCards?.find(c => c.isPrimary)?.id || null
   );
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
   
   // Get accent color from selected template
   const currentTemplateData = TEMPLATE_METADATA.find(t => t.id === selectedTemplate);
@@ -136,6 +142,62 @@ export function PortfolioPreview({ data, username, canEdit = true, initialEditMo
       return newPhotos.map((p, i) => ({ ...p, sortOrder: i }));
     });
     setSaveStatus('idle');
+  }, []);
+
+  // Photo upload handler
+  const handleAddPhotos = useCallback(async (files: FileList) => {
+    setIsUploadingPhotos(true);
+    
+    try {
+      const uploadPromises = Array.from(files).map(async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return uploadPortfolioPhoto(formData);
+      });
+
+      const results = await Promise.all(uploadPromises);
+      
+      // Add successfully uploaded photos to state
+      const newPhotos: PortfolioPhoto[] = [];
+      for (const result of results) {
+        if (result.success && result.photo) {
+          newPhotos.push({
+            id: result.photo.id,
+            url: result.photo.url,
+            thumbnailUrl: result.photo.url,
+            sortOrder: result.photo.sortOrder,
+            isVisible: result.photo.isVisible,
+          });
+        }
+      }
+
+      if (newPhotos.length > 0) {
+        setPhotos(prev => [...prev, ...newPhotos]);
+        setSaveStatus('idle');
+      }
+
+      // Report any errors
+      const errors = results.filter(r => !r.success);
+      if (errors.length > 0) {
+        console.error('Some photos failed to upload:', errors.map(e => e.error));
+      }
+    } catch (error) {
+      console.error('Error uploading photos:', error);
+    } finally {
+      setIsUploadingPhotos(false);
+    }
+  }, []);
+
+  // Photo delete handler
+  const handleDeletePhoto = useCallback(async (photoId: string) => {
+    const result = await deletePortfolioPhoto(photoId);
+    
+    if (result.success) {
+      setPhotos(prev => prev.filter(p => p.id !== photoId));
+      setSaveStatus('idle');
+    } else {
+      console.error('Failed to delete photo:', result.error);
+    }
   }, []);
 
   // Avatar upload handler
@@ -287,6 +349,9 @@ export function PortfolioPreview({ data, username, canEdit = true, initialEditMo
     onPhotosChange: handlePhotosChange,
     onTogglePhotoVisibility: handleTogglePhotoVisibility,
     onReorderPhotos: handleReorderPhotos,
+    onAddPhotos: handleAddPhotos,
+    onDeletePhoto: handleDeletePhoto,
+    isUploadingPhotos,
     bio,
     onBioChange: (value) => { setBio(value); setSaveStatus('idle'); },
     avatarUrl,
@@ -383,7 +448,7 @@ export function PortfolioPreview({ data, username, canEdit = true, initialEditMo
                   fontSize: '14px',
                   color: '#FAF9F7',
                 }}>
-                  {currentTemplateData?.name || 'Rose'}
+                  {currentTemplateData?.name || 'Elysian'}
                 </span>
                 <Link
                   href="/dashboard/templates"

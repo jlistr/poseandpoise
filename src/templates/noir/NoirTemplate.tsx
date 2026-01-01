@@ -20,7 +20,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { PortfolioData, PortfolioPhoto } from '@/types/portfolio';
-import { useEditMode } from '@/components/portfolio/PortfolioPreview';
+import { useEditMode, PhotoUploadZone } from '@/components/portfolio';
 
 interface NoirTemplateProps {
   data: PortfolioData;
@@ -115,6 +115,9 @@ export function NoirTemplate({ data }: NoirTemplateProps) {
 
       {/* Main Content */}
       <main style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
+        {/* Photo Upload Zone (Edit Mode) */}
+        <PhotoUploadZone accentColor={accentColor} />
+
         {/* Edit Mode Stats */}
         {editMode?.isEditMode && (
           <div

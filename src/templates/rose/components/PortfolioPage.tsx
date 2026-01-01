@@ -20,7 +20,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { PortfolioData, PortfolioPhoto } from '@/types/portfolio';
-import { useEditMode } from '@/components/portfolio/PortfolioPreview';
+import { useEditMode, PhotoUploadZone } from '@/components/portfolio';
 
 interface PortfolioPageProps {
   data: PortfolioData;
@@ -81,6 +81,9 @@ export function PortfolioPage({ data }: PortfolioPageProps) {
 
   return (
     <div style={{ padding: '8px 8px 80px' }}>
+      {/* Photo Upload Zone (Edit Mode) */}
+      <PhotoUploadZone accentColor={accentColor} />
+
       {/* Edit Mode Stats */}
       {editMode?.isEditMode && (
         <div

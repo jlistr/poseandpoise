@@ -266,6 +266,176 @@ export async function saveServices(services: ServiceUpdate[]): Promise<{ success
 }
 
 // =============================================================================
+// Upload portfolio photo
+// =============================================================================
+export interface UploadPhotoResult {
+  success: boolean;
+  photo?: {
+    id: string;
+    url: string;
+    sortOrder: number;
+    isVisible: boolean;
+  };
+  error?: string;
+}
+
+export async function uploadPortfolioPhoto(formData: FormData): Promise<UploadPhotoResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  try {
+    const file = formData.get('file') as File;
+    
+    if (!file) {
+      return { success: false, error: 'No file provided' };
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      return { success: false, error: 'Invalid file type. Please upload a JPEG, PNG, or WebP.' };
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      return { success: false, error: 'File too large. Maximum size is 10MB.' };
+    }
+
+    // Get current max sort order
+    const { data: existingPhotos } = await supabase
+      .from('photos')
+      .select('sort_order')
+      .eq('profile_id', user.id)
+      .order('sort_order', { ascending: false })
+      .limit(1);
+
+    const nextSortOrder = existingPhotos && existingPhotos.length > 0 
+      ? existingPhotos[0].sort_order + 1 
+      : 0;
+
+    // Generate unique filename
+    const ext = file.name.split('.').pop();
+    const filename = `${user.id}/photo-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
+
+    // Upload to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from('portfolio-photos')
+      .upload(filename, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error('Error uploading photo:', uploadError);
+      return { success: false, error: `Failed to upload: ${uploadError.message}` };
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('portfolio-photos')
+      .getPublicUrl(filename);
+
+    // Insert photo record
+    const { data: photoRecord, error: insertError } = await supabase
+      .from('photos')
+      .insert({
+        profile_id: user.id,
+        url: publicUrl,
+        sort_order: nextSortOrder,
+        is_visible: true,
+        size_bytes: file.size,
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Error inserting photo record:', insertError);
+      return { success: false, error: `Failed to save photo: ${insertError.message}` };
+    }
+
+    revalidatePath(`/[username]`, 'page');
+    revalidatePath('/dashboard/photos');
+
+    return { 
+      success: true, 
+      photo: {
+        id: photoRecord.id,
+        url: publicUrl,
+        sortOrder: nextSortOrder,
+        isVisible: true,
+      }
+    };
+  } catch (err) {
+    console.error('Error uploading photo:', err);
+    return { success: false, error: 'An unexpected error occurred' };
+  }
+}
+
+// =============================================================================
+// Delete portfolio photo
+// =============================================================================
+export async function deletePortfolioPhoto(photoId: string): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { success: false, error: 'Not authenticated' };
+  }
+
+  try {
+    // Get photo URL to delete from storage
+    const { data: photo } = await supabase
+      .from('photos')
+      .select('url')
+      .eq('id', photoId)
+      .eq('profile_id', user.id)
+      .single();
+
+    if (!photo) {
+      return { success: false, error: 'Photo not found' };
+    }
+
+    // Delete from database
+    const { error: deleteError } = await supabase
+      .from('photos')
+      .delete()
+      .eq('id', photoId)
+      .eq('profile_id', user.id);
+
+    if (deleteError) {
+      console.error('Error deleting photo:', deleteError);
+      return { success: false, error: `Failed to delete: ${deleteError.message}` };
+    }
+
+    // Try to delete from storage (extract path from URL)
+    try {
+      const url = new URL(photo.url);
+      const pathMatch = url.pathname.match(/\/portfolio-photos\/(.+)$/);
+      if (pathMatch) {
+        await supabase.storage
+          .from('portfolio-photos')
+          .remove([pathMatch[1]]);
+      }
+    } catch {
+      // Storage deletion is best-effort
+      console.warn('Could not delete photo from storage');
+    }
+
+    revalidatePath(`/[username]`, 'page');
+    revalidatePath('/dashboard/photos');
+
+    return { success: true };
+  } catch (err) {
+    console.error('Error deleting photo:', err);
+    return { success: false, error: 'An unexpected error occurred' };
+  }
+}
+
+// =============================================================================
 // Upload avatar image
 // =============================================================================
 export async function uploadAvatar(formData: FormData): Promise<{ success: boolean; url?: string; error?: string }> {

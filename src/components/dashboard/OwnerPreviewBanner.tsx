@@ -167,7 +167,7 @@ export function OwnerPreviewBanner({
               <span style={{ color: 'rgba(250, 249, 247, 0.5)', fontSize: '12px' }}>
                 Template:
               </span>
-              <span>{currentTemplateData?.name || 'Rose'}</span>
+              <span>{currentTemplateData?.name || 'Elysian'}</span>
               {saving ? (
                 <div
                   style={{

@@ -48,12 +48,15 @@ const RocketIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
 
 // ============================================================================
 // Step Configuration
-// New order: Template → Photos → Profile → Services → About
+// Order: Template → Photos → Profile → Services → About
 // 1. Template: Set the "container" for your work first
 // 2. Photos: High-value step - upload images to see your portfolio come alive
 // 3. Profile: Quick objective data (height, measurements, location, socials)
 // 4. Services: Business end - comp card, rates, booking info
 // 5. About: Save the laborious bio writing for last when you're motivated
+// 
+// Note: After onboarding, photos can also be managed via the Portfolio Editor
+// which provides WYSIWYG editing where models can see how photos look in context
 // ============================================================================
 
 const STEPS: OnboardingStep[] = ['template', 'photos', 'profile', 'services', 'about'];
@@ -395,21 +398,6 @@ export function OnboardingWizard({ userEmail, userId, existingProfile, existingS
             selectedTemplate={data.selectedTemplate}
             onSelectTemplate={updateSelectedTemplate}
             modelName={data.profile.displayName}
-          />
-        );
-      case 'photos':
-        return (
-          <PhotosStep
-            photos={data.photos}
-            onAddPhotos={addPhotos}
-            onToggleVisibility={togglePhotoVisibility}
-            onRemovePhoto={removePhoto}
-            onUpdateCredit={updatePhotoCredit}
-            onRetryUpload={retryPhotoUpload}
-            selectedTemplate={data.selectedTemplate}
-            modelName={data.profile.displayName}
-            isUploading={isUploadingPhotos}
-            uploadProgress={uploadProgress}
           />
         );
       default:

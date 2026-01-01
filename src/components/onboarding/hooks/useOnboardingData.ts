@@ -458,8 +458,6 @@ export function useOnboardingData({ existingProfile, existingServices, existingP
         }
         case 'template':
           return data.selectedTemplate ? 1 : 0;
-        case 'photos':
-          return data.photos.length;
         default:
           return 0;
       }
