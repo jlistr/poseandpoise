@@ -168,6 +168,7 @@ async function upsertSubscription(userId: string, subscription: Stripe.Subscript
   };
   
   // Upsert subscription data
+  // Note: 'tier' column triggers sync_profile_subscription_tier() to update profiles.subscription_tier
   const { error } = await supabaseAdmin
     .from('subscriptions')
     .upsert({
@@ -175,6 +176,7 @@ async function upsertSubscription(userId: string, subscription: Stripe.Subscript
       stripe_customer_id: sub.customer,
       stripe_subscription_id: sub.id,
       plan_id: planId,
+      tier: planId, // Required for trigger to update profiles.subscription_tier
       status: status,
       current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
       current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
@@ -207,11 +209,13 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   }
   
   // Downgrade to free plan
+  // Note: 'tier' column triggers sync_profile_subscription_tier() to update profiles.subscription_tier
   const { error } = await supabaseAdmin
     .from('subscriptions')
     .update({
       status: 'canceled',
       plan_id: 'FREE',
+      tier: 'FREE', // Required for trigger to update profiles.subscription_tier
       stripe_subscription_id: null,
       cancel_at_period_end: false,
       updated_at: new Date().toISOString(),

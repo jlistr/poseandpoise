@@ -97,6 +97,7 @@ export async function POST(request: Request) {
           stripe_customer_id: stripeCustomerId,
           status: 'active',
           plan_id: 'FREE',
+          tier: 'FREE', // Required for trigger to update profiles.subscription_tier
         }, { onConflict: 'profile_id' });
     }
     
