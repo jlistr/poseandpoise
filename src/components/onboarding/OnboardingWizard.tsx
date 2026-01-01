@@ -1387,8 +1387,20 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
       {/* Keyframes for spinner animation */}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       
-      {/* Global Navbar */}
-      <Navbar variant="solid" isAuthenticated={true} showLinks={true} />
+      {/* Global Navbar - Onboarding specific links */}
+      <Navbar 
+        variant="solid" 
+        isAuthenticated={true} 
+        showLinks={true}
+        links={[
+          { label: "Help", href: "/support" },
+        ]}
+        user={{
+          name: data.displayName || undefined,
+          email: userEmail,
+          avatarUrl: data.avatarUrl || undefined,
+        }}
+      />
 
       {/* Step Progress Header - Hidden on step 0 (AI chat has its own header) */}
       {currentStep > 0 && (
