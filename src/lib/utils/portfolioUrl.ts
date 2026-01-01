@@ -1,0 +1,91 @@
+/**
+ * Portfolio URL Utilities
+ * 
+ * Generates URLs for the subdomain pattern: username.poseandpoise.studio
+ */
+
+// Base domain for portfolio subdomains
+const PORTFOLIO_DOMAIN = process.env.NEXT_PUBLIC_PORTFOLIO_DOMAIN || 'poseandpoise.studio';
+
+/**
+ * Generates the full portfolio URL for a given username
+ * Format: https://username.poseandpoise.studio
+ */
+export function getPortfolioUrl(username: string): string {
+  if (!username) return '';
+  const cleanUsername = username.toLowerCase().trim();
+  return `https://${cleanUsername}.${PORTFOLIO_DOMAIN}`;
+}
+
+/**
+ * Generates the display-friendly portfolio URL (without protocol)
+ * Format: username.poseandpoise.studio
+ */
+export function getPortfolioDisplayUrl(username: string): string {
+  if (!username) return '';
+  const cleanUsername = username.toLowerCase().trim();
+  return `${cleanUsername}.${PORTFOLIO_DOMAIN}`;
+}
+
+/**
+ * Generates the portfolio URL placeholder for forms
+ * Format: yourname.poseandpoise.studio
+ */
+export function getPortfolioPlaceholder(): string {
+  return `yourname.${PORTFOLIO_DOMAIN}`;
+}
+
+/**
+ * Gets just the domain part for display
+ * Format: .poseandpoise.studio
+ */
+export function getPortfolioDomainSuffix(): string {
+  return `.${PORTFOLIO_DOMAIN}`;
+}
+
+/**
+ * Extracts username from a subdomain URL
+ */
+export function extractUsernameFromSubdomain(hostname: string): string | null {
+  const parts = hostname.split('.');
+  
+  // Expected format: username.poseandpoise.studio (3 parts)
+  // or username.localhost (2 parts for local dev)
+  if (parts.length >= 2) {
+    const potentialUsername = parts[0];
+    
+    // Exclude reserved subdomains
+    const reserved = ['www', 'api', 'app', 'dashboard', 'admin', 'mail', 'ftp'];
+    if (reserved.includes(potentialUsername.toLowerCase())) {
+      return null;
+    }
+    
+    return potentialUsername;
+  }
+  
+  return null;
+}
+
+/**
+ * Checks if a hostname is a portfolio subdomain
+ */
+export function isPortfolioSubdomain(hostname: string): boolean {
+  // Remove port if present
+  const host = hostname.split(':')[0];
+  
+  // Check if it matches the pattern: username.poseandpoise.studio
+  // or username.localhost for local development
+  const domainParts = PORTFOLIO_DOMAIN.split('.');
+  const hostParts = host.split('.');
+  
+  // For production: username.poseandpoise.studio = 3 parts
+  // For local: username.localhost = 2 parts
+  if (hostParts.length <= domainParts.length) {
+    return false;
+  }
+  
+  // Check if the domain suffix matches
+  const hostSuffix = hostParts.slice(1).join('.');
+  return hostSuffix === PORTFOLIO_DOMAIN || host.endsWith('.localhost');
+}
+

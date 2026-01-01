@@ -367,20 +367,6 @@ export function ProfileStep({ data, onChange, initialLocation, validationErrors 
             Username <span style={{ color: colors.instagram }}>*</span>
           </label>
           <div style={{ display: 'flex' }}>
-            <span
-              style={{
-                padding: '0.625rem 0.75rem',
-                fontSize: '14px',
-                backgroundColor: colors.cream,
-                color: colors.textMuted,
-                borderTopLeftRadius: '0.5rem',
-                borderBottomLeftRadius: '0.5rem',
-                border: `1px solid ${validationErrors.username ? colors.error : colors.border}`,
-                borderRight: 'none',
-              }}
-            >
-              poseandpoise.com/
-            </span>
             <input
               type="text"
               placeholder="yourname"
@@ -388,10 +374,25 @@ export function ProfileStep({ data, onChange, initialLocation, validationErrors 
               onChange={(e) => handleInputChange('username', e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
               style={{
                 ...inputStyle(!!validationErrors.username),
-                borderTopLeftRadius: 0,
-                borderBottomLeftRadius: 0,
+                borderTopRightRadius: 0,
+                borderBottomRightRadius: 0,
+                borderRight: 'none',
               }}
             />
+            <span
+              style={{
+                padding: '0.625rem 0.75rem',
+                fontSize: '14px',
+                backgroundColor: colors.cream,
+                color: colors.textMuted,
+                borderTopRightRadius: '0.5rem',
+                borderBottomRightRadius: '0.5rem',
+                border: `1px solid ${validationErrors.username ? colors.error : colors.border}`,
+                borderLeft: 'none',
+              }}
+            >
+              .poseandpoise.studio
+            </span>
           </div>
           {validationErrors.username ? (
             <p style={{ fontSize: '12px', color: colors.error, marginTop: '0.25rem' }}>
@@ -399,7 +400,7 @@ export function ProfileStep({ data, onChange, initialLocation, validationErrors 
             </p>
           ) : (
             <p style={{ fontSize: '12px', color: colors.textMuted, marginTop: '0.25rem' }}>
-              Your portfolio will be at poseandpoise.com/{data.username || 'yourname'}
+              Your portfolio will be at {data.username || 'yourname'}.poseandpoise.studio
             </p>
           )}
         </div>

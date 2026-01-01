@@ -1,0 +1,144 @@
+---
+alwaysApply: true
+description: Enforces minimalist form design principles for intuitive, clutter-free UX
+---
+
+# Form UX Principles — STRICT ENFORCEMENT
+
+When building forms for this project, you MUST follow these principles. Forms should feel effortless, not overwhelming.
+
+## Core Philosophy
+
+**Less is more.** Every field, label, and interaction must earn its place. If it doesn't directly help the user complete their goal, remove it.
+
+## REQUIRED Principles
+
+### 1. Minimize Required Fields
+
+```
+✅ GOOD: Ask only what's essential for the current step
+❌ BAD: Collecting "nice to have" data upfront
+```
+
+- Only mark fields as required if the feature genuinely cannot work without them
+- Defer optional data collection to later (progressive profiling)
+- Use smart defaults and auto-detection where possible
+
+### 2. One Primary Action Per Screen
+
+```
+✅ GOOD: Clear single CTA — "Continue", "Save", "Submit"
+❌ BAD: Multiple competing buttons with equal visual weight
+```
+
+- Primary action should be visually dominant
+- Secondary actions (Skip, Back) should be subdued
+- Never present more than 2-3 actions at once
+
+### 3. Progressive Disclosure
+
+```
+✅ GOOD: Show advanced options only when needed
+❌ BAD: Displaying all possible fields at once
+```
+
+- Start with the essentials, reveal complexity gradually
+- Use expandable sections for optional/advanced inputs
+- Hide conditional fields until their trigger is activated
+
+### 4. Inline Validation & Feedback
+
+```
+✅ GOOD: Validate on blur, show errors next to the field
+❌ BAD: Validation only on submit, errors at top of form
+```
+
+- Provide immediate, contextual feedback
+- Use positive reinforcement (checkmarks) not just error states
+- Auto-format inputs where appropriate (phone numbers, dates)
+
+### 5. Smart Defaults & Auto-Detection
+
+```
+✅ GOOD: Pre-fill location from IP, suggest username from name
+❌ BAD: Making users type everything from scratch
+```
+
+- Auto-detect what you can (location, timezone, language)
+- Suggest values based on context
+- Allow easy override of auto-filled values
+
+## AI Assistance Guidelines
+
+### AI Should ASSIST, Not Dominate
+
+```
+✅ GOOD: "Generate bio" button user can click if they want help
+❌ BAD: AI automatically writing content without user initiation
+
+✅ GOOD: AI suggests; user confirms or edits
+❌ BAD: AI decides; user must undo if they disagree
+```
+
+### AI Feature Placement
+
+- AI features should be **optional enhancements**, not required steps
+- Place AI buttons as secondary actions, not primary CTAs
+- Always show what AI will do before it does it
+- Provide clear "undo" or "regenerate" options
+
+### AI Loading States
+
+- Show clear progress indicators during AI operations
+- Allow cancellation of long-running AI tasks
+- Never block the entire form while AI processes
+
+## Visual Hierarchy
+
+### Field Grouping
+
+```
+✅ GOOD: Logical sections with clear visual separation
+❌ BAD: A wall of ungrouped input fields
+```
+
+- Group related fields together
+- Use whitespace generously between sections
+- Limit to 3-5 fields visible at once when possible
+
+### Labels & Placeholders
+
+```
+✅ GOOD: Clear label above field, helpful placeholder inside
+❌ BAD: Placeholder as only label (disappears on focus)
+```
+
+- Labels should be persistent and visible
+- Placeholders provide examples, not instructions
+- Help text appears below field, not as tooltip
+
+## Mobile-First Considerations
+
+- Touch targets minimum 44x44px
+- Single-column layouts for forms
+- Appropriate keyboard types (email, tel, url)
+- Avoid dropdowns when radio buttons work better
+
+## FORBIDDEN Patterns
+
+- ❌ More than 7 fields visible at once without scrolling
+- ❌ Required fields without clear indication
+- ❌ Form submission without any validation feedback
+- ❌ AI that auto-submits or auto-advances without user consent
+- ❌ Disabled submit buttons without explanation why
+- ❌ Unclear error messages ("Invalid input" without specifics)
+- ❌ Forcing users through AI features to complete basic tasks
+
+## ENFORCEMENT
+
+Before building any form:
+1. List the absolute minimum fields needed — can any be deferred?
+2. Define one clear primary action per step
+3. Plan progressive disclosure for optional/advanced fields
+4. Ensure AI features are opt-in enhancements, not blockers
+5. Test the form can be completed without using any AI features

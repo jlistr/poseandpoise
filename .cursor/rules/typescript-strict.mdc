@@ -1,0 +1,123 @@
+---
+alwaysApply: true
+description: Enforces strict TypeScript typing standards for type safety
+---
+
+# TypeScript Strict Typing — ENFORCEMENT
+
+When writing TypeScript for this project, you MUST follow these standards. Do not use loose typing.
+
+## FORBIDDEN Patterns
+
+### Never use `any`
+
+```typescript
+// ❌ FORBIDDEN
+const data: any = fetchData();
+function process(input: any): any { }
+
+// ✅ REQUIRED
+const data: UserProfile = fetchData();
+function process(input: unknown): ProcessedResult { }
+```
+
+### Never use implicit `any`
+
+```typescript
+// ❌ FORBIDDEN
+function handler(e) { }  // implicit any
+const items = [];        // implicit any[]
+
+// ✅ REQUIRED
+function handler(e: React.MouseEvent<HTMLButtonElement>) { }
+const items: string[] = [];
+```
+
+### Never use non-null assertion (`!`) without justification
+
+```typescript
+// ❌ FORBIDDEN (unless truly guaranteed)
+const value = maybeNull!.property;
+
+// ✅ REQUIRED
+const value = maybeNull?.property;
+// OR with proper guard
+if (maybeNull) {
+  const value = maybeNull.property;
+}
+```
+
+## REQUIRED Patterns
+
+### Always type function parameters and returns
+
+```typescript
+// ❌ FORBIDDEN
+const calculate = (a, b) => a + b;
+
+// ✅ REQUIRED
+const calculate = (a: number, b: number): number => a + b;
+```
+
+### Always type component props
+
+```typescript
+// ❌ FORBIDDEN
+function Button({ onClick, children }) { }
+
+// ✅ REQUIRED
+interface ButtonProps {
+  onClick: () => void;
+  children: React.ReactNode;
+}
+function Button({ onClick, children }: ButtonProps) { }
+```
+
+### Use `unknown` over `any` for truly unknown types
+
+```typescript
+// When type is genuinely unknown, use unknown and narrow
+function processInput(input: unknown): string {
+  if (typeof input === 'string') return input;
+  if (typeof input === 'number') return input.toString();
+  throw new Error('Unsupported type');
+}
+```
+
+### Prefer type inference where obvious
+
+```typescript
+// Unnecessary explicit typing
+const name: string = 'John';  // string is inferred
+const count: number = 42;     // number is inferred
+
+// Let TypeScript infer obvious types
+const name = 'John';
+const count = 42;
+```
+
+### Use strict event types in React
+
+```typescript
+// ❌ FORBIDDEN
+onChange={(e) => setValue(e.target.value)}
+
+// ✅ REQUIRED
+onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue(e.target.value)}
+```
+
+## Type Definitions
+
+- Define interfaces/types in `src/types/` for shared types
+- Co-locate component-specific types with their components
+- Export types that are used across modules
+- Use `interface` for object shapes, `type` for unions/intersections
+
+## ENFORCEMENT
+
+Before writing any TypeScript:
+1. Check `src/types/` for existing type definitions
+2. Never use `any` — use `unknown` and narrow, or define proper types
+3. Always provide explicit return types for functions
+4. Always type React component props with interfaces
+5. Use strict event typing for all handlers
