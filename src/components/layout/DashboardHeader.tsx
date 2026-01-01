@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import styles from './DashboardHeader.module.css';
-import { getPortfolioUrl } from '@/lib/utils/portfolioUrl';
+import { getPortfolioUrl, isLocalDevelopment } from '@/lib/utils/portfolioUrl';
 
 type SubscriptionTier = 'FREE' | 'PROFESSIONAL' | 'DELUXE' | null;
 
@@ -43,17 +43,27 @@ export function DashboardHeader({ userEmail, userName, username, subscriptionTie
 
         {/* Right Side */}
         <div className={styles.headerRight}>
-          {/* View Portfolio Link - opens subdomain URL in new tab */}
+          {/* View Portfolio Link - opens subdomain URL in new tab (prod) or same tab (local) */}
           {previewUrl ? (
-            <a 
-              href={previewUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className={styles.previewLink}
-            >
-              <EyeIcon />
-              <span>Preview Portfolio</span>
-            </a>
+            isLocalDevelopment() ? (
+              <Link 
+                href={previewUrl}
+                className={styles.previewLink}
+              >
+                <EyeIcon />
+                <span>Preview Portfolio</span>
+              </Link>
+            ) : (
+              <a 
+                href={previewUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className={styles.previewLink}
+              >
+                <EyeIcon />
+                <span>Preview Portfolio</span>
+              </a>
+            )
           ) : (
             <span className={styles.previewLinkDisabled}>
               <EyeIcon />

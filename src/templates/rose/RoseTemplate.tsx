@@ -32,7 +32,7 @@ interface RoseTemplateProps {
  * ─────────────────────────────────────────────────────────────────────
  * • Header: Name in elegant pink italic + "Model" subtitle with underline
  * • Navigation: Portfolio | About | Services | Contact + Instagram icon
- * • Gallery: 5-column tight masonry grid (4px gaps)
+ * • Gallery: 3-column grid (1rem gaps) with 3:4 aspect ratio
  * • CTA: Floating pink "Book Me" button (bottom-right)
  * 
  * Reference: Jana Elise Lister portfolio screenshot

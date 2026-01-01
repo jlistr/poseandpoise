@@ -2,28 +2,48 @@
  * Portfolio URL Utilities
  * 
  * Generates URLs for the subdomain pattern: username.poseandpoise.studio
+ * In local development, uses path-based URLs: localhost:3000/username
  */
 
 // Base domain for portfolio subdomains
 const PORTFOLIO_DOMAIN = process.env.NEXT_PUBLIC_PORTFOLIO_DOMAIN || 'poseandpoise.studio';
 
+// Check if we're in local development
+const isLocalDev = typeof window !== 'undefined' 
+  ? window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  : process.env.NODE_ENV === 'development';
+
 /**
  * Generates the full portfolio URL for a given username
- * Format: https://username.poseandpoise.studio
+ * Format: https://username.poseandpoise.studio (production)
+ * Format: /username (local development)
  */
 export function getPortfolioUrl(username: string): string {
   if (!username) return '';
   const cleanUsername = username.toLowerCase().trim();
+  
+  // In local development, use path-based URL
+  if (isLocalDev) {
+    return `/${cleanUsername}`;
+  }
+  
   return `https://${cleanUsername}.${PORTFOLIO_DOMAIN}`;
 }
 
 /**
  * Generates the display-friendly portfolio URL (without protocol)
- * Format: username.poseandpoise.studio
+ * Format: username.poseandpoise.studio (production)
+ * Format: localhost:3000/username (local development)
  */
 export function getPortfolioDisplayUrl(username: string): string {
   if (!username) return '';
   const cleanUsername = username.toLowerCase().trim();
+  
+  // In local development, show path-based URL
+  if (isLocalDev && typeof window !== 'undefined') {
+    return `${window.location.host}/${cleanUsername}`;
+  }
+  
   return `${cleanUsername}.${PORTFOLIO_DOMAIN}`;
 }
 
@@ -87,5 +107,16 @@ export function isPortfolioSubdomain(hostname: string): boolean {
   // Check if the domain suffix matches
   const hostSuffix = hostParts.slice(1).join('.');
   return hostSuffix === PORTFOLIO_DOMAIN || host.endsWith('.localhost');
+}
+
+/**
+ * Checks if we're in local development mode
+ * Useful for components that need to adjust behavior (e.g., open links differently)
+ */
+export function isLocalDevelopment(): boolean {
+  if (typeof window !== 'undefined') {
+    return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  }
+  return process.env.NODE_ENV === 'development';
 }
 

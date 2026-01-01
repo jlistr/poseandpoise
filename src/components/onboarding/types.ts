@@ -215,14 +215,14 @@ export const TEMPLATES: Template[] = [
   {
     id: 'elysian',
     name: 'Elysian',
-    description: 'Soft pink masonry gallery with feminine elegance',
+    description: 'Soft pink 3-column gallery with feminine elegance',
     accentColor: '#FF7AA2',
     bgColor: '#FAF8F6',
     textColor: '#2D2D2D',
     isPro: false,
     layout: 'hero-split',
     heroStyle: 'left-aligned',
-    galleryStyle: 'masonry',
+    galleryStyle: 'grid-3',
     navStyle: 'minimal',
   },
   {

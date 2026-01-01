@@ -1,0 +1,316 @@
+# Portfolio Preview & Editing Architecture — STRICT ENFORCEMENT
+
+**Core Principle: If you're previewing it, you should always have the option to edit it.**
+
+This rule defines the architecture for portfolio viewing, previewing, and editing across the Pose & Poise platform. The goal is to provide a seamless, consistent editing experience wherever a portfolio owner views their own content.
+
+---
+
+## Two Viewing Contexts
+
+### 1. Public Portfolio (`/[username]`)
+- **Purpose:** Public-facing portfolio for visitors, clients, and agencies
+- **Audience:** Anyone on the internet
+- **Editing:** NO direct editing capabilities
+- **Data:** Only visible photos, published content
+- **Owner Preview:** When logged-in owner views their unpublished portfolio, show a preview banner with "Go to Dashboard" link
+
+### 2. Preview Mode (`/preview/[username]` or `/dashboard/preview/[username]`)
+- **Purpose:** Owner's preview and editing environment
+- **Audience:** Authenticated portfolio owner only
+- **Editing:** ALWAYS available via Edit Mode toggle
+- **Data:** ALL photos (including hidden), all content
+- **Features:** Template switching, inline editing, photo management, publish controls
+
+---
+
+## The Golden Rule: Owner Previewing = Edit Access
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  IF user is authenticated AND user owns the portfolio          │
+│  AND user is viewing any preview of their portfolio             │
+│  THEN edit capabilities MUST be available                       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Implementation Requirements
+
+1. **Never show a preview without edit access to the owner**
+   - If an owner can see a preview, they can edit it
+   - No "view-only" preview mode for owners
+
+2. **Edit Mode is a toggle, not a separate route**
+   - Preview and Edit are the same page with a toggle
+   - URL: `/preview/[username]` or `/preview/[username]?edit=true`
+   - State managed by `PortfolioPreview` component
+
+3. **Consistent toolbar across all preview contexts**
+   - Dashboard link (back arrow)
+   - Template selector/indicator
+   - Edit Mode toggle button
+   - Save status indicator
+   - Publish/Launch controls
+
+---
+
+## Route Architecture
+
+### REQUIRED Routes
+
+| Route | Purpose | Auth Required | Edit Available |
+|-------|---------|---------------|----------------|
+| `/[username]` | Public portfolio | No | No (redirect owner to preview) |
+| `/preview/[username]` | Owner preview + edit | Yes (owner only) | Yes, always |
+| `/dashboard/preview/[username]` | Legacy, redirect to `/preview/[username]` | Yes | Yes |
+
+### FORBIDDEN Patterns
+
+- ❌ Multiple preview routes with different capabilities
+- ❌ Preview routes that don't offer editing
+- ❌ Edit-only routes separate from preview
+- ❌ Subscription-gated preview access (editing features may vary, but preview + basic edit must work)
+
+---
+
+## Component Architecture
+
+### `PortfolioPreview` Component — The Single Source of Truth
+
+All preview/edit functionality flows through this component:
+
+```typescript
+interface PortfolioPreviewProps {
+  data: PortfolioData;
+  username: string;
+  canEdit?: boolean;           // Defaults to true for authenticated owners
+  initialEditMode?: boolean;   // Start in edit mode (from ?edit=true)
+}
+```
+
+### Edit Mode Context
+
+The `EditModeContext` provides editing state and handlers to all template pages:
+
+```typescript
+interface EditModeContextValue {
+  isEditMode: boolean;
+  canEdit: boolean;
+  // Photo editing
+  photos: PortfolioPhoto[];
+  onPhotosChange: (photos: PortfolioPhoto[]) => void;
+  onTogglePhotoVisibility: (photoId: string) => void;
+  onReorderPhotos: (fromIndex: number, toIndex: number) => void;
+  onAddPhotos: (files: FileList) => Promise<void>;
+  onDeletePhoto: (photoId: string) => Promise<void>;
+  isUploadingPhotos: boolean;
+  // Profile editing
+  bio: string;
+  onBioChange: (value: string) => void;
+  avatarUrl: string;
+  onAvatarUpload: (file: File) => Promise<void>;
+  // Services editing
+  services: ServiceItem[];
+  onServicesChange: (services: ServiceItem[]) => void;
+  onAddService: () => void;
+  onUpdateService: (index: number, field: keyof ServiceItem, value: string) => void;
+  onRemoveService: (index: number) => void;
+  // Save status
+  isSaving: boolean;
+  hasChanges: boolean;
+  // Template theming
+  accentColor: string;
+}
+```
+
+### Template Integration
+
+Templates consume `useEditMode()` hook to enable inline editing:
+
+```typescript
+export function TemplateComponent({ data }: TemplateProps) {
+  const editMode = useEditMode();
+  
+  // Use edit mode state if available, fall back to props
+  const photos = editMode?.photos ?? data.photos;
+  const bio = editMode?.bio ?? data.profile.bio;
+  
+  // Conditionally render edit controls
+  if (editMode?.isEditMode) {
+    // Show drag handles, visibility toggles, inline editors
+  }
+}
+```
+
+---
+
+## Editing Capabilities by Tier
+
+While preview access is universal, editing features may vary by subscription:
+
+| Feature | FREE | PROFESSIONAL | DELUXE |
+|---------|------|--------------|--------|
+| View own preview | ✅ | ✅ | ✅ |
+| Toggle Edit Mode | ✅ | ✅ | ✅ |
+| Reorder photos | ✅ | ✅ | ✅ |
+| Toggle photo visibility | ✅ | ✅ | ✅ |
+| Edit bio/profile | ✅ | ✅ | ✅ |
+| Upload new photos | ✅ | ✅ | ✅ |
+| Delete photos | ✅ | ✅ | ✅ |
+| Edit services | ✅ | ✅ | ✅ |
+| Premium templates | ❌ | ✅ | ✅ |
+| AI-assisted editing | ❌ | ❌ | ✅ |
+
+**IMPORTANT:** Never gate basic editing behind a paywall. The core editing experience must work for all users.
+
+---
+
+## Navigation Flows
+
+### From Dashboard to Preview/Edit
+
+```
+Dashboard → "Preview Portfolio" button → /preview/[username]
+Dashboard → "Edit Portfolio" button → /preview/[username]?edit=true
+```
+
+### From Public Portfolio (Owner)
+
+```
+/[username] (owner logged in, unpublished) → Shows preview banner → "Go to Dashboard" link
+/[username] (owner logged in, published) → Could show "Edit" FAB → /preview/[username]?edit=true
+```
+
+### From Preview Back to Dashboard
+
+```
+/preview/[username] → Back arrow → /dashboard
+/preview/[username] → Save & Exit → Stays on preview (edit mode off)
+```
+
+---
+
+## UI/UX Requirements
+
+### Preview Toolbar (Always Visible)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ← Dashboard │ 👁 Preview Mode │ [Template: Elysian ▾] │ [Edit Mode] │ [Launch Site] │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Edit Mode Banner (When Active)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ✏️ Edit Mode Active — Click on text, images, or elements to edit directly.  │
+│                       Click "Save & Exit" when done.                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Edit Controls on Elements
+
+When in edit mode, editable elements show:
+- Hover state with accent color border
+- Click to activate inline editor
+- Photos show drag handles + visibility toggle
+- Services show add/remove/reorder controls
+
+---
+
+## Data Flow
+
+### Reading Data
+
+```
+Server Component (page.tsx)
+    ↓ Fetches portfolio data
+    ↓ Verifies ownership
+    ↓ Passes to PortfolioPreview
+Client Component (PortfolioPreview.tsx)
+    ↓ Initializes edit state from props
+    ↓ Provides EditModeContext
+Template Components
+    ↓ Consume useEditMode() hook
+    ↓ Render with edit capabilities
+```
+
+### Saving Data
+
+```
+User makes edit (e.g., reorders photo)
+    ↓ Local state updates immediately (optimistic)
+    ↓ hasChanges becomes true
+User clicks "Save & Exit"
+    ↓ handleSave() called
+    ↓ Server actions execute (savePhotoUpdates, saveTemplate, etc.)
+    ↓ router.refresh() revalidates data
+    ↓ Edit mode disabled
+```
+
+---
+
+## Server Actions for Portfolio Editing
+
+All editing operations use server actions in `/app/actions/portfolio.ts`:
+
+| Action | Purpose |
+|--------|---------|
+| `savePhotoUpdates` | Update sort order and visibility |
+| `saveTemplate` | Change selected template |
+| `saveProfileUpdate` | Update bio, avatar, etc. |
+| `saveServices` | Update service offerings |
+| `uploadAvatar` | Upload new profile photo |
+| `uploadPortfolioPhoto` | Add new portfolio photo |
+| `deletePortfolioPhoto` | Remove photo from portfolio |
+| `togglePublished` | Publish/unpublish portfolio |
+
+---
+
+## Migration Path (Consolidating Routes)
+
+### Current State (Inconsistent)
+- `/preview/[username]` — Preview + Edit
+- `/dashboard/preview/[username]` — Preview + Edit (duplicate)
+- `/[username]` — Public only (owner sees preview banner)
+
+### Target State (Consolidated)
+- `/preview/[username]` — **THE** preview + edit route
+- `/dashboard/preview/[username]` — Redirect to `/preview/[username]`
+- `/[username]` — Public view; owner sees "Edit" FAB linking to preview
+
+### Implementation Steps
+
+1. **Consolidate to single preview route** (`/preview/[username]`)
+2. **Add redirect from legacy route** (`/dashboard/preview/[username]`)
+3. **Add "Edit" FAB on public page for logged-in owners**
+4. **Remove duplicate data fetching logic**
+5. **Ensure all dashboard links point to canonical preview route**
+
+---
+
+## ENFORCEMENT Checklist
+
+Before implementing any preview/editing feature:
+
+- [ ] Owner can always access edit mode when previewing their portfolio
+- [ ] Edit Mode is a toggle, not a separate route
+- [ ] `PortfolioPreview` component is the single entry point for preview + edit
+- [ ] Templates consume `useEditMode()` hook for edit capabilities
+- [ ] Basic editing works for all subscription tiers
+- [ ] Changes save via server actions, not client-side API calls
+- [ ] Preview toolbar is consistent across all contexts
+- [ ] Navigation flows are intuitive (Dashboard ↔ Preview ↔ Public)
+
+---
+
+## FORBIDDEN Patterns
+
+- ❌ Creating a preview route without edit capabilities
+- ❌ Gating basic edit access behind subscription tier
+- ❌ Separate "view" and "edit" modes on different routes
+- ❌ Templates that don't support `useEditMode()` hook
+- ❌ Multiple implementations of the same editing logic
+- ❌ Editing via direct API calls instead of server actions
+- ❌ Preview pages that don't verify ownership before rendering

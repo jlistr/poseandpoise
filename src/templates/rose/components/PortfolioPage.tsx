@@ -124,10 +124,11 @@ export function PortfolioPage({ data }: PortfolioPageProps) {
           <SortableContext items={displayPhotos.map(p => p.id)} strategy={rectSortingStrategy}>
             <div 
               style={{
-                columnCount: 5,
-                columnGap: '6px',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '1rem',
               }}
-              className="rose-masonry-grid"
+              className="rose-photo-grid"
             >
               {displayPhotos.map((photo, index) => (
                 <SortablePhotoItem
@@ -164,13 +165,14 @@ export function PortfolioPage({ data }: PortfolioPageProps) {
           </DragOverlay>
         </DndContext>
       ) : (
-        // Non-edit mode: Tight 5-column masonry grid matching reference image
+        // Non-edit mode: 3-column grid matching onboarding experience
         <div 
           style={{
-            columnCount: 5,
-            columnGap: '4px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '1rem',
           }}
-          className="rose-masonry-grid"
+          className="rose-photo-grid"
         >
           {displayPhotos.map((photo, index) => (
             <PhotoItem
@@ -229,32 +231,21 @@ export function PortfolioPage({ data }: PortfolioPageProps) {
         </div>
       )}
 
-      {/* Responsive Styles - Tight 5-column masonry matching reference */}
+      {/* Responsive Styles - 3-column grid matching onboarding */}
       <style>{`
-        .rose-masonry-grid {
-          column-count: 5;
-          column-gap: 4px;
-        }
-        @media (max-width: 1200px) {
-          .rose-masonry-grid {
-            column-count: 4;
-          }
+        .rose-photo-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1rem;
         }
         @media (max-width: 900px) {
-          .rose-masonry-grid {
-            column-count: 3;
+          .rose-photo-grid {
+            grid-template-columns: repeat(2, 1fr);
           }
         }
-        @media (max-width: 600px) {
-          .rose-masonry-grid {
-            column-count: 2;
-            column-gap: 3px;
-          }
-        }
-        @media (max-width: 380px) {
-          .rose-masonry-grid {
-            column-count: 2;
-            column-gap: 2px;
+        @media (max-width: 500px) {
+          .rose-photo-grid {
+            grid-template-columns: repeat(1, 1fr);
           }
         }
       `}</style>
@@ -294,23 +285,25 @@ function SortablePhotoItem({ photo, index, accentColor, onToggleVisibility, onSe
       ref={setNodeRef}
       style={{
         ...style,
-        breakInside: 'avoid',
-        marginBottom: '6px',
         position: 'relative',
         border: !photo.isVisible ? '2px dashed rgba(26, 26, 26, 0.3)' : 'none',
-        borderRadius: '2px',
+        borderRadius: 0,
         cursor: 'grab',
+        aspectRatio: '3/4',
+        overflow: 'hidden',
+        backgroundColor: '#f5f5f5',
       }}
       {...attributes}
     >
       {/* Draggable Image Area */}
-      <div {...listeners} style={{ cursor: isDragging ? 'grabbing' : 'grab' }}>
+      <div {...listeners} style={{ cursor: isDragging ? 'grabbing' : 'grab', width: '100%', height: '100%' }}>
         <img
           src={photo.thumbnailUrl || photo.url}
           alt={photo.caption || `Photo ${index + 1}`}
           style={{
             width: '100%',
-            height: 'auto',
+            height: '100%',
+            objectFit: 'cover',
             display: 'block',
             filter: !photo.isVisible ? 'grayscale(100%) opacity(0.4)' : 'none',
             transition: 'filter 0.3s ease',
@@ -430,11 +423,11 @@ function PhotoItem({ photo, index, onSelect }: PhotoItemProps) {
     <div
       ref={photoRef}
       style={{
-        breakInside: 'avoid',
-        marginBottom: '4px',
         cursor: 'pointer',
         overflow: 'hidden',
-        borderRadius: '3px',
+        borderRadius: 0,
+        aspectRatio: '3/4',
+        backgroundColor: '#f5f5f5',
       }}
       onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
@@ -445,7 +438,8 @@ function PhotoItem({ photo, index, onSelect }: PhotoItemProps) {
         alt={photo.caption || `Photo ${index + 1}`}
         style={{
           width: '100%',
-          height: 'auto',
+          height: '100%',
+          objectFit: 'cover',
           display: 'block',
           transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), filter 0.25s ease',
           transform: isHovered ? 'scale(1.02)' : 'scale(1)',

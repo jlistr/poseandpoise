@@ -68,13 +68,15 @@ async function getPublicPortfolioData(username: string): Promise<PortfolioDataWi
     .eq('profile_id', profile.id)
     .order('sort_order', { ascending: true });
   
-  // Get primary comp card for display with full details
-  const { data: compCard } = await supabase
+  // Get all saved comp cards with full details including uploaded files
+  const { data: compCards } = await supabase
     .from('comp_cards')
-    .select('id, photo_ids, template, card_type, pdf_url, uploaded_file_url')
+    .select('id, name, photo_ids, template, is_primary, card_type, pdf_url, uploaded_file_url')
     .eq('profile_id', profile.id)
-    .eq('is_primary', true)
-    .single();
+    .order('created_at', { ascending: false });
+  
+  // Find the primary comp card for backwards compatibility
+  const primaryCompCard = compCards?.find(c => c.is_primary);
   
   // Transform to PortfolioData interface
   return {
@@ -115,9 +117,19 @@ async function getPublicPortfolioData(username: string): Promise<PortfolioDataWi
       tiktok: profile.tiktok,
       website: profile.website,
     },
-    compCard: compCard ? {
-      photoIds: compCard.photo_ids,
+    compCard: primaryCompCard ? {
+      photoIds: primaryCompCard.photo_ids,
     } : undefined,
+    compCards: (compCards || []).map(card => ({
+      id: card.id,
+      name: card.name,
+      photoIds: card.photo_ids,
+      template: card.template,
+      isPrimary: card.is_primary,
+      cardType: card.card_type as 'generated' | 'uploaded' | 'branded' | undefined,
+      pdfUrl: card.pdf_url,
+      uploadedFileUrl: card.uploaded_file_url,
+    })),
     settings: {
       template: profile.template || 'elysian',
       accentColor: profile.accent_color,

@@ -470,7 +470,7 @@ export function OnboardingWizard({
       <StepIndicator steps={steps} />
 
       {/* Form Card */}
-      <FormCard>
+      <FormCard stepKey={currentStep}>
         {/* Step Content */}
         {renderStepContent()}
 
@@ -492,12 +492,95 @@ export function OnboardingWizard({
         )}
 
         {/* Action Buttons */}
+        <style>{`
+          @keyframes buttonSlideIn {
+            0% {
+              opacity: 0;
+              transform: translateY(10px);
+            }
+            100% {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          
+          @keyframes arrowBounce {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(4px); }
+          }
+          
+          @keyframes rocketShake {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-5deg); }
+            75% { transform: rotate(5deg); }
+          }
+          
+          .onboarding-btn {
+            animation: buttonSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            animation-delay: 0.3s;
+            opacity: 0;
+            position: relative;
+            overflow: hidden;
+          }
+          
+          .onboarding-btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+              90deg,
+              transparent,
+              rgba(255, 255, 255, 0.1),
+              transparent
+            );
+            transform: translateX(-100%);
+            transition: transform 0.5s ease;
+          }
+          
+          .onboarding-btn:hover::after {
+            transform: translateX(100%);
+          }
+          
+          .onboarding-btn:active {
+            transform: scale(0.98);
+          }
+          
+          .onboarding-btn-primary:hover .btn-arrow {
+            animation: arrowBounce 0.6s ease-in-out infinite;
+          }
+          
+          .onboarding-btn-launch:hover .btn-rocket {
+            animation: rocketShake 0.4s ease-in-out infinite;
+          }
+          
+          .onboarding-btn-back:hover {
+            border-color: ${colors.camel};
+            color: ${colors.camel};
+          }
+          
+          .onboarding-btn-skip:hover {
+            background-color: rgba(196, 164, 132, 0.1);
+            border-color: ${colors.camel};
+          }
+          
+          .onboarding-btn-primary:hover {
+            background-color: ${colors.camel};
+            box-shadow: 0 4px 12px rgba(196, 164, 132, 0.3);
+            transform: translateY(-1px);
+          }
+          
+          .onboarding-btn-launch:hover {
+            box-shadow: 0 4px 16px rgba(196, 164, 132, 0.4);
+            transform: translateY(-2px);
+          }
+        `}</style>
         <div style={{ display: 'flex', gap: '0.75rem', marginTop: '2rem' }}>
           {/* Back Button */}
           {!isFirstStep && (
             <button
               type="button"
               onClick={handleBack}
+              className="onboarding-btn onboarding-btn-back"
               style={{
                 padding: '0.75rem 1.5rem',
                 fontSize: '13px',
@@ -511,7 +594,7 @@ export function OnboardingWizard({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                transition: 'all 0.2s',
+                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
               }}
             >
               <ChevronLeftIcon size={16} />
@@ -524,6 +607,7 @@ export function OnboardingWizard({
             <button
               type="button"
               onClick={handleSkip}
+              className="onboarding-btn onboarding-btn-skip"
               style={{
                 flex: 1,
                 padding: '0.75rem 1.5rem',
@@ -535,7 +619,7 @@ export function OnboardingWizard({
                 border: `1px solid ${colors.border}`,
                 borderRadius: '0.5rem',
                 cursor: 'pointer',
-                transition: 'all 0.2s',
+                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
               }}
             >
               SKIP
@@ -547,6 +631,7 @@ export function OnboardingWizard({
             <button
               type="button"
               onClick={handleContinue}
+              className="onboarding-btn onboarding-btn-primary"
               style={{
                 flex: 1,
                 padding: '0.75rem 1.5rem',
@@ -562,17 +647,20 @@ export function OnboardingWizard({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '0.5rem',
-                transition: 'all 0.2s',
+                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
               }}
             >
               CONTINUE
-              <ChevronRightIcon size={16} />
+              <span className="btn-arrow" style={{ display: 'flex' }}>
+                <ChevronRightIcon size={16} />
+              </span>
             </button>
           ) : (
             <button
               type="button"
               onClick={handleLaunchPortfolio}
               disabled={isSaving}
+              className="onboarding-btn onboarding-btn-launch"
               style={{
                 flex: 1,
                 padding: '0.75rem 1.5rem',
@@ -589,10 +677,12 @@ export function OnboardingWizard({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '0.5rem',
-                transition: 'all 0.2s',
+                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
               }}
             >
-              <RocketIcon size={16} />
+              <span className="btn-rocket" style={{ display: 'flex' }}>
+                <RocketIcon size={16} />
+              </span>
               {isSaving ? 'LAUNCHING...' : 'LAUNCH PORTFOLIO'}
             </button>
           )}

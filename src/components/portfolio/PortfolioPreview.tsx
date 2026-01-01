@@ -337,6 +337,7 @@ export function PortfolioPreview({ data, username, canEdit = true, initialEditMo
       profile: { ...data.profile, bio, avatarUrl },
       photos: isEditMode ? photos : visiblePhotos, // Show all in edit mode
       services,
+      compCards: data.compCards || [], // Ensure compCards are passed through
       settings: { ...data.settings, template: selectedTemplate },
     };
   }, [data, photos, bio, avatarUrl, services, selectedTemplate, isEditMode]);

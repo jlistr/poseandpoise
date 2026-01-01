@@ -75,6 +75,35 @@ const RefreshIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
   </svg>
 );
 
+const SparklesIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z" />
+  </svg>
+);
+
+// Photo Organizer Icon - Camera with magnifying glass and @ symbol
+const PhotoOrganizerIcon: React.FC<{ size?: number }> = ({ size = 24 }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <rect x="4" y="12" width="32" height="24" rx="3" />
+    <path d="M12 12V9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v3" />
+    <circle cx="20" cy="24" r="6" />
+    <circle cx="20" cy="24" r="3" />
+    {/* Magnifying glass */}
+    <circle cx="38" cy="36" r="6" fill="#FAF9F7" stroke="currentColor" strokeWidth="2" />
+    <path d="M42 40l4 4" strokeWidth="2.5" strokeLinecap="round" />
+    {/* @ symbol inside magnifying glass */}
+    <text x="38" y="39" fontSize="8" textAnchor="middle" fill="currentColor" stroke="none" fontWeight="bold">@</text>
+  </svg>
+);
+
+const InfoIcon: React.FC<{ size?: number }> = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="16" x2="12" y2="12" />
+    <line x1="12" y1="8" x2="12.01" y2="8" />
+  </svg>
+);
+
 const GripIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
     <circle cx="8" cy="6" r="2" />
@@ -530,6 +559,21 @@ interface PhotosStepProps {
   uploadProgress?: { uploaded: number; total: number };
 }
 
+// Types for AI detection
+interface PhotoCredit {
+  photographer?: string | null;
+  studio?: string | null;
+  instagram?: string | null;
+  confidence?: 'high' | 'medium' | 'low';
+  reasoning?: string;
+}
+
+interface AIDetectionResult {
+  success: boolean;
+  message: string;
+  credits: PhotoCredit[];
+}
+
 export function PhotosStep({
   photos,
   onAddPhotos,
@@ -544,8 +588,15 @@ export function PhotosStep({
   uploadProgress = { uploaded: 0, total: 0 },
 }: PhotosStepProps): React.JSX.Element {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const aiDetectionInputRef = useRef<HTMLInputElement>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const template = TEMPLATES.find((t) => t.id === selectedTemplate) || TEMPLATES[1];
+  
+  // AI Detection state
+  const [isDetecting, setIsDetecting] = useState(false);
+  const [detectionPhotos, setDetectionPhotos] = useState<string[]>([]);
+  const [detectionResult, setDetectionResult] = useState<AIDetectionResult | null>(null);
+  const [showAIPanel, setShowAIPanel] = useState(false);
 
   // Drag sensors
   const sensors = useSensors(
@@ -590,8 +641,108 @@ export function PhotosStep({
     }
   };
 
+  // AI Detection handlers
+  const handleAIDetectionClick = () => {
+    aiDetectionInputRef.current?.click();
+  };
+
+  const handleAIDetectionFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    
+    e.target.value = ''; // Reset input
+    
+    // Validate and limit files
+    const validFiles = files
+      .filter(f => ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(f.type))
+      .filter(f => f.size <= 10 * 1024 * 1024)
+      .slice(0, 10);
+    
+    if (validFiles.length === 0) {
+      alert('Please upload valid image files (JPEG, PNG, WebP, GIF) under 10MB.');
+      return;
+    }
+    
+    // Create preview URLs
+    const previewUrls = validFiles.map(f => URL.createObjectURL(f));
+    setDetectionPhotos(previewUrls);
+    setDetectionResult(null);
+    setIsDetecting(true);
+    setShowAIPanel(true);
+    
+    try {
+      // Convert to base64
+      const base64Images = await Promise.all(
+        validFiles.map(file => 
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          })
+        )
+      );
+      
+      // Call AI API
+      const response = await fetch('/api/onboarding/ai-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `Analyze these ${base64Images.length} portfolio photos to detect photographer and studio credits. Look for watermarks, signatures, logos, and any visible text that indicates the photographer or studio name.`,
+          step: 'photos',
+          tool: 'photo-organizer',
+          images: base64Images,
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (result.extractedData?.photos && result.extractedData.photos.length > 0) {
+        setDetectionResult({
+          success: true,
+          message: result.message || `Found potential credits in ${result.extractedData.photos.filter((p: PhotoCredit) => p.photographer || p.studio).length} of ${base64Images.length} photos.`,
+          credits: result.extractedData.photos,
+        });
+      } else {
+        setDetectionResult({
+          success: false,
+          message: result.message || "I couldn't detect any photographer watermarks or studio logos in these photos. You can manually add credits to each photo below.",
+          credits: [],
+        });
+      }
+    } catch (error) {
+      console.error('AI detection error:', error);
+      setDetectionResult({
+        success: false,
+        message: "I had trouble analyzing these photos. Please try again or add credits manually.",
+        credits: [],
+      });
+    } finally {
+      setIsDetecting(false);
+    }
+  };
+
+  const clearAIDetection = () => {
+    detectionPhotos.forEach(url => {
+      if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+    });
+    setDetectionPhotos([]);
+    setDetectionResult(null);
+    setShowAIPanel(false);
+  };
+
   return (
     <>
+      {/* Hidden file input for AI detection */}
+      <input
+        ref={aiDetectionInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        multiple
+        onChange={handleAIDetectionFileChange}
+        style={{ display: 'none' }}
+      />
+
       {/* Header */}
       <h1
         style={{
@@ -607,6 +758,405 @@ export function PhotosStep({
       <p style={{ fontSize: '14px', color: colors.textSecondary, marginBottom: '2rem' }}>
         Upload your best work. High-quality images make a strong first impression.
       </p>
+
+      {/* AI Detection Tool */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            marginBottom: '0.75rem',
+          }}
+        >
+          <SparklesIcon size={14} />
+          <span style={{ 
+            fontSize: '11px', 
+            letterSpacing: '0.15em', 
+            color: colors.camel,
+            fontFamily: fonts.body,
+            textTransform: 'uppercase',
+          }}>
+            AI-POWERED CREDITS DETECTION
+          </span>
+        </div>
+        
+        {!showAIPanel ? (
+          <button
+            type="button"
+            onClick={handleAIDetectionClick}
+            style={{
+              width: '100%',
+              padding: '1rem 1.5rem',
+              backgroundColor: colors.cream,
+              border: `1px solid ${colors.border}`,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              transition: 'border-color 0.2s, background-color 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = colors.camel;
+              e.currentTarget.style.backgroundColor = 'rgba(196, 164, 132, 0.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = colors.border;
+              e.currentTarget.style.backgroundColor = colors.cream;
+            }}
+          >
+            <div style={{ color: colors.camel }}>
+              <PhotoOrganizerIcon size={32} />
+            </div>
+            <div style={{ textAlign: 'left', flex: 1 }}>
+              <p style={{ 
+                margin: 0, 
+                fontSize: '14px', 
+                fontWeight: 500, 
+                color: colors.textPrimary,
+                fontFamily: fonts.body,
+              }}>
+                Detect Photographers & Studios
+              </p>
+              <p style={{ 
+                margin: '0.25rem 0 0', 
+                fontSize: '12px', 
+                color: colors.textMuted,
+                fontFamily: fonts.body,
+              }}>
+                AI scans your photos for watermarks, signatures, and studio logos to auto-credit photographers
+              </p>
+            </div>
+            <div style={{
+              padding: '0.25rem 0.5rem',
+              backgroundColor: colors.camel,
+              color: colors.white,
+              fontSize: '10px',
+              fontWeight: 500,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              fontFamily: fonts.body,
+            }}>
+              NEW
+            </div>
+          </button>
+        ) : (
+          <div style={{
+            padding: '1.25rem',
+            backgroundColor: colors.white,
+            border: `1px solid ${colors.border}`,
+          }}>
+            {/* Header with close button */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              marginBottom: '1rem',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <PhotoOrganizerIcon size={20} />
+                <span style={{ 
+                  fontSize: '14px', 
+                  fontWeight: 500, 
+                  color: colors.textPrimary,
+                  fontFamily: fonts.body,
+                }}>
+                  AI Credits Detection
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={clearAIDetection}
+                style={{
+                  padding: '0.25rem 0.5rem',
+                  fontSize: '11px',
+                  backgroundColor: 'transparent',
+                  color: colors.textMuted,
+                  border: `1px solid ${colors.border}`,
+                  cursor: 'pointer',
+                  fontFamily: fonts.body,
+                }}
+              >
+                Close
+              </button>
+            </div>
+            
+            {/* Photo previews */}
+            {detectionPhotos.length > 0 && (
+              <div style={{ 
+                display: 'flex', 
+                gap: '0.5rem', 
+                flexWrap: 'wrap',
+                marginBottom: '1rem',
+              }}>
+                {detectionPhotos.slice(0, 6).map((url, idx) => (
+                  <div key={idx} style={{ 
+                    width: '60px', 
+                    height: '60px', 
+                    overflow: 'hidden',
+                    border: `1px solid ${colors.border}`,
+                  }}>
+                    <img 
+                      src={url} 
+                      alt={`Detection ${idx + 1}`} 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    />
+                  </div>
+                ))}
+                {detectionPhotos.length > 6 && (
+                  <div style={{
+                    width: '60px',
+                    height: '60px',
+                    backgroundColor: colors.cream,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '12px',
+                    color: colors.textMuted,
+                    fontFamily: fonts.body,
+                  }}>
+                    +{detectionPhotos.length - 6}
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Loading state */}
+            {isDetecting && (
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.75rem',
+                padding: '1rem',
+                backgroundColor: colors.cream,
+              }}>
+                <div style={{
+                  width: '20px',
+                  height: '20px',
+                  border: `2px solid ${colors.border}`,
+                  borderTopColor: colors.camel,
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                }} />
+                <span style={{ 
+                  fontSize: '13px', 
+                  color: colors.textSecondary,
+                  fontFamily: fonts.body,
+                }}>
+                  Scanning {detectionPhotos.length} photo(s) for watermarks and signatures...
+                </span>
+              </div>
+            )}
+            
+            {/* Results */}
+            {detectionResult && !isDetecting && (
+              <div>
+                <p style={{ 
+                  fontSize: '13px', 
+                  color: detectionResult.success ? colors.textPrimary : colors.textSecondary,
+                  marginBottom: '1rem',
+                  fontFamily: fonts.body,
+                }}>
+                  {detectionResult.message}
+                </p>
+                
+                {detectionResult.success && detectionResult.credits.length > 0 && (
+                  <div style={{ 
+                    display: 'grid', 
+                    gap: '0.75rem',
+                    marginBottom: '1rem',
+                  }}>
+                    {detectionResult.credits.map((credit, idx) => (
+                      (credit.photographer || credit.studio || credit.instagram) && (
+                        <div key={idx} style={{
+                          padding: '0.75rem',
+                          backgroundColor: colors.cream,
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '0.75rem',
+                        }}>
+                          {detectionPhotos[idx] && (
+                            <div style={{ 
+                              width: '50px', 
+                              height: '50px', 
+                              overflow: 'hidden',
+                              flexShrink: 0,
+                            }}>
+                              <img 
+                                src={detectionPhotos[idx]} 
+                                alt={`Photo ${idx + 1}`}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            </div>
+                          )}
+                          <div style={{ flex: 1 }}>
+                            <div style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '0.5rem',
+                              marginBottom: '0.25rem',
+                            }}>
+                              <span style={{ 
+                                fontSize: '12px', 
+                                fontWeight: 500,
+                                color: colors.textPrimary,
+                                fontFamily: fonts.body,
+                              }}>
+                                Photo {idx + 1}
+                              </span>
+                              {credit.confidence && (
+                                <span style={{
+                                  fontSize: '9px',
+                                  padding: '2px 6px',
+                                  backgroundColor: credit.confidence === 'high' ? '#4CAF50' : 
+                                                   credit.confidence === 'medium' ? '#FF9800' : '#9E9E9E',
+                                  color: colors.white,
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.05em',
+                                  fontFamily: fonts.body,
+                                }}>
+                                  {credit.confidence}
+                                </span>
+                              )}
+                            </div>
+                            {credit.photographer && (
+                              <p style={{ 
+                                margin: 0, 
+                                fontSize: '12px',
+                                color: colors.textSecondary,
+                                fontFamily: fonts.body,
+                              }}>
+                                📷 <strong>Photographer:</strong> {credit.photographer}
+                              </p>
+                            )}
+                            {credit.studio && (
+                              <p style={{ 
+                                margin: '0.15rem 0 0', 
+                                fontSize: '12px',
+                                color: colors.textSecondary,
+                                fontFamily: fonts.body,
+                              }}>
+                                📍 <strong>Studio:</strong> {credit.studio}
+                              </p>
+                            )}
+                            {credit.instagram && (
+                              <p style={{ 
+                                margin: '0.15rem 0 0', 
+                                fontSize: '12px',
+                                color: colors.textSecondary,
+                                fontFamily: fonts.body,
+                              }}>
+                                📱 <strong>Instagram:</strong> {credit.instagram}
+                              </p>
+                            )}
+                            {credit.reasoning && (
+                              <p style={{ 
+                                margin: '0.25rem 0 0', 
+                                fontSize: '11px',
+                                color: colors.textMuted,
+                                fontStyle: 'italic',
+                                fontFamily: fonts.body,
+                              }}>
+                                {credit.reasoning}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    ))}
+                  </div>
+                )}
+                
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={handleAIDetectionClick}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      backgroundColor: colors.charcoal,
+                      color: colors.white,
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontFamily: fonts.body,
+                    }}
+                  >
+                    Scan More Photos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearAIDetection}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      fontSize: '12px',
+                      backgroundColor: 'transparent',
+                      color: colors.textMuted,
+                      border: `1px solid ${colors.border}`,
+                      cursor: 'pointer',
+                      fontFamily: fonts.body,
+                    }}
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* Empty state - prompt to upload */}
+            {detectionPhotos.length === 0 && !isDetecting && !detectionResult && (
+              <div style={{ textAlign: 'center', padding: '1rem' }}>
+                <p style={{ 
+                  fontSize: '13px', 
+                  color: colors.textMuted,
+                  margin: '0 0 1rem',
+                  fontFamily: fonts.body,
+                }}>
+                  Upload photos to scan for photographer credits
+                </p>
+                <button
+                  type="button"
+                  onClick={handleAIDetectionClick}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    backgroundColor: colors.camel,
+                    color: colors.white,
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontFamily: fonts.body,
+                  }}
+                >
+                  Select Photos to Scan
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Info tip */}
+        <div style={{ 
+          marginTop: '0.75rem', 
+          padding: '0.75rem', 
+          backgroundColor: 'rgba(196, 164, 132, 0.08)', 
+          border: '1px solid rgba(196, 164, 132, 0.2)',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '0.5rem',
+        }}>
+          <InfoIcon size={14} />
+          <p style={{ 
+            margin: 0, 
+            fontSize: '11px', 
+            color: colors.textSecondary,
+            fontFamily: fonts.body,
+            lineHeight: 1.5,
+          }}>
+            AI looks for watermarks, signatures, and logos in your photos. Detection works best with clear, high-resolution images. You can always manually add or edit credits on each photo.
+          </p>
+        </div>
+      </div>
 
       {/* Upload Area */}
       <div

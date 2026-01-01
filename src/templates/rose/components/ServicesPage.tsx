@@ -22,13 +22,52 @@ export function ServicesPage({ data }: ServicesPageProps) {
   const compCards = editMode?.compCards ?? data.compCards ?? [];
   
   // Get the selected/primary comp card with full details
-  const selectedCompCard = compCards.find(c => c.id === selectedCompCardId) || compCards.find(c => c.isPrimary);
-  const compCardPhotos = selectedCompCard
-    ? data.photos.filter(p => selectedCompCard.photoIds.includes(p.id)).slice(0, 4)
-    : data.photos.slice(0, 4);
+  const selectedCompCard = selectedCompCardId 
+    ? compCards.find(c => c.id === selectedCompCardId) 
+    : compCards.find(c => c.isPrimary);
   
-  // Check if the comp card has an uploaded image or PDF to display
-  const hasUploadedCompCard = selectedCompCard?.uploadedFileUrl || selectedCompCard?.pdfUrl;
+  // Debug logging (remove in production)
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    console.log('[ServicesPage] Comp Card Debug:', {
+      selectedCompCardId,
+      compCardsCount: compCards.length,
+      selectedCompCard: selectedCompCard ? {
+        id: selectedCompCard.id,
+        name: selectedCompCard.name,
+        uploadedFileUrl: selectedCompCard.uploadedFileUrl,
+        pdfUrl: selectedCompCard.pdfUrl,
+        photoIds: selectedCompCard.photoIds,
+      } : null,
+      hasUploadedImage,
+      hasPdfOnly,
+      hasUploadedCompCard,
+      compCardPhotosCount: compCardPhotos.length,
+    });
+  }
+  
+  // Get photos for the comp card - use photoIds if available, otherwise fall back to first 4 photos
+  const compCardPhotos = (() => {
+    if (!selectedCompCard) {
+      return data.photos.slice(0, 4);
+    }
+    
+    // If comp card has photoIds, filter photos by those IDs
+    if (selectedCompCard.photoIds && selectedCompCard.photoIds.length > 0) {
+      const matchedPhotos = data.photos.filter(p => selectedCompCard.photoIds.includes(p.id));
+      // If we found matching photos, use them; otherwise fall back to first 4
+      return matchedPhotos.length > 0 ? matchedPhotos.slice(0, 4) : data.photos.slice(0, 4);
+    }
+    
+    // No photoIds, fall back to first 4 photos
+    return data.photos.slice(0, 4);
+  })();
+  
+  // Check if the comp card has an uploaded image (not PDF) to display
+  // Handle both null/undefined and empty string cases
+  // Only use uploadedFileUrl for direct image display - PDFs need special handling
+  const hasUploadedImage = !!selectedCompCard?.uploadedFileUrl?.trim();
+  const hasPdfOnly = !hasUploadedImage && !!selectedCompCard?.pdfUrl?.trim();
+  const hasUploadedCompCard = hasUploadedImage || hasPdfOnly;
 
   return (
     <div style={{ padding: '40px 24px', maxWidth: '1000px', margin: '0 auto' }}>
@@ -176,10 +215,10 @@ export function ServicesPage({ data }: ServicesPageProps) {
               }}
             >
               {/* Show uploaded comp card image if available */}
-              {hasUploadedCompCard ? (
+              {hasUploadedImage ? (
                 <div style={{ width: '100%', height: '100%', position: 'relative' }}>
                   <img
-                    src={selectedCompCard?.uploadedFileUrl || selectedCompCard?.pdfUrl}
+                    src={selectedCompCard?.uploadedFileUrl || ''}
                     alt="Comp Card"
                     style={{
                       width: '100%',
@@ -187,7 +226,51 @@ export function ServicesPage({ data }: ServicesPageProps) {
                       objectFit: 'contain',
                       background: '#f5f5f5',
                     }}
+                    onError={(e) => {
+                      // If image fails to load, hide the broken image
+                      console.error('Comp card image failed to load:', selectedCompCard?.uploadedFileUrl);
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
                   />
+                </div>
+              ) : hasPdfOnly ? (
+                // PDF-only comp card - show download link
+                <div style={{
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: '#f5f5f5',
+                  gap: '16px',
+                }}>
+                  <PdfIcon />
+                  <span style={{
+                    fontFamily: "'Outfit', sans-serif",
+                    fontSize: '14px',
+                    color: 'rgba(26, 26, 26, 0.6)',
+                  }}>
+                    Comp Card (PDF)
+                  </span>
+                  <a
+                    href={selectedCompCard?.pdfUrl || ''}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      padding: '8px 16px',
+                      background: accentColor,
+                      color: '#fff',
+                      textDecoration: 'none',
+                      fontFamily: "'Outfit', sans-serif",
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                    }}
+                  >
+                    View PDF
+                  </a>
                 </div>
               ) : (
                 <>
@@ -421,73 +504,103 @@ export function ServicesPage({ data }: ServicesPageProps) {
             >
               Select a Comp Card
             </div>
-            {compCards.map((card) => (
-              <button
-                key={card.id}
-                onClick={() => {
-                  editMode.onCompCardSelect(card.id);
-                  setShowCompCardSelector(false);
-                }}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '12px 16px',
-                  border: 'none',
-                  borderBottom: '1px solid rgba(26, 26, 26, 0.05)',
-                  background: card.id === selectedCompCardId ? `${accentColor}15` : 'transparent',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                }}
-              >
-                <div
+            {compCards.map((card) => {
+              // Determine the thumbnail to display
+              const cardUploadedUrl = card.uploadedFileUrl?.trim() || card.pdfUrl?.trim();
+              const firstPhotoThumbnail = data.photos.find(p => p.id === card.photoIds?.[0])?.thumbnailUrl;
+              const thumbnailUrl = cardUploadedUrl || firstPhotoThumbnail;
+              
+              return (
+                <button
+                  key={card.id}
+                  onClick={() => {
+                    editMode.onCompCardSelect(card.id);
+                    setShowCompCardSelector(false);
+                  }}
                   style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '4px',
-                    overflow: 'hidden',
-                    background: '#f0f0f0',
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px 16px',
+                    border: 'none',
+                    borderBottom: '1px solid rgba(26, 26, 26, 0.05)',
+                    background: card.id === selectedCompCardId ? `${accentColor}15` : 'transparent',
+                    cursor: 'pointer',
+                    textAlign: 'left',
                   }}
                 >
-                  {data.photos.find(p => p.id === card.photoIds[0]) && (
-                    <img
-                      src={data.photos.find(p => p.id === card.photoIds[0])?.thumbnailUrl}
-                      alt=""
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                  )}
-                </div>
-                <div style={{ flex: 1 }}>
                   <div
                     style={{
-                      fontFamily: "'Outfit', sans-serif",
-                      fontSize: '14px',
-                      fontWeight: 500,
-                      color: '#1A1A1A',
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '4px',
+                      overflow: 'hidden',
+                      background: '#f0f0f0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                     }}
                   >
-                    {card.name || 'Unnamed Comp Card'}
+                    {thumbnailUrl ? (
+                      <img
+                        src={thumbnailUrl}
+                        alt=""
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <CompCardPlaceholderIcon />
+                    )}
                   </div>
-                  {card.isPrimary && (
-                    <span
+                  <div style={{ flex: 1 }}>
+                    <div
                       style={{
                         fontFamily: "'Outfit', sans-serif",
-                        fontSize: '10px',
-                        color: accentColor,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
+                        fontSize: '14px',
+                        fontWeight: 500,
+                        color: '#1A1A1A',
                       }}
                     >
-                      Primary
-                    </span>
+                      {card.name || 'Unnamed Comp Card'}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {card.isPrimary && (
+                        <span
+                          style={{
+                            fontFamily: "'Outfit', sans-serif",
+                            fontSize: '10px',
+                            color: accentColor,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px',
+                          }}
+                        >
+                          Primary
+                        </span>
+                      )}
+                      {card.cardType && (
+                        <span
+                          style={{
+                            fontFamily: "'Outfit', sans-serif",
+                            fontSize: '9px',
+                            color: 'rgba(26, 26, 26, 0.4)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.3px',
+                            padding: '2px 6px',
+                            background: 'rgba(26, 26, 26, 0.05)',
+                            borderRadius: '2px',
+                          }}
+                        >
+                          {card.cardType === 'uploaded' ? 'Uploaded' : card.cardType === 'branded' ? 'Branded' : 'Generated'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {card.id === selectedCompCardId && (
+                    <CheckIcon />
                   )}
-                </div>
-                {card.id === selectedCompCardId && (
-                  <CheckIcon />
-                )}
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
@@ -835,6 +948,27 @@ function PlusIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <line x1="12" y1="5" x2="12" y2="19" />
       <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function CompCardPlaceholderIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(26, 26, 26, 0.3)" strokeWidth="1.5">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <line x1="3" y1="9" x2="21" y2="9" />
+      <line x1="9" y1="9" x2="9" y2="21" />
+    </svg>
+  );
+}
+
+function PdfIcon() {
+  return (
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(26, 26, 26, 0.4)" strokeWidth="1.5">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <path d="M9 15h6" />
+      <path d="M9 11h6" />
     </svg>
   );
 }

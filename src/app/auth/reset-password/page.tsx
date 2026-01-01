@@ -4,11 +4,14 @@ import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { EyeIcon, EyeOffIcon } from "@/components/icons/Icons";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -289,37 +292,87 @@ export default function ResetPasswordPage() {
           /* Form */
           <form onSubmit={handleSubmit} className="fade-up delay-2">
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <div>
+              <div style={{ position: "relative" }}>
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="New Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="auth-input"
+                  style={{ width: "100%" }}
                   required
                   minLength={8}
                 />
-                <p
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
                   style={{
-                    fontFamily: "'Outfit', sans-serif",
-                    fontSize: "12px",
-                    color: "rgba(26, 26, 26, 0.5)",
-                    marginTop: "6px",
-                    paddingLeft: "4px",
+                    position: "absolute",
+                    right: "16px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    padding: "4px",
+                    cursor: "pointer",
+                    color: "rgba(26, 26, 26, 0.4)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "color 0.2s ease",
                   }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(26, 26, 26, 0.7)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(26, 26, 26, 0.4)")}
                 >
-                  Must be at least 8 characters
-                </p>
+                  {showPassword ? <EyeOffIcon size={20} /> : <EyeIcon size={20} />}
+                </button>
               </div>
+              <p
+                style={{
+                  fontFamily: "'Outfit', sans-serif",
+                  fontSize: "12px",
+                  color: "rgba(26, 26, 26, 0.5)",
+                  marginTop: "-10px", // Pull up closer to the password field
+                  paddingLeft: "4px",
+                }}
+              >
+                Must be at least 8 characters
+              </p>
               
-              <input
-                type="password"
-                placeholder="Confirm New Password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="auth-input"
-                required
-              />
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm New Password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="auth-input"
+                  style={{ width: "100%" }}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{
+                    position: "absolute",
+                    right: "16px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    padding: "4px",
+                    cursor: "pointer",
+                    color: "rgba(26, 26, 26, 0.4)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "color 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(26, 26, 26, 0.7)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(26, 26, 26, 0.4)")}
+                >
+                  {showConfirmPassword ? <EyeOffIcon size={20} /> : <EyeIcon size={20} />}
+                </button>
+              </div>
 
               {error && (
                 <p

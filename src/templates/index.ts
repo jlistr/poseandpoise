@@ -41,14 +41,14 @@ export const TEMPLATE_METADATA: TemplateMetadata[] = [
   {
     id: 'elysian',
     name: 'Elysian',
-    description: 'Soft, warm masonry gallery with feminine elegance',
+    description: 'Soft, warm 3-column gallery with feminine elegance',
     isPremium: false,
     thumbnailUrl: '/templates/elysian-preview.jpg',
     accentColor: '#FF7AA2',
     // Layout characteristics
     layout: 'hero-split',
     heroStyle: 'left-aligned',
-    galleryStyle: 'masonry',
+    galleryStyle: 'grid-3',
     navStyle: 'minimal',
     industryFocus: 'Commercial/Lifestyle',
   },
