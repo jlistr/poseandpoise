@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import styles from './DashboardHeader.module.css';
+import { getPortfolioUrl } from '@/lib/utils/portfolioUrl';
 
 type SubscriptionTier = 'FREE' | 'PROFESSIONAL' | 'DELUXE' | null;
 
@@ -19,7 +20,8 @@ export function DashboardHeader({ userEmail, userName, username, subscriptionTie
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const displayName = userName || userEmail?.split('@')[0] || 'User';
-  const previewUrl = username ? `/preview/${username}` : null;
+  // Use subdomain URL for portfolio preview (e.g., username.poseandpoise.studio)
+  const previewUrl = username ? getPortfolioUrl(username) : null;
   
   // Determine tier display info
   const tierInfo = {
@@ -41,12 +43,17 @@ export function DashboardHeader({ userEmail, userName, username, subscriptionTie
 
         {/* Right Side */}
         <div className={styles.headerRight}>
-          {/* View Portfolio Link */}
+          {/* View Portfolio Link - opens subdomain URL in new tab */}
           {previewUrl ? (
-            <Link href={previewUrl} className={styles.previewLink}>
+            <a 
+              href={previewUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className={styles.previewLink}
+            >
               <EyeIcon />
               <span>Preview Portfolio</span>
-            </Link>
+            </a>
           ) : (
             <span className={styles.previewLinkDisabled}>
               <EyeIcon />
