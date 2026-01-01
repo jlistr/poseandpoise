@@ -55,6 +55,33 @@
   color: var(--color-cream, #FAF9F7);
 }
 
+/* Analytics Badge */
+.analyticsBadge {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 10;
+  display: flex;
+  gap: 12px;
+  padding: 6px 10px;
+  background: rgba(26, 26, 26, 0.75);
+  backdrop-filter: blur(10px);
+  font-family: var(--font-body, 'Outfit', sans-serif);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-cream, #FAF9F7);
+}
+
+.analyticsBadge span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.analyticsBadge svg {
+  opacity: 0.7;
+}
+
 /* Image */
 .imageWrapper {
   position: relative;

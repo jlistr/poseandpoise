@@ -22,6 +22,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import type { PortfolioData, PortfolioPhoto } from '@/types/portfolio';
 import { useEditMode, PhotoUploadZone } from '@/components/portfolio';
+import { usePhotoAnalytics } from '@/hooks/usePhotoAnalytics';
 
 interface LumiereTemplateProps {
   data: PortfolioData;
@@ -1405,7 +1406,9 @@ function FilmFrame({ photo, index, isActive, accentColor, onSelect }: FilmFrameP
   const [isVisible, setIsVisible] = useState(false);
   const warmCream = '#FFF8F0';
   const deepWarm = '#3D2A26';
+  const { trackClick, createViewObserver } = usePhotoAnalytics();
 
+  // Animation observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -1423,6 +1426,24 @@ function FilmFrame({ photo, index, isActive, accentColor, onSelect }: FilmFrameP
 
     return () => observer.disconnect();
   }, [index]);
+
+  // Analytics view tracking
+  useEffect(() => {
+    if (!frameRef.current || !photo.id) return;
+
+    const analyticsObserver = createViewObserver(photo.id, 0.5);
+    analyticsObserver.observe(frameRef.current);
+
+    return () => analyticsObserver.disconnect();
+  }, [photo.id, createViewObserver]);
+
+  // Handle click with analytics tracking
+  const handleClick = useCallback(() => {
+    if (photo.id) {
+      trackClick(photo.id);
+    }
+    onSelect();
+  }, [photo.id, trackClick, onSelect]);
 
   return (
     <div
@@ -1448,7 +1469,7 @@ function FilmFrame({ photo, index, isActive, accentColor, onSelect }: FilmFrameP
           transition: 'all 0.4s ease',
           cursor: 'pointer',
         }}
-        onClick={onSelect}
+        onClick={handleClick}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >

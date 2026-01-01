@@ -11,6 +11,9 @@ export interface Photo {
     size_bytes: number | null;
     created_at: string;
     updated_at?: string;
+    // Analytics
+    view_count?: number;
+    click_count?: number;
   }
   
   export interface PhotoUpdate {

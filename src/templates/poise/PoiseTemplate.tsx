@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -21,6 +21,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import type { PortfolioData, PortfolioPhoto } from '@/types/portfolio';
 import { useEditMode, PhotoUploadZone } from '@/components/portfolio';
+import { usePhotoAnalytics } from '@/hooks/usePhotoAnalytics';
 
 interface PoiseTemplateProps {
   data: PortfolioData;
@@ -399,7 +400,7 @@ function SortablePhotoItem({ photo, index, accentColor, onToggleVisibility, onSe
 }
 
 // =============================================================================
-// Regular Photo Item (Public View)
+// Regular Photo Item (Public View) - With analytics tracking
 // =============================================================================
 interface PhotoItemProps {
   photo: PortfolioPhoto;
@@ -410,15 +411,36 @@ interface PhotoItemProps {
 
 function PhotoItem({ photo, index, accentColor, onSelect }: PhotoItemProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const photoRef = useRef<HTMLDivElement>(null);
+  const { trackClick, createViewObserver } = usePhotoAnalytics();
+
+  // Track views when photo scrolls into viewport
+  useEffect(() => {
+    if (!photoRef.current || !photo.id) return;
+
+    const observer = createViewObserver(photo.id, 0.5);
+    observer.observe(photoRef.current);
+
+    return () => observer.disconnect();
+  }, [photo.id, createViewObserver]);
+
+  // Handle click with analytics tracking
+  const handleClick = useCallback(() => {
+    if (photo.id) {
+      trackClick(photo.id);
+    }
+    onSelect();
+  }, [photo.id, trackClick, onSelect]);
 
   return (
     <div
+      ref={photoRef}
       style={{
         cursor: 'pointer',
         overflow: 'hidden',
         borderRadius: '4px',
       }}
-      onClick={onSelect}
+      onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
