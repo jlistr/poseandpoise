@@ -438,13 +438,15 @@ const styles = {
     flex: 1,
     display: "flex",
     flexDirection: "column" as const,
-    overflow: "hidden",
     minWidth: 0, // Allow flex item to shrink
   },
   chatHeader: {
     padding: "24px 32px",
     borderBottom: "1px solid rgba(26, 26, 26, 0.08)",
     backgroundColor: "white",
+    position: "relative" as const,
+    zIndex: 10,
+    overflow: "visible",
   },
   stepIndicator: {
     display: "flex",
@@ -1537,23 +1539,24 @@ export function AIOnboardingChat({
                   </svg>
                 </div>
                 
-                {/* Dropdown Panel */}
+                {/* Dropdown Panel - Pseudo Form Style */}
                 {showDataSummary && (
                   <div style={{
                     position: "absolute",
-                    top: "calc(100% + 8px)",
+                    top: "calc(100% + 12px)",
                     right: 0,
-                    width: "280px",
-                    backgroundColor: "white",
-                    border: "1px solid rgba(26, 26, 26, 0.1)",
-                    borderRadius: "8px",
-                    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
+                    width: "320px",
+                    backgroundColor: "#FAF9F7",
+                    border: "1px solid rgba(26, 26, 26, 0.08)",
+                    borderRadius: "12px",
+                    boxShadow: "0 12px 40px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.08)",
                     zIndex: 100,
                     overflow: "hidden",
                   }}>
+                    {/* Header */}
                     <div style={{
-                      padding: "12px 16px",
-                      borderBottom: "1px solid rgba(26, 26, 26, 0.1)",
+                      padding: "16px 20px",
+                      background: "linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%)",
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
@@ -1561,29 +1564,63 @@ export function AIOnboardingChat({
                       <div style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: "8px",
-                        fontFamily: "'Outfit', sans-serif",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        color: "#1A1A1A",
+                        gap: "10px",
                       }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C4A484" strokeWidth="2">
-                          <path d="M9 11l3 3L22 4" />
-                          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-                        </svg>
-                        Collected Information
+                        <div style={{
+                          width: "28px",
+                          height: "28px",
+                          borderRadius: "8px",
+                          backgroundColor: "rgba(196, 164, 132, 0.2)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C4A484" strokeWidth="2.5">
+                            <path d="M9 11l3 3L22 4" />
+                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                          </svg>
+                        </div>
+                        <div>
+                          <div style={{
+                            fontFamily: "'Outfit', sans-serif",
+                            fontSize: "13px",
+                            fontWeight: 600,
+                            color: "#FAF9F7",
+                            letterSpacing: "0.02em",
+                          }}>
+                            Your Information
+                          </div>
+                          <div style={{
+                            fontFamily: "'Outfit', sans-serif",
+                            fontSize: "11px",
+                            color: "rgba(250, 249, 247, 0.5)",
+                            marginTop: "2px",
+                          }}>
+                            {extractedDataItems.length} field{extractedDataItems.length !== 1 ? 's' : ''} collected
+                          </div>
+                        </div>
                       </div>
                       <button
                         onClick={() => setShowDataSummary(false)}
                         style={{
-                          background: "none",
+                          background: "rgba(255, 255, 255, 0.1)",
                           border: "none",
+                          borderRadius: "6px",
                           cursor: "pointer",
-                          padding: "4px",
-                          color: "rgba(26, 26, 26, 0.4)",
+                          padding: "6px",
+                          color: "rgba(250, 249, 247, 0.6)",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
+                          transition: "all 0.2s ease",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
+                          e.currentTarget.style.color = "#FAF9F7";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+                          e.currentTarget.style.color = "rgba(250, 249, 247, 0.6)";
                         }}
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1591,32 +1628,88 @@ export function AIOnboardingChat({
                         </svg>
                       </button>
                     </div>
-                    <div style={{ padding: "12px 16px", maxHeight: "300px", overflowY: "auto" }}>
+                    
+                    {/* Form Fields */}
+                    <div style={{ padding: "16px 20px", maxHeight: "320px", overflowY: "auto" }}>
                       {extractedDataItems.map((item, i) => (
                         <div key={i} style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          padding: "8px 0",
-                          borderBottom: i < extractedDataItems.length - 1 ? "1px solid rgba(26, 26, 26, 0.05)" : "none",
+                          marginBottom: i < extractedDataItems.length - 1 ? "12px" : 0,
                         }}>
-                          <span style={{
+                          <label style={{
+                            display: "block",
                             fontFamily: "'Outfit', sans-serif",
-                            fontSize: "12px",
-                            color: "rgba(26, 26, 26, 0.5)",
-                          }}>{item.label}</span>
-                          <span style={{
+                            fontSize: "10px",
+                            fontWeight: 600,
+                            color: "#C4A484",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.08em",
+                            marginBottom: "6px",
+                          }}>
+                            {item.label}
+                          </label>
+                          <div style={{
+                            padding: "10px 14px",
+                            backgroundColor: "white",
+                            border: "1px solid rgba(26, 26, 26, 0.1)",
+                            borderRadius: "8px",
                             fontFamily: "'Outfit', sans-serif",
-                            fontSize: "12px",
+                            fontSize: "13px",
                             fontWeight: 500,
                             color: "#1A1A1A",
-                            maxWidth: "150px",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}>{item.value}</span>
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            boxShadow: "0 1px 2px rgba(0, 0, 0, 0.04)",
+                          }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C4A484" strokeWidth="2">
+                              <path d="M20 6L9 17l-5-5" />
+                            </svg>
+                            <span style={{
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              flex: 1,
+                            }}>
+                              {item.value}
+                            </span>
+                          </div>
                         </div>
                       ))}
+                    </div>
+                    
+                    {/* Footer */}
+                    <div style={{
+                      padding: "12px 20px",
+                      borderTop: "1px solid rgba(26, 26, 26, 0.06)",
+                      backgroundColor: "rgba(26, 26, 26, 0.02)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}>
+                      <span style={{
+                        fontFamily: "'Outfit', sans-serif",
+                        fontSize: "11px",
+                        color: "rgba(26, 26, 26, 0.4)",
+                      }}>
+                        Auto-saved as you go
+                      </span>
+                      <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        color: "#22C55E",
+                      }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M20 6L9 17l-5-5" />
+                        </svg>
+                        <span style={{
+                          fontFamily: "'Outfit', sans-serif",
+                          fontSize: "11px",
+                          fontWeight: 500,
+                        }}>
+                          Synced
+                        </span>
+                      </div>
                     </div>
                   </div>
                 )}
