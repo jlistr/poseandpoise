@@ -318,7 +318,8 @@ const STEP_TOOLS: Record<OnboardingStep, Tool[]> = {
 const styles = {
   container: {
     display: "flex",
-    height: "100vh",
+    height: "100%",
+    minHeight: "600px",
     backgroundColor: "#FAF9F7",
     fontFamily: "'Cormorant Garamond', Georgia, serif",
   },

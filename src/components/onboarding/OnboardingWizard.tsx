@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { AIOnboardingChat } from "./AIOnboardingChat";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
 
 // Template metadata (inline to avoid import issues)
 const TEMPLATE_OPTIONS = [
@@ -100,19 +102,13 @@ const styles = {
     color: "#1A1A1A",
   },
   header: {
-    padding: "24px 32px",
+    padding: "16px 32px",
     borderBottom: "1px solid rgba(26, 26, 26, 0.08)",
     display: "flex",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
-  },
-  logo: {
-    fontSize: "18px",
-    fontWeight: 300,
-    letterSpacing: "4px",
-    textTransform: "uppercase" as const,
-    textDecoration: "none",
-    color: "#1A1A1A",
+    gap: "24px",
+    backgroundColor: "#FAF9F7",
   },
   progressContainer: {
     display: "flex",
@@ -1387,15 +1383,16 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
   };
 
   return (
-    <div style={styles.container}>
+    <div style={{ ...styles.container, minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       {/* Keyframes for spinner animation */}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       
-      {/* Header - Hidden on step 0 (AI chat has its own header) */}
+      {/* Global Navbar */}
+      <Navbar variant="solid" isAuthenticated={true} showLinks={true} />
+
+      {/* Step Progress Header - Hidden on step 0 (AI chat has its own header) */}
       {currentStep > 0 && (
         <header style={styles.header}>
-          <span style={styles.logo}>Pose & Poise</span>
-          
           {/* Progress Indicator with Labels */}
           <div style={styles.progressContainer}>
             {[0, 1, 2, 3, 4, 5].map((step, index) => {
@@ -1448,12 +1445,12 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
 
       {/* Main Content */}
       {currentStep === 0 ? (
-        // Step 0: AI Chat takes full viewport (no header)
-        <main style={{ ...styles.main, padding: 0, maxWidth: "100%", height: "100vh" }}>
+        // Step 0: AI Chat takes available space
+        <main style={{ ...styles.main, padding: 0, maxWidth: "100%", flex: 1 }}>
           {renderStep0()}
         </main>
       ) : (
-        <main style={styles.main}>
+        <main style={{ ...styles.main, flex: 1 }}>
           {currentStep === 1 && renderStep1()}
           {currentStep === 2 && renderStep2()}
           {currentStep === 3 && renderStep3()}
@@ -1468,7 +1465,7 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
         </main>
       )}
 
-      {/* Footer Navigation - Hidden on step 0 (AI chat has its own controls) */}
+      {/* Step Navigation Footer - Hidden on step 0 (AI chat has its own controls) */}
       {currentStep > 0 && (
         <footer style={styles.footer}>
           <button
@@ -1497,6 +1494,9 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
           </button>
         </footer>
       )}
+
+      {/* Global Footer */}
+      <Footer />
     </div>
   );
 }
