@@ -91,4 +91,10 @@ export interface TemplateMetadata {
   isPremium: boolean;
   thumbnailUrl: string;
   accentColor: string;
+  // Layout characteristics for high-fidelity previews
+  layout?: 'hero-split' | 'hero-fullscreen' | 'grid-first' | 'filmstrip';
+  heroStyle?: 'left-aligned' | 'centered' | 'right-aligned' | 'overlay';
+  galleryStyle?: 'masonry' | 'grid-3' | 'grid-2' | 'filmstrip' | 'stacked';
+  navStyle?: 'minimal' | 'classic' | 'floating' | 'hidden';
+  industryFocus?: string;
 }

@@ -167,9 +167,9 @@ export const TEMPLATES: Template[] = [
   {
     id: 'elysian',
     name: 'Elysian',
-    description: 'Split hero with elegant masonry gallery',
-    accentColor: '#F5D5D8',
-    bgColor: '#FFF9F9',
+    description: 'Soft pink masonry gallery with feminine elegance',
+    accentColor: '#FF7AA2',
+    bgColor: '#FAF8F6',
     textColor: '#2D2D2D',
     isPro: false,
     layout: 'hero-split',
@@ -178,8 +178,8 @@ export const TEMPLATES: Template[] = [
     navStyle: 'minimal',
   },
   {
-    id: 'ivory',
-    name: 'Ivory',
+    id: 'altar',
+    name: 'Altar',
     description: 'Centered hero with clean 3-column grid',
     accentColor: '#C4A484',
     bgColor: '#FAF9F6',

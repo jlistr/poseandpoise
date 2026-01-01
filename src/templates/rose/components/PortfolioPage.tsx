@@ -13,7 +13,6 @@ import {
   DragStartEvent,
 } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   rectSortingStrategy,
@@ -81,7 +80,7 @@ export function PortfolioPage({ data }: PortfolioPageProps) {
   const displayPhotos = editMode?.isEditMode ? photos : photos.filter(p => p.isVisible);
 
   return (
-    <div style={{ padding: '0 16px 40px' }}>
+    <div style={{ padding: '8px 8px 80px' }}>
       {/* Edit Mode Stats */}
       {editMode?.isEditMode && (
         <div
@@ -122,7 +121,7 @@ export function PortfolioPage({ data }: PortfolioPageProps) {
             <div 
               style={{
                 columnCount: 5,
-                columnGap: '8px',
+                columnGap: '6px',
               }}
               className="rose-masonry-grid"
             >
@@ -145,7 +144,7 @@ export function PortfolioPage({ data }: PortfolioPageProps) {
                 style={{
                   width: '200px',
                   background: '#fff',
-                  borderRadius: '8px',
+                  borderRadius: '4px',
                   boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
                   overflow: 'hidden',
                   transform: 'rotate(3deg)',
@@ -161,11 +160,11 @@ export function PortfolioPage({ data }: PortfolioPageProps) {
           </DragOverlay>
         </DndContext>
       ) : (
-        // Non-edit mode: Simple masonry grid
+        // Non-edit mode: Tight 5-column masonry grid matching reference image
         <div 
           style={{
             columnCount: 5,
-            columnGap: '8px',
+            columnGap: '4px',
           }}
           className="rose-masonry-grid"
         >
@@ -226,10 +225,11 @@ export function PortfolioPage({ data }: PortfolioPageProps) {
         </div>
       )}
 
-      {/* Responsive Styles */}
+      {/* Responsive Styles - Tight 5-column masonry matching reference */}
       <style>{`
         .rose-masonry-grid {
           column-count: 5;
+          column-gap: 4px;
         }
         @media (max-width: 1200px) {
           .rose-masonry-grid {
@@ -244,6 +244,13 @@ export function PortfolioPage({ data }: PortfolioPageProps) {
         @media (max-width: 600px) {
           .rose-masonry-grid {
             column-count: 2;
+            column-gap: 3px;
+          }
+        }
+        @media (max-width: 380px) {
+          .rose-masonry-grid {
+            column-count: 2;
+            column-gap: 2px;
           }
         }
       `}</style>
@@ -284,10 +291,10 @@ function SortablePhotoItem({ photo, index, accentColor, onToggleVisibility, onSe
       style={{
         ...style,
         breakInside: 'avoid',
-        marginBottom: '8px',
+        marginBottom: '6px',
         position: 'relative',
         border: !photo.isVisible ? '2px dashed rgba(26, 26, 26, 0.3)' : 'none',
-        borderRadius: '4px',
+        borderRadius: '2px',
         cursor: 'grab',
       }}
       {...attributes}
@@ -383,7 +390,7 @@ function SortablePhotoItem({ photo, index, accentColor, onToggleVisibility, onSe
 }
 
 // =============================================================================
-// Regular Photo Item (Public View)
+// Regular Photo Item (Public View) - Clean masonry style matching reference
 // =============================================================================
 interface PhotoItemProps {
   photo: PortfolioPhoto;
@@ -398,9 +405,10 @@ function PhotoItem({ photo, index, onSelect }: PhotoItemProps) {
     <div
       style={{
         breakInside: 'avoid',
-        marginBottom: '8px',
+        marginBottom: '4px',
         cursor: 'pointer',
         overflow: 'hidden',
+        borderRadius: '3px',
       }}
       onClick={onSelect}
       onMouseEnter={() => setIsHovered(true)}
@@ -413,9 +421,9 @@ function PhotoItem({ photo, index, onSelect }: PhotoItemProps) {
           width: '100%',
           height: 'auto',
           display: 'block',
-          transition: 'transform 0.3s ease, filter 0.3s ease',
+          transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), filter 0.25s ease',
           transform: isHovered ? 'scale(1.02)' : 'scale(1)',
-          filter: isHovered ? 'brightness(1.05)' : 'none',
+          filter: isHovered ? 'brightness(1.03)' : 'none',
         }}
       />
     </div>

@@ -7,7 +7,7 @@ import type { TemplateComponent, TemplateMetadata } from '@/types/portfolio';
 
 // Import all template components
 // Each template is a self-contained folder with its own components
-// Note: Internal folder names kept as legacy (rose, poise, etc.) but IDs updated
+// Internal folder names (rose, poise, lumiere, noir) map to conceptual names
 import { RoseTemplate } from './rose/RoseTemplate';
 import { PoiseTemplate } from './poise/PoiseTemplate';
 import { LumiereTemplate } from './lumiere/LumiereTemplate';
@@ -16,53 +16,83 @@ import { NoirTemplate } from './noir/NoirTemplate';
 // =============================================================================
 // TEMPLATE REGISTRY
 // Maps template IDs to their React components
-// New naming: Elysian (rose), Ivory (poise), Solstice (lumiere), Obsidian (noir)
+// 
+// Naming Convention (conceptual names that evoke mood & industry focus):
+// - Elysian: Soft commercial/lifestyle (rose folder)
+// - Altar: Classic bridal/luxury (poise folder)  
+// - Solstice: High-performance fitness (lumiere folder)
+// - Obsidian: Moody editorial/fashion (noir folder)
 // =============================================================================
 
 export const TEMPLATES: Record<string, TemplateComponent> = {
-  elysian: RoseTemplate,
-  ivory: PoiseTemplate,
-  solstice: LumiereTemplate,
-  obsidian: NoirTemplate,
+  elysian: RoseTemplate,      // Soft, warm, approachable - Commercial/Lifestyle
+  altar: PoiseTemplate,       // Minimalist, sophisticated - Bridal/Luxury
+  solstice: LumiereTemplate,  // Dynamic, raw, powerful - Fitness/Athletic
+  obsidian: NoirTemplate,     // Moody, high-contrast, edgy - Editorial/Fashion
 };
 
 // =============================================================================
 // TEMPLATE METADATA
 // Used by the template selector UI in the dashboard
+// Each template showcases unique layout, gallery style, and aesthetic
 // =============================================================================
 
 export const TEMPLATE_METADATA: TemplateMetadata[] = [
   {
     id: 'elysian',
     name: 'Elysian',
-    description: 'Split hero with elegant masonry gallery',
+    description: 'Soft, warm masonry gallery with feminine elegance',
     isPremium: false,
     thumbnailUrl: '/templates/elysian-preview.jpg',
-    accentColor: '#F5D5D8',
+    accentColor: '#FF7AA2',
+    // Layout characteristics
+    layout: 'hero-split',
+    heroStyle: 'left-aligned',
+    galleryStyle: 'masonry',
+    navStyle: 'minimal',
+    industryFocus: 'Commercial/Lifestyle',
   },
   {
-    id: 'ivory',
-    name: 'Ivory',
-    description: 'Centered hero with clean 3-column grid',
+    id: 'altar',
+    name: 'Altar',
+    description: 'Minimalist sophistication with clean 3-column grid',
     isPremium: false,
-    thumbnailUrl: '/templates/ivory-preview.jpg',
+    thumbnailUrl: '/templates/altar-preview.jpg',
     accentColor: '#C4A484',
+    // Layout characteristics
+    layout: 'hero-fullscreen',
+    heroStyle: 'centered',
+    galleryStyle: 'grid-3',
+    navStyle: 'classic',
+    industryFocus: 'Bridal/Luxury',
   },
   {
     id: 'solstice',
     name: 'Solstice',
-    description: 'Cinematic filmstrip with vintage warmth',
+    description: 'Dynamic cinematic filmstrip with raw energy',
     isPremium: false,
     thumbnailUrl: '/templates/solstice-preview.jpg',
     accentColor: '#D4A574',
+    // Layout characteristics
+    layout: 'filmstrip',
+    heroStyle: 'overlay',
+    galleryStyle: 'filmstrip',
+    navStyle: 'floating',
+    industryFocus: 'Fitness/Athletic',
   },
   {
     id: 'obsidian',
     name: 'Obsidian',
-    description: 'Bold 2-column with dramatic full-bleed images',
+    description: 'Bold 2-column with dramatic high-contrast imagery',
     isPremium: true, // Premium template - requires Pro subscription
     thumbnailUrl: '/templates/obsidian-preview.jpg',
     accentColor: '#FFFFFF',
+    // Layout characteristics
+    layout: 'grid-first',
+    heroStyle: 'right-aligned',
+    galleryStyle: 'grid-2',
+    navStyle: 'hidden',
+    industryFocus: 'Editorial/Fashion',
   },
 ];
 
@@ -102,4 +132,13 @@ export function canAccessTemplate(templateId: string, isPro: boolean): boolean {
   const metadata = getTemplateMetadata(templateId);
   if (!metadata) return false;
   return isPro || !metadata.isPremium;
+}
+
+/**
+ * Get templates by industry focus
+ */
+export function getTemplatesByIndustry(industry: string): TemplateMetadata[] {
+  return TEMPLATE_METADATA.filter(t => 
+    t.industryFocus?.toLowerCase().includes(industry.toLowerCase())
+  );
 }

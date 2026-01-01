@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
-const VALID_TEMPLATES = ['elysian', 'ivory', 'solstice', 'obsidian'];
-const FREE_TEMPLATES = ['elysian', 'ivory', 'solstice'];
+const VALID_TEMPLATES = ['elysian', 'altar', 'solstice', 'obsidian'];
+const FREE_TEMPLATES = ['elysian', 'altar', 'solstice'];
 
 export async function POST(request: Request) {
   try {

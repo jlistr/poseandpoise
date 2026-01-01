@@ -10,6 +10,16 @@ interface HeaderProps {
   onMenuToggle: () => void;
 }
 
+/**
+ * Elysian Header Component
+ * 
+ * Matches the reference design:
+ * - Elegant italic name in pink (#FF7AA2)
+ * - "Model" subtitle with pink underline accent
+ * - Navigation: Portfolio (active), About, Services, Contact
+ * - Instagram icon on right
+ * - Subtle bottom border separator
+ */
 export function Header({ data, currentPage, onNavigate, onMenuToggle }: HeaderProps) {
   const accentColor = '#FF7AA2';
   
@@ -22,24 +32,27 @@ export function Header({ data, currentPage, onNavigate, onMenuToggle }: HeaderPr
 
   return (
     <header style={{
-      padding: '24px 32px',
+      padding: '16px 20px',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
       position: 'relative',
+      borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
+      backgroundColor: '#FAF8F6',
     }}>
-      {/* Logo / Name */}
-      <div>
+      {/* Logo / Name - Elegant italic styling matching reference */}
+      <div style={{ paddingTop: '2px' }}>
         <h1 
           style={{
             fontFamily: "'Cormorant Garamond', Georgia, serif",
-            fontSize: '32px',
+            fontSize: 'clamp(26px, 5vw, 36px)',
             fontWeight: 300,
             fontStyle: 'italic',
             color: accentColor,
             margin: 0,
-            lineHeight: 1.1,
+            lineHeight: 1.15,
             cursor: 'pointer',
+            letterSpacing: '0.02em',
           }}
           onClick={() => onNavigate('portfolio')}
         >
@@ -47,12 +60,12 @@ export function Header({ data, currentPage, onNavigate, onMenuToggle }: HeaderPr
         </h1>
         <div style={{
           fontFamily: "'Outfit', sans-serif",
-          fontSize: '12px',
+          fontSize: '11px',
           fontWeight: 400,
-          letterSpacing: '2px',
-          color: '#666',
+          letterSpacing: '0.08em',
+          color: '#555',
           marginTop: '4px',
-          paddingBottom: '4px',
+          paddingBottom: '5px',
           borderBottom: `2px solid ${accentColor}`,
           display: 'inline-block',
         }}>
@@ -60,21 +73,24 @@ export function Header({ data, currentPage, onNavigate, onMenuToggle }: HeaderPr
         </div>
       </div>
 
-      {/* Desktop Navigation */}
+      {/* Desktop Navigation - Refined spacing matching reference */}
       <nav style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '24px',
+        gap: '8px',
+        paddingTop: '10px',
       }}>
         {/* Nav Links - Hidden on mobile */}
         <div style={{
           display: 'flex',
           gap: '24px',
+          alignItems: 'center',
         }} className="rose-desktop-nav">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => onNavigate(item.id)}
+              className="rose-nav-link"
               style={{
                 background: 'none',
                 border: 'none',
@@ -83,8 +99,9 @@ export function Header({ data, currentPage, onNavigate, onMenuToggle }: HeaderPr
                 fontWeight: 400,
                 color: currentPage === item.id ? accentColor : '#333',
                 cursor: 'pointer',
-                padding: 0,
+                padding: '4px 0',
                 transition: 'color 0.2s ease',
+                position: 'relative',
               }}
             >
               {item.label}
@@ -92,14 +109,22 @@ export function Header({ data, currentPage, onNavigate, onMenuToggle }: HeaderPr
           ))}
         </div>
 
-        {/* Instagram Icon */}
+        {/* Instagram Icon - Outlined circle style */}
         {data.social.instagram && (
           <a
             href={`https://instagram.com/${data.social.instagram.replace('@', '')}`}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: '#333', display: 'flex' }}
-            className="rose-desktop-nav"
+            style={{ 
+              color: '#333', 
+              display: 'flex',
+              padding: '4px',
+              marginLeft: '8px',
+              transition: 'color 0.2s ease',
+            }}
+            className="rose-desktop-nav rose-instagram-link"
+            onMouseEnter={(e) => e.currentTarget.style.color = accentColor}
+            onMouseLeave={(e) => e.currentTarget.style.color = '#333'}
           >
             <InstagramIcon />
           </a>
@@ -128,6 +153,9 @@ export function Header({ data, currentPage, onNavigate, onMenuToggle }: HeaderPr
 
       {/* Responsive Styles */}
       <style>{`
+        .rose-nav-link:hover {
+          color: #FF7AA2 !important;
+        }
         @media (max-width: 768px) {
           .rose-desktop-nav {
             display: none !important;
@@ -150,4 +178,3 @@ function InstagramIcon() {
     </svg>
   );
 }
-

@@ -77,8 +77,8 @@ function ElysianPreview({ template, modelName }: { template: Template; modelName
   );
 }
 
-// Ivory Template - Centered hero with 3-column grid
-function IvoryPreview({ template, modelName }: { template: Template; modelName: string }): React.JSX.Element {
+// Altar Template - Centered hero with 3-column grid
+function AltarPreview({ template, modelName }: { template: Template; modelName: string }): React.JSX.Element {
   return (
     <div style={{ backgroundColor: template.bgColor, height: '100%', overflow: 'hidden' }}>
       {/* Classic nav */}
@@ -221,14 +221,14 @@ function TemplatePreview({ template, isSelected, modelName, onClick }: TemplateP
     switch (template.id) {
       case 'elysian':
         return <ElysianPreview template={template} modelName={modelName} />;
-      case 'ivory':
-        return <IvoryPreview template={template} modelName={modelName} />;
+      case 'altar':
+        return <AltarPreview template={template} modelName={modelName} />;
       case 'solstice':
         return <SolsticePreview template={template} modelName={modelName} />;
       case 'obsidian':
         return <ObsidianPreview template={template} modelName={modelName} />;
       default:
-        return <IvoryPreview template={template} modelName={modelName} />;
+        return <AltarPreview template={template} modelName={modelName} />;
     }
   };
 

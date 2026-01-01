@@ -17,6 +17,27 @@ interface RoseTemplateProps {
   data: PortfolioData;
 }
 
+/**
+ * ELYSIAN TEMPLATE (Rose)
+ * 
+ * A soft, feminine portfolio template for Commercial/Lifestyle modeling.
+ * 
+ * Design Characteristics:
+ * ─────────────────────────────────────────────────────────────────────
+ * • Accent Color: Pink/Coral (#FF7AA2)
+ * • Background: Warm cream (#FAF8F6)
+ * • Typography: Cormorant Garamond (italic name), Outfit (body)
+ * 
+ * Layout:
+ * ─────────────────────────────────────────────────────────────────────
+ * • Header: Name in elegant pink italic + "Model" subtitle with underline
+ * • Navigation: Portfolio | About | Services | Contact + Instagram icon
+ * • Gallery: 5-column tight masonry grid (4px gaps)
+ * • CTA: Floating pink "Book Me" button (bottom-right)
+ * 
+ * Reference: Jana Elise Lister portfolio screenshot
+ * ─────────────────────────────────────────────────────────────────────
+ */
 export function RoseTemplate({ data }: RoseTemplateProps) {
   const [currentPage, setCurrentPage] = useState<RosePage>('portfolio');
   const [menuOpen, setMenuOpen] = useState(false);
