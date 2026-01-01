@@ -64,10 +64,10 @@ async function getPortfolioData(username: string): Promise<PortfolioData | null>
     .eq('profile_id', profile.id)
     .order('sort_order', { ascending: true });
   
-  // Get all saved comp cards
+  // Get all saved comp cards with full details
   const { data: compCards } = await supabase
     .from('comp_cards')
-    .select('id, name, photo_ids, template, is_primary')
+    .select('id, name, photo_ids, template, is_primary, card_type, pdf_url, uploaded_file_url')
     .eq('profile_id', profile.id)
     .order('created_at', { ascending: false });
   
@@ -117,6 +117,9 @@ async function getPortfolioData(username: string): Promise<PortfolioData | null>
       photoIds: card.photo_ids,
       template: card.template,
       isPrimary: card.is_primary,
+      cardType: card.card_type as 'generated' | 'uploaded' | 'branded' | undefined,
+      pdfUrl: card.pdf_url,
+      uploadedFileUrl: card.uploaded_file_url,
     })),
     settings: {
       template: profile.template || 'elysian',

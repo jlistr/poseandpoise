@@ -56,6 +56,9 @@ export interface SavedCompCard {
   photoIds: string[];
   template?: string;
   isPrimary: boolean;
+  cardType?: 'generated' | 'uploaded' | 'branded';
+  pdfUrl?: string;
+  uploadedFileUrl?: string;
 }
 
 export type SubscriptionTier = 'FREE' | 'PROFESSIONAL' | 'DELUXE';

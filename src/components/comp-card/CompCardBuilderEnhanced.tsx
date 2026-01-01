@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createCompCard, deleteCompCard, type CompCard } from "@/app/actions/comp-card";
-import { uploadCompCardPdf } from "@/app/actions/comp-card-pdf";
+import { uploadCompCardPdf, uploadCompCardImage } from "@/app/actions/comp-card-pdf";
 import { CompCardPreview } from "./CompCardPreview";
 import { CompCardFront } from "./CompCardFront";
 import { CompCardBack } from "./CompCardBack";
@@ -464,12 +464,74 @@ export function CompCardBuilder({ profile, photos, existingCompCards, onUpdate }
     }
   };
 
+  // Generate a preview image of the comp card (front side only) for portfolio display
+  const generatePreviewImage = async (elementId: string): Promise<Blob | null> => {
+    const element = document.getElementById(elementId);
+    if (!element) return null;
+
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      
+      const images = element.querySelectorAll("img");
+      const originalSrcs: string[] = [];
+      
+      for (const img of Array.from(images)) {
+        originalSrcs.push(img.src);
+        try {
+          const base64 = await imageToBase64(img.src);
+          img.src = base64;
+        } catch (e) {
+          console.error("Failed to convert image:", e);
+        }
+      }
+
+      await Promise.all(
+        Array.from(images).map(
+          (img) => new Promise<void>((resolve) => {
+            if (img.complete) resolve();
+            else {
+              img.onload = () => resolve();
+              img.onerror = () => resolve();
+            }
+          })
+        )
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#FAF9F7",
+        logging: false,
+      } as Parameters<typeof html2canvas>[1]);
+
+      Array.from(images).forEach((img, index) => {
+        img.src = originalSrcs[index];
+      });
+
+      // Convert canvas to blob
+      return new Promise<Blob | null>((resolve) => {
+        canvas.toBlob(
+          (blob) => resolve(blob),
+          "image/jpeg",
+          0.9
+        );
+      });
+    } catch (error) {
+      console.error("Image generation error:", error);
+      return null;
+    }
+  };
+
   const handleCreate = async () => {
     setLoading(true);
     setGenerating(true);
-    setMessage({ type: "success", text: "Generating PDF..." });
+    setMessage({ type: "success", text: "Generating comp card..." });
 
     let pdfBlob: Blob | null = null;
+    let previewImageBlob: Blob | null = null;
     let photoIds: string[] = [];
 
     if (cardMode === "simple") {
@@ -480,7 +542,9 @@ export function CompCardBuilder({ profile, photos, existingCompCards, onUpdate }
         return;
       }
       photoIds = selectedPhotoIds;
+      // Generate both PDF and preview image
       pdfBlob = await generatePdf("comp-card-preview");
+      previewImageBlob = await generatePreviewImage("comp-card-preview");
     } else if (cardMode === "branded") {
       if (!headshotId) {
         setLoading(false);
@@ -489,7 +553,12 @@ export function CompCardBuilder({ profile, photos, existingCompCards, onUpdate }
         return;
       }
       photoIds = [headshotId, ...backPhotoIds];
+      // Generate PDF (includes both sides)
       pdfBlob = await generateBrandedPdf();
+      // Generate preview image (front side only)
+      setPreviewSide("front");
+      await new Promise((r) => setTimeout(r, 200));
+      previewImageBlob = await generatePreviewImage("comp-card-front");
     } else if (cardMode === "upload") {
       if (!uploadedFile) {
         setLoading(false);
@@ -500,6 +569,10 @@ export function CompCardBuilder({ profile, photos, existingCompCards, onUpdate }
       pdfBlob = uploadedFile.type === "application/pdf" 
         ? uploadedFile 
         : new Blob([uploadedFile], { type: uploadedFile.type });
+      // For uploaded images, use the file itself as the preview
+      if (uploadedFile.type.startsWith("image/")) {
+        previewImageBlob = uploadedFile;
+      }
     }
 
     setGenerating(false);
@@ -520,12 +593,22 @@ export function CompCardBuilder({ profile, photos, existingCompCards, onUpdate }
       return;
     }
 
+    // Upload PDF
     if (pdfBlob) {
       const pdfResult = await uploadCompCardPdf(result.data.id, pdfBlob);
       if (!pdfResult.success) {
         setLoading(false);
         setMessage({ type: "error", text: pdfResult.message });
         return;
+      }
+    }
+
+    // Upload preview image for portfolio display
+    if (previewImageBlob) {
+      const imageResult = await uploadCompCardImage(result.data.id, previewImageBlob);
+      if (!imageResult.success) {
+        console.warn("Failed to upload preview image:", imageResult.message);
+        // Don't fail the whole operation, just log the warning
       }
     }
 

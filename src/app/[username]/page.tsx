@@ -63,10 +63,10 @@ async function getPublicPortfolioData(username: string): Promise<PortfolioData |
     .eq('profile_id', profile.id)
     .order('sort_order', { ascending: true });
   
-  // Get primary comp card for display
+  // Get primary comp card for display with full details
   const { data: compCard } = await supabase
     .from('comp_cards')
-    .select('id, photo_ids, template')
+    .select('id, photo_ids, template, card_type, pdf_url, uploaded_file_url')
     .eq('profile_id', profile.id)
     .eq('is_primary', true)
     .single();

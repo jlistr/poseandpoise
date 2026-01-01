@@ -21,11 +21,14 @@ export function ServicesPage({ data }: ServicesPageProps) {
   const selectedCompCardId = editMode?.selectedCompCardId;
   const compCards = editMode?.compCards ?? data.compCards ?? [];
   
-  // Get photos for the selected/primary comp card
+  // Get the selected/primary comp card with full details
   const selectedCompCard = compCards.find(c => c.id === selectedCompCardId) || compCards.find(c => c.isPrimary);
   const compCardPhotos = selectedCompCard
     ? data.photos.filter(p => selectedCompCard.photoIds.includes(p.id)).slice(0, 4)
     : data.photos.slice(0, 4);
+  
+  // Check if the comp card has an uploaded image or PDF to display
+  const hasUploadedCompCard = selectedCompCard?.uploadedFileUrl || selectedCompCard?.pdfUrl;
 
   return (
     <div style={{ padding: '40px 24px', maxWidth: '1000px', margin: '0 auto' }}>
@@ -172,70 +175,88 @@ export function ServicesPage({ data }: ServicesPageProps) {
                 overflow: 'hidden',
               }}
             >
-              {/* Comp Card Images Grid */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: '2px',
-                  height: 'calc(100% - 80px)',
-                }}
-              >
-                {compCardPhotos.map((photo, i) => (
-                  <div
-                    key={photo.id}
+              {/* Show uploaded comp card image if available */}
+              {hasUploadedCompCard ? (
+                <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                  <img
+                    src={selectedCompCard?.uploadedFileUrl || selectedCompCard?.pdfUrl}
+                    alt="Comp Card"
                     style={{
-                      position: 'relative',
-                      overflow: 'hidden',
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'contain',
+                      background: '#f5f5f5',
+                    }}
+                  />
+                </div>
+              ) : (
+                <>
+                  {/* Fallback: Comp Card Images Grid */}
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, 1fr)',
+                      gap: '2px',
+                      height: 'calc(100% - 80px)',
                     }}
                   >
-                    <img
-                      src={photo.thumbnailUrl || photo.url}
-                      alt={`Comp card photo ${i + 1}`}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                      }}
-                    />
+                    {compCardPhotos.map((photo, i) => (
+                      <div
+                        key={photo.id}
+                        style={{
+                          position: 'relative',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <img
+                          src={photo.thumbnailUrl || photo.url}
+                          alt={`Comp card photo ${i + 1}`}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                          }}
+                        />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
 
-              {/* Model Name */}
-              <div
-                style={{
-                  height: '80px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderTop: '1px solid rgba(26, 26, 26, 0.1)',
-                }}
-              >
-                <h3
-                  style={{
-                    fontFamily: "'Cormorant Garamond', Georgia, serif",
-                    fontSize: '18px',
-                    fontWeight: 500,
-                    color: '#1A1A1A',
-                    marginBottom: '4px',
-                  }}
-                >
-                  {data.profile.displayName.toUpperCase()}
-                </h3>
-                <span
-                  style={{
-                    fontFamily: "'Outfit', sans-serif",
-                    fontSize: '11px',
-                    letterSpacing: '1px',
-                    color: 'rgba(26, 26, 26, 0.5)',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Model
-                </span>
-              </div>
+                  {/* Model Name */}
+                  <div
+                    style={{
+                      height: '80px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderTop: '1px solid rgba(26, 26, 26, 0.1)',
+                    }}
+                  >
+                    <h3
+                      style={{
+                        fontFamily: "'Cormorant Garamond', Georgia, serif",
+                        fontSize: '18px',
+                        fontWeight: 500,
+                        color: '#1A1A1A',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      {data.profile.displayName.toUpperCase()}
+                    </h3>
+                    <span
+                      style={{
+                        fontFamily: "'Outfit', sans-serif",
+                        fontSize: '11px',
+                        letterSpacing: '1px',
+                        color: 'rgba(26, 26, 26, 0.5)',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      Model
+                    </span>
+                  </div>
+                </>
+              )}
 
               {/* Edit Mode - Change Comp Card Button */}
               {editMode?.isEditMode && compCards.length >= 1 && (
