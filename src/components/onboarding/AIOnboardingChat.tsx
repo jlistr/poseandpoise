@@ -773,7 +773,7 @@ const TOOL_SEQUENCES: Record<OnboardingStep, string[]> = {
   about: ["photo-analyzer", "comp-scanner", "bio-generator"],
   services: ["services-suggest", "comp-generator"],
   template: [], // Templates are click-to-select, no tool sequence
-  photos: ["photo-upload"],
+  photos: ["upload-photos"],
 };
 
 // =============================================================================
