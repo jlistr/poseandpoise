@@ -39,6 +39,12 @@ export default async function DashboardPage() {
   const subscriptionTier = profileCheck?.subscription_tier || "FREE";
   const isFreeUser = subscriptionTier === "FREE";
 
+  // Get photo count
+  const { count: photoCount } = await supabase
+    .from("photos")
+    .select("*", { count: "exact", head: true })
+    .eq("profile_id", user.id);
+
   // Calculate profile completion
   const profileFields = [
     profile?.display_name,
@@ -319,7 +325,7 @@ export default async function DashboardPage() {
                   borderRadius: "12px",
                 }}
               >
-                0 photos
+                {photoCount ?? 0} {photoCount === 1 ? "photo" : "photos"}
               </span>
             </div>
             <h3
@@ -329,7 +335,7 @@ export default async function DashboardPage() {
                 marginBottom: spacing.padding.xs,
               }}
             >
-              Photos
+              Media Library
             </h3>
             <p
               style={{
@@ -338,7 +344,7 @@ export default async function DashboardPage() {
                 color: colors.text.tertiary,
               }}
             >
-              Upload and organize your portfolio photos
+              Track photo performance and engagement
             </p>
           </Link>
 

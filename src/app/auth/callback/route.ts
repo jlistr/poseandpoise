@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getSubdomainUrl } from "@/lib/utils/url";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -8,20 +9,23 @@ export async function GET(request: Request) {
   const next = searchParams.get("next") ?? "/dashboard";
   const type = searchParams.get("type"); // 'recovery' for password reset
 
+  // Use environment-based URL for redirects (handles prod vs local)
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || origin;
+
   if (code) {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     
     // Handle password recovery - redirect to reset password page
     if (!error && type === "recovery") {
-      return NextResponse.redirect(`${origin}/auth/reset-password`);
+      return NextResponse.redirect(`${baseUrl}/auth/reset-password`);
     }
     
     if (!error && data.user) {
-      // Check if user has completed onboarding
+      // Check if user has completed onboarding and get username
       const { data: profile } = await supabase
         .from("profiles")
-        .select("onboarding_completed")
+        .select("onboarding_completed, username")
         .eq("id", data.user.id)
         .single();
       
@@ -65,17 +69,24 @@ export async function GET(request: Request) {
         }
       }
 
-      // Redirect to onboarding if not completed, otherwise to dashboard
+      // Redirect to onboarding if not completed
       if (!profile?.onboarding_completed) {
-        return NextResponse.redirect(`${origin}/onboarding`);
+        return NextResponse.redirect(`${baseUrl}/onboarding`);
       }
       
-      // Redirect to the specified next page or dashboard
-      return NextResponse.redirect(`${origin}${next}`);
+      // In production with a username, redirect to their subdomain
+      const isProduction = process.env.NODE_ENV === 'production';
+      if (isProduction && profile?.username) {
+        const subdomainUrl = getSubdomainUrl(profile.username, next);
+        return NextResponse.redirect(subdomainUrl);
+      }
+      
+      // Development or no username: redirect to main domain
+      return NextResponse.redirect(`${baseUrl}${next}`);
     }
   }
 
   // Redirect to error page or login with error
-  return NextResponse.redirect(`${origin}/login?error=auth_callback_error`);
+  return NextResponse.redirect(`${baseUrl}/login?error=auth_callback_error`);
 }
 

@@ -3,7 +3,7 @@
 import { useState, FormEvent } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-
+import { getAuthCallbackUrl } from "@/lib/utils/url";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -35,7 +35,7 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: getAuthCallbackUrl(),
       },
     });
 

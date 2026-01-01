@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { headers } from "next/headers";
+import { getAuthCallbackUrl } from "@/lib/utils/url";
 
 export interface WaitlistResult {
   success: boolean;
@@ -22,8 +22,9 @@ export async function joinWaitlist(email: string): Promise<WaitlistResult> {
   }
 
   const supabase = await createClient();
-  const headersList = await headers();
-  const origin = headersList.get("origin") || headersList.get("x-forwarded-host") || "";
+  
+  // Use centralized auth callback URL (handles prod vs local)
+  const authCallbackUrl = getAuthCallbackUrl('/auth/callback?source=waitlist&next=/dashboard/profile');
   
   // Normalize email
   const normalizedEmail = email.toLowerCase().trim();
@@ -48,7 +49,7 @@ export async function joinWaitlist(email: string): Promise<WaitlistResult> {
     email: normalizedEmail,
     password: crypto.randomUUID(), // Generate random password - they'll use magic link
     options: {
-      emailRedirectTo: `${origin}/auth/callback?source=waitlist&next=/dashboard/profile`,
+      emailRedirectTo: authCallbackUrl,
       data: {
         source: "waitlist",
         subscription_tier: "FREE",
@@ -64,7 +65,7 @@ export async function joinWaitlist(email: string): Promise<WaitlistResult> {
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: normalizedEmail,
         options: {
-          emailRedirectTo: `${origin}/auth/callback?source=waitlist&next=/dashboard/profile`,
+          emailRedirectTo: authCallbackUrl,
           shouldCreateUser: false,
         },
       });

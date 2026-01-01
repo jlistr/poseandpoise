@@ -1,9 +1,45 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { updateProfile, type Profile } from "@/app/actions/profile";
 import { uploadAgencyLogo, deleteAgencyLogo } from "@/app/actions/agency-logo";
 import { colors, typography, spacing } from "@/styles/tokens";
+
+// =============================================================================
+// Unit Conversion Utilities
+// =============================================================================
+
+type MeasurementUnit = 'metric' | 'imperial';
+
+function cmToFeetInches(cm: number): { feet: number; inches: number } {
+  const totalInches = cm / 2.54;
+  const feet = Math.floor(totalInches / 12);
+  const inches = Math.round(totalInches % 12);
+  return { feet, inches: inches === 12 ? 0 : inches };
+}
+
+function feetInchesToCm(feet: number, inches: number): number {
+  return Math.round((feet * 12 + inches) * 2.54);
+}
+
+function cmToInches(cm: number): number {
+  return Math.round(cm / 2.54 * 10) / 10;
+}
+
+function inchesToCm(inches: number): number {
+  return Math.round(inches * 2.54);
+}
+
+function formatHeightImperial(cm: number | null | undefined): string {
+  if (!cm) return '';
+  const { feet, inches } = cmToFeetInches(cm);
+  return `${feet}'${inches}"`;
+}
+
+function formatMeasurementImperial(cm: number | null | undefined): string {
+  if (!cm) return '';
+  return `${cmToInches(cm)}"`;
+}
 
 interface ProfileFormProps {
   profile: Profile;
@@ -37,6 +73,56 @@ function formatUSPhoneNumber(value: string): string {
 export function ProfileForm({ profile }: ProfileFormProps) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  
+  // Unit preference for measurements
+  const [measurementUnit, setMeasurementUnit] = useState<MeasurementUnit>('metric');
+  
+  // Controlled measurement inputs for imperial mode
+  const [heightFeet, setHeightFeet] = useState(() => {
+    if (profile.height_cm) {
+      const { feet } = cmToFeetInches(profile.height_cm);
+      return feet.toString();
+    }
+    return '';
+  });
+  const [heightInches, setHeightInches] = useState(() => {
+    if (profile.height_cm) {
+      const { inches } = cmToFeetInches(profile.height_cm);
+      return inches.toString();
+    }
+    return '';
+  });
+  const [bustInches, setBustInches] = useState(() => 
+    profile.bust_cm ? cmToInches(profile.bust_cm).toString() : ''
+  );
+  const [waistInches, setWaistInches] = useState(() => 
+    profile.waist_cm ? cmToInches(profile.waist_cm).toString() : ''
+  );
+  const [hipsInches, setHipsInches] = useState(() => 
+    profile.hips_cm ? cmToInches(profile.hips_cm).toString() : ''
+  );
+  
+  // Computed CM values from imperial inputs
+  const computedHeightCm = useMemo(() => {
+    const ft = parseInt(heightFeet) || 0;
+    const inch = parseInt(heightInches) || 0;
+    return ft || inch ? feetInchesToCm(ft, inch) : null;
+  }, [heightFeet, heightInches]);
+  
+  const computedBustCm = useMemo(() => {
+    const inch = parseFloat(bustInches) || 0;
+    return inch ? inchesToCm(inch) : null;
+  }, [bustInches]);
+  
+  const computedWaistCm = useMemo(() => {
+    const inch = parseFloat(waistInches) || 0;
+    return inch ? inchesToCm(inch) : null;
+  }, [waistInches]);
+  
+  const computedHipsCm = useMemo(() => {
+    const inch = parseFloat(hipsInches) || 0;
+    return inch ? inchesToCm(inch) : null;
+  }, [hipsInches]);
   
   // Agency fields visibility
   const [agencyName, setAgencyName] = useState(profile.agency || "");
@@ -193,6 +279,25 @@ export function ProfileForm({ profile }: ProfileFormProps) {
     gap: spacing.gap.md,
   };
 
+  const conversionHintStyle: React.CSSProperties = {
+    fontFamily: typography.fontFamily.body,
+    fontSize: "11px",
+    color: colors.camel,
+    marginTop: "6px",
+    fontWeight: typography.fontWeight.medium,
+  };
+
+  const unitLabelStyle: React.CSSProperties = {
+    position: 'absolute',
+    right: '14px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    fontFamily: typography.fontFamily.body,
+    fontSize: typography.fontSize.caption,
+    color: colors.text.muted,
+    pointerEvents: 'none',
+  };
+
   return (
     <form action={handleSubmit}>
       {/* Basic Info */}
@@ -250,72 +355,269 @@ export function ProfileForm({ profile }: ProfileFormProps) {
 
       {/* Measurements */}
       <div style={sectionStyle}>
-        <h3 style={sectionTitleStyle}>Measurements</h3>
-        <div style={gridStyle}>
-          <div>
-            <label style={labelStyle}>Height (cm)</label>
-            <input
-              type="number"
-              name="height_cm"
-              defaultValue={profile.height_cm || ""}
-              placeholder="175"
-              min="100"
-              max="250"
-              className="pp-input"
-              style={inputStyle}
-            />
-          </div>
-          <div>
-            <label style={labelStyle}>Bust (cm)</label>
-            <input
-              type="number"
-              name="bust_cm"
-              defaultValue={profile.bust_cm || ""}
-              placeholder="86"
-              min="50"
-              max="150"
-              className="pp-input"
-              style={inputStyle}
-            />
-          </div>
-          <div>
-            <label style={labelStyle}>Waist (cm)</label>
-            <input
-              type="number"
-              name="waist_cm"
-              defaultValue={profile.waist_cm || ""}
-              placeholder="61"
-              min="40"
-              max="150"
-              className="pp-input"
-              style={inputStyle}
-            />
-          </div>
-          <div>
-            <label style={labelStyle}>Hips (cm)</label>
-            <input
-              type="number"
-              name="hips_cm"
-              defaultValue={profile.hips_cm || ""}
-              placeholder="89"
-              min="50"
-              max="150"
-              className="pp-input"
-              style={inputStyle}
-            />
-          </div>
-          <div>
-            <label style={labelStyle}>Shoe Size</label>
-            <input
-              type="text"
-              name="shoe_size"
-              defaultValue={profile.shoe_size || ""}
-              placeholder="EU 39 / US 8"
-              className="pp-input"
-              style={inputStyle}
-            />
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: spacing.padding.md,
+          paddingBottom: spacing.padding.sm,
+          borderBottom: `1px solid ${colors.border.divider}`,
+        }}>
+          <h3 style={{
+            fontFamily: typography.fontFamily.display,
+            fontSize: typography.fontSize.cardH3,
+            fontWeight: typography.fontWeight.regular,
+            margin: 0,
+          }}>Measurements</h3>
+          
+          {/* Unit Toggle */}
+          <div style={{
+            display: 'flex',
+            background: colors.background.card,
+            border: `1px solid ${colors.border.light}`,
+            padding: '2px',
+          }}>
+            <button
+              type="button"
+              onClick={() => setMeasurementUnit('metric')}
+              style={{
+                padding: '6px 12px',
+                background: measurementUnit === 'metric' ? colors.charcoal : 'transparent',
+                color: measurementUnit === 'metric' ? colors.cream : colors.text.secondary,
+                border: 'none',
+                fontFamily: typography.fontFamily.body,
+                fontSize: typography.fontSize.caption,
+                fontWeight: typography.fontWeight.medium,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              CM
+            </button>
+            <button
+              type="button"
+              onClick={() => setMeasurementUnit('imperial')}
+              style={{
+                padding: '6px 12px',
+                background: measurementUnit === 'imperial' ? colors.charcoal : 'transparent',
+                color: measurementUnit === 'imperial' ? colors.cream : colors.text.secondary,
+                border: 'none',
+                fontFamily: typography.fontFamily.body,
+                fontSize: typography.fontSize.caption,
+                fontWeight: typography.fontWeight.medium,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              FT / IN
+            </button>
           </div>
         </div>
+
+        {measurementUnit === 'metric' ? (
+          // Metric inputs (cm)
+          <div style={gridStyle}>
+            <div>
+              <label style={labelStyle}>Height (cm)</label>
+              <input
+                type="number"
+                name="height_cm"
+                defaultValue={profile.height_cm || ""}
+                placeholder="175"
+                min="100"
+                max="250"
+                className="pp-input"
+                style={inputStyle}
+              />
+              {profile.height_cm && (
+                <p style={conversionHintStyle}>
+                  = {formatHeightImperial(profile.height_cm)}
+                </p>
+              )}
+            </div>
+            <div>
+              <label style={labelStyle}>Bust (cm)</label>
+              <input
+                type="number"
+                name="bust_cm"
+                defaultValue={profile.bust_cm || ""}
+                placeholder="86"
+                min="50"
+                max="150"
+                className="pp-input"
+                style={inputStyle}
+              />
+              {profile.bust_cm && (
+                <p style={conversionHintStyle}>
+                  = {formatMeasurementImperial(profile.bust_cm)}
+                </p>
+              )}
+            </div>
+            <div>
+              <label style={labelStyle}>Waist (cm)</label>
+              <input
+                type="number"
+                name="waist_cm"
+                defaultValue={profile.waist_cm || ""}
+                placeholder="61"
+                min="40"
+                max="150"
+                className="pp-input"
+                style={inputStyle}
+              />
+              {profile.waist_cm && (
+                <p style={conversionHintStyle}>
+                  = {formatMeasurementImperial(profile.waist_cm)}
+                </p>
+              )}
+            </div>
+            <div>
+              <label style={labelStyle}>Hips (cm)</label>
+              <input
+                type="number"
+                name="hips_cm"
+                defaultValue={profile.hips_cm || ""}
+                placeholder="89"
+                min="50"
+                max="150"
+                className="pp-input"
+                style={inputStyle}
+              />
+              {profile.hips_cm && (
+                <p style={conversionHintStyle}>
+                  = {formatMeasurementImperial(profile.hips_cm)}
+                </p>
+              )}
+            </div>
+            <div>
+              <label style={labelStyle}>Shoe Size</label>
+              <input
+                type="text"
+                name="shoe_size"
+                defaultValue={profile.shoe_size || ""}
+                placeholder="EU 39 / US 8"
+                className="pp-input"
+                style={inputStyle}
+              />
+            </div>
+          </div>
+        ) : (
+          // Imperial inputs (ft/in)
+          <>
+            <div style={gridStyle}>
+              <div>
+                <label style={labelStyle}>Height</label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{ flex: 1, position: 'relative' }}>
+                    <input
+                      type="number"
+                      value={heightFeet}
+                      onChange={(e) => setHeightFeet(e.target.value)}
+                      placeholder="5"
+                      min="3"
+                      max="7"
+                      className="pp-input"
+                      style={{ ...inputStyle, paddingRight: '36px' }}
+                    />
+                    <span style={unitLabelStyle}>ft</span>
+                  </div>
+                  <div style={{ flex: 1, position: 'relative' }}>
+                    <input
+                      type="number"
+                      value={heightInches}
+                      onChange={(e) => setHeightInches(e.target.value)}
+                      placeholder="9"
+                      min="0"
+                      max="11"
+                      className="pp-input"
+                      style={{ ...inputStyle, paddingRight: '36px' }}
+                    />
+                    <span style={unitLabelStyle}>in</span>
+                  </div>
+                </div>
+                {computedHeightCm && (
+                  <p style={conversionHintStyle}>= {computedHeightCm} cm</p>
+                )}
+                {/* Hidden input for form submission */}
+                <input type="hidden" name="height_cm" value={computedHeightCm || ''} />
+              </div>
+              <div>
+                <label style={labelStyle}>Bust</label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="number"
+                    value={bustInches}
+                    onChange={(e) => setBustInches(e.target.value)}
+                    placeholder="34"
+                    min="20"
+                    max="60"
+                    step="0.5"
+                    className="pp-input"
+                    style={{ ...inputStyle, paddingRight: '36px' }}
+                  />
+                  <span style={unitLabelStyle}>in</span>
+                </div>
+                {computedBustCm && (
+                  <p style={conversionHintStyle}>= {computedBustCm} cm</p>
+                )}
+                <input type="hidden" name="bust_cm" value={computedBustCm || ''} />
+              </div>
+              <div>
+                <label style={labelStyle}>Waist</label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="number"
+                    value={waistInches}
+                    onChange={(e) => setWaistInches(e.target.value)}
+                    placeholder="24"
+                    min="15"
+                    max="60"
+                    step="0.5"
+                    className="pp-input"
+                    style={{ ...inputStyle, paddingRight: '36px' }}
+                  />
+                  <span style={unitLabelStyle}>in</span>
+                </div>
+                {computedWaistCm && (
+                  <p style={conversionHintStyle}>= {computedWaistCm} cm</p>
+                )}
+                <input type="hidden" name="waist_cm" value={computedWaistCm || ''} />
+              </div>
+              <div>
+                <label style={labelStyle}>Hips</label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="number"
+                    value={hipsInches}
+                    onChange={(e) => setHipsInches(e.target.value)}
+                    placeholder="35"
+                    min="20"
+                    max="60"
+                    step="0.5"
+                    className="pp-input"
+                    style={{ ...inputStyle, paddingRight: '36px' }}
+                  />
+                  <span style={unitLabelStyle}>in</span>
+                </div>
+                {computedHipsCm && (
+                  <p style={conversionHintStyle}>= {computedHipsCm} cm</p>
+                )}
+                <input type="hidden" name="hips_cm" value={computedHipsCm || ''} />
+              </div>
+              <div>
+                <label style={labelStyle}>Shoe Size</label>
+                <input
+                  type="text"
+                  name="shoe_size"
+                  defaultValue={profile.shoe_size || ""}
+                  placeholder="US 8 / EU 39"
+                  className="pp-input"
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Appearance */}
