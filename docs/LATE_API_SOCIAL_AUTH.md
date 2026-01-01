@@ -27,48 +27,42 @@ Call the Late API endpoint to generate a connection URL for the social platform.
 **Request:**
 
 ```
-POST https://getlate.dev/api/v1/social-accounts/connect
+GET https://getlate.dev/api/v1/connect/{platform}?profileId={profileId}
 ```
 
 **Headers:**
 - `Authorization: Bearer sk_your_api_key`
-- `Content-Type: application/json`
 
-**Body Parameters:**
+**Query Parameters:**
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `platform` | string | Yes | Social platform: `"instagram"` or `"tiktok"` |
-| `profile_id` | string | No | Profile ID to group the account under. Uses default if not provided. |
+| `profileId` | string | Yes | Profile ID to group the account under |
+
+**Path Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `platform` | string | Yes | Social platform: `instagram` or `tiktok` |
 
 **Example cURL - Instagram:**
 
 ```bash
-curl -X POST https://getlate.dev/api/v1/social-accounts/connect \
--H "Authorization: Bearer sk_d2a1dc5a342950371539eec7f70419478a4ce1e479cc684ef7a7f41ddd2d4255" \
--H "Content-Type: application/json" \
--d '{
-  "platform": "instagram",
-  "profile_id": "69568fa185cefc061f3f7a32"
-}'
+curl -X GET "https://getlate.dev/api/v1/connect/instagram?profileId=69568fa185cefc061f3f7a32" \
+-H "Authorization: Bearer sk_d2a1dc5a342950371539eec7f70419478a4ce1e479cc684ef7a7f41ddd2d4255"
 ```
 
 **Example cURL - TikTok:**
 
 ```bash
-curl -X POST https://getlate.dev/api/v1/social-accounts/connect \
--H "Authorization: Bearer sk_d2a1dc5a342950371539eec7f70419478a4ce1e479cc684ef7a7f41ddd2d4255" \
--H "Content-Type: application/json" \
--d '{
-  "platform": "tiktok",
-  "profile_id": "69568fa185cefc061f3f7a32"
-}'
+curl -X GET "https://getlate.dev/api/v1/connect/tiktok?profileId=69568fa185cefc061f3f7a32" \
+-H "Authorization: Bearer sk_d2a1dc5a342950371539eec7f70419478a4ce1e479cc684ef7a7f41ddd2d4255"
 ```
 
 **Example Response:**
 
 ```json
 {
-  "connect_url": "https://getlate.dev/connect/instagram?token=abcd1234"
+  "authUrl": "https://www.instagram.com/oauth/authorize?client_id=...&redirect_uri=...&scope=...",
+  "state": "..."
 }
 ```
 

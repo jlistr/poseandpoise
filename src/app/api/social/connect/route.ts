@@ -22,6 +22,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Late API key not configured' }, { status: 500 });
   }
 
+  if (!LATE_PROFILE_ID) {
+    return NextResponse.json({ error: 'Late Profile ID not configured' }, { status: 500 });
+  }
+
   try {
     const body: ConnectRequest = await request.json();
     const { platform } = body;
@@ -34,31 +38,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate OAuth connection URL from Late API
-    const response = await fetch(`${LATE_API_BASE}/social-accounts/connect`, {
-      method: 'POST',
+    // Endpoint: GET /v1/connect/{platform}?profileId={profileId}
+    const url = `${LATE_API_BASE}/connect/${platform}?profileId=${LATE_PROFILE_ID}`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
       headers: {
         'Authorization': `Bearer ${LATE_API_KEY}`,
-        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        platform,
-        profile_id: LATE_PROFILE_ID,
-      }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Late API error:', response.status, errorText);
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Late API error:', response.status, errorData);
       return NextResponse.json(
-        { error: 'Failed to generate connection URL' }, 
+        { error: errorData.error || 'Failed to generate connection URL' }, 
         { status: response.status }
       );
     }
 
     const data = await response.json();
 
+    // Late API returns "authUrl", we'll normalize to "connect_url" for our frontend
     return NextResponse.json({ 
-      connect_url: data.connect_url,
+      connect_url: data.authUrl,
       platform,
     });
   } catch (error) {
@@ -69,4 +72,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
