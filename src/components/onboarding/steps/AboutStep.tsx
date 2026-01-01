@@ -118,7 +118,7 @@ export function AboutStep({ data, onChange }: AboutStepProps): React.JSX.Element
   const [compCardResult, setCompCardResult] = useState<AIAnalysisResult | null>(null);
   
   // Uploaded files for AI analysis (separate from profile photo)
-  const [analysisPhoto, setAnalysisPhoto] = useState<string | null>(null);
+  const [analysisPhotos, setAnalysisPhotos] = useState<string[]>([]);
   const [compCardFile, setCompCardFile] = useState<string | null>(null);
   
   // File input refs - separate for each purpose
@@ -267,44 +267,59 @@ export function AboutStep({ data, onChange }: AboutStepProps): React.JSX.Element
   };
 
   // ============================================================================
-  // Photo Analysis Handlers
+  // Photo Analysis Handlers (Multiple Images)
   // ============================================================================
 
-  const handlePhotoAnalysisFileSelect = useCallback(async (file: File) => {
+  const handlePhotoAnalysisFilesSelect = useCallback(async (files: File[]) => {
     const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!validTypes.includes(file.type)) {
-      alert('Please upload a JPEG, PNG, WebP, or GIF image.');
+    const validFiles: File[] = [];
+    
+    for (const file of files) {
+      if (!validTypes.includes(file.type)) {
+        continue; // Skip invalid files silently
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        continue; // Skip files over 10MB
+      }
+      validFiles.push(file);
+    }
+
+    if (validFiles.length === 0) {
+      alert('Please upload JPEG, PNG, WebP, or GIF images (max 10MB each).');
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      alert('Image must be less than 10MB.');
-      return;
-    }
-
-    const objectUrl = URL.createObjectURL(file);
-    setAnalysisPhoto(objectUrl);
+    // Limit to 5 photos max
+    const filesToProcess = validFiles.slice(0, 5);
+    
+    // Create preview URLs
+    const objectUrls = filesToProcess.map(file => URL.createObjectURL(file));
+    setAnalysisPhotos(objectUrls);
     setPhotoAnalysisResult(null);
     setIsAnalyzingPhoto(true);
 
     try {
-      // Convert file to base64
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      // Convert all files to base64
+      const base64Images = await Promise.all(
+        filesToProcess.map(file => 
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          })
+        )
+      );
 
-      // Call AI API
+      // Call AI API with multiple images
       const response = await fetch('/api/onboarding/ai-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: 'Please analyze this photo to extract physical characteristics.',
+          message: `Please analyze these ${base64Images.length} photo(s) to extract physical characteristics. Look for full-body shots to estimate height and proportions, and close-ups for hair and eye color.`,
           step: 'about',
           tool: 'photo-analyzer',
-          images: [base64],
+          images: base64Images,
         }),
       });
 
@@ -319,21 +334,21 @@ export function AboutStep({ data, onChange }: AboutStepProps): React.JSX.Element
         
         setPhotoAnalysisResult({
           success: true,
-          message: result.message || 'Analysis complete! I detected some characteristics from your photo.',
+          message: result.message || `Analysis complete! I analyzed ${base64Images.length} photo(s) and detected some characteristics.`,
           extractedData: extractedStats,
           confidence: result.confidence > 0.7 ? 'high' : result.confidence > 0.4 ? 'medium' : 'low',
         });
       } else {
         setPhotoAnalysisResult({
           success: false,
-          message: result.message || "I couldn't extract reliable measurements from this photo. For best results, please provide a full-body shot with a reference object like a door frame, or enter your measurements manually below.",
+          message: result.message || "I couldn't extract reliable measurements from these photos. For best results, please include a full-body shot with a reference object (like a door frame) and a close-up for hair/eye color, or enter your measurements manually below.",
         });
       }
     } catch (error) {
       console.error('Photo analysis error:', error);
       setPhotoAnalysisResult({
         success: false,
-        message: "I had trouble analyzing this photo. Please try a different image or enter your measurements manually.",
+        message: "I had trouble analyzing these photos. Please try different images or enter your measurements manually.",
       });
     } finally {
       setIsAnalyzingPhoto(false);
@@ -355,9 +370,9 @@ export function AboutStep({ data, onChange }: AboutStepProps): React.JSX.Element
   };
 
   const handlePhotoAnalysisInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handlePhotoAnalysisFileSelect(file);
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      handlePhotoAnalysisFilesSelect(files);
     }
     e.target.value = '';
   };
@@ -383,18 +398,29 @@ export function AboutStep({ data, onChange }: AboutStepProps): React.JSX.Element
     e.preventDefault();
     e.stopPropagation();
     setIsPhotoDragActive(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      handlePhotoAnalysisFileSelect(file);
+    const files = Array.from(e.dataTransfer.files || []);
+    if (files.length > 0) {
+      handlePhotoAnalysisFilesSelect(files);
     }
   };
 
   const clearPhotoAnalysis = () => {
-    if (analysisPhoto) {
-      URL.revokeObjectURL(analysisPhoto);
-    }
-    setAnalysisPhoto(null);
+    // Revoke all blob URLs
+    analysisPhotos.forEach(url => {
+      if (url.startsWith('blob:')) {
+        URL.revokeObjectURL(url);
+      }
+    });
+    setAnalysisPhotos([]);
     setPhotoAnalysisResult(null);
+  };
+
+  const removeAnalysisPhoto = (index: number) => {
+    const url = analysisPhotos[index];
+    if (url && url.startsWith('blob:')) {
+      URL.revokeObjectURL(url);
+    }
+    setAnalysisPhotos(prev => prev.filter((_, i) => i !== index));
   };
 
   // ============================================================================
@@ -627,6 +653,7 @@ export function AboutStep({ data, onChange }: AboutStepProps): React.JSX.Element
         ref={photoAnalysisInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp,image/gif"
+        multiple
         onChange={handlePhotoAnalysisInputChange}
         style={{ display: 'none' }}
       />
@@ -751,55 +778,115 @@ export function AboutStep({ data, onChange }: AboutStepProps): React.JSX.Element
         </p>
 
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-          {/* Option 1: Photo Analysis */}
+          {/* Option 1: Photo Analysis (Multiple Images) */}
           <div style={aiToolCardStyle}>
             <div
               onDragEnter={handlePhotoDragEnter}
               onDragLeave={handlePhotoDragLeave}
               onDragOver={handlePhotoDragOver}
               onDrop={handlePhotoDrop}
-              onClick={!analysisPhoto && !isAnalyzingPhoto ? handlePhotoAnalysisUpload : undefined}
+              onClick={analysisPhotos.length === 0 && !isAnalyzingPhoto ? handlePhotoAnalysisUpload : undefined}
               style={{
-                ...dropZoneStyle(isPhotoDragActive, !!analysisPhoto),
-                minHeight: '200px',
+                ...dropZoneStyle(isPhotoDragActive, analysisPhotos.length > 0),
+                minHeight: '220px',
                 display: 'flex',
                 flexDirection: 'column',
               }}
             >
               {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                <BodyIcon size={20} />
-                <span style={{ fontSize: '14px', fontWeight: 500, color: colors.textPrimary, fontFamily: fonts.body }}>
-                  Analyze Full-Body Photo
-                </span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <BodyIcon size={20} />
+                  <span style={{ fontSize: '14px', fontWeight: 500, color: colors.textPrimary, fontFamily: fonts.body }}>
+                    Analyze Photos
+                  </span>
+                </div>
+                {analysisPhotos.length > 0 && (
+                  <span style={{ fontSize: '11px', color: colors.textMuted, fontFamily: fonts.body }}>
+                    {analysisPhotos.length}/5 photos
+                  </span>
+                )}
               </div>
 
               {/* Content area */}
-              {analysisPhoto ? (
+              {analysisPhotos.length > 0 ? (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ position: 'relative', marginBottom: '0.75rem' }}>
-                    <img
-                      src={analysisPhoto}
-                      alt="Analysis photo"
-                      style={{ width: '100%', maxHeight: '120px', objectFit: 'contain', borderRadius: '4px' }}
-                    />
+                  {/* Photo grid */}
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: `repeat(${Math.min(analysisPhotos.length, 3)}, 1fr)`,
+                    gap: '0.5rem', 
+                    marginBottom: '0.75rem' 
+                  }}>
+                    {analysisPhotos.map((photo, index) => (
+                      <div key={index} style={{ position: 'relative', aspectRatio: '1' }}>
+                        <img
+                          src={photo}
+                          alt={`Analysis photo ${index + 1}`}
+                          style={{ 
+                            width: '100%', 
+                            height: '100%', 
+                            objectFit: 'cover',
+                            border: `1px solid ${colors.border}`,
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); removeAnalysisPhoto(index); }}
+                          style={{
+                            position: 'absolute', top: '2px', right: '2px', width: '18px', height: '18px',
+                            borderRadius: '50%', backgroundColor: colors.charcoal, color: colors.white,
+                            border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '10px',
+                          }}
+                        >
+                          <XIcon size={10} />
+                        </button>
+                      </div>
+                    ))}
+                    {/* Add more button if under limit */}
+                    {analysisPhotos.length < 5 && !isAnalyzingPhoto && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handlePhotoAnalysisUpload(); }}
+                        style={{
+                          aspectRatio: '1',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: colors.cream,
+                          border: `1px dashed ${colors.border}`,
+                          cursor: 'pointer',
+                          gap: '0.25rem',
+                        }}
+                      >
+                        <UploadIcon size={16} />
+                        <span style={{ fontSize: '10px', color: colors.textMuted, fontFamily: fonts.body }}>Add more</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Clear all button */}
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); clearPhotoAnalysis(); }}
                       style={{
-                        position: 'absolute', top: '4px', right: '4px', width: '24px', height: '24px',
-                        borderRadius: '50%', backgroundColor: colors.charcoal, color: colors.white,
-                        border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        padding: '0.25rem 0.5rem', fontSize: '11px',
+                        backgroundColor: 'transparent', color: colors.textMuted,
+                        border: `1px solid ${colors.border}`, cursor: 'pointer',
+                        fontFamily: fonts.body,
                       }}
                     >
-                      <XIcon size={12} />
+                      Clear all
                     </button>
                   </div>
 
                   {isAnalyzingPhoto ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: colors.camel }}>
                       <div style={{ width: '16px', height: '16px', border: `2px solid ${colors.camel}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                      <span style={{ fontSize: '13px', fontFamily: fonts.body }}>Analyzing photo...</span>
+                      <span style={{ fontSize: '13px', fontFamily: fonts.body }}>Analyzing {analysisPhotos.length} photo(s)...</span>
                     </div>
                   ) : photoAnalysisResult && (
                     <div style={{ fontSize: '13px', fontFamily: fonts.body }}>
@@ -828,7 +915,10 @@ export function AboutStep({ data, onChange }: AboutStepProps): React.JSX.Element
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
                   <UploadIcon size={24} />
                   <p style={{ fontSize: '13px', color: colors.textMuted, margin: '0.75rem 0 0', fontFamily: fonts.body }}>
-                    {isPhotoDragActive ? 'Drop your photo here...' : 'Drag & drop or click to upload'}
+                    {isPhotoDragActive ? 'Drop your photos here...' : 'Drag & drop or click to upload'}
+                  </p>
+                  <p style={{ fontSize: '11px', color: colors.textMuted, margin: '0.25rem 0 0', fontFamily: fonts.body }}>
+                    Upload up to 5 photos for best results
                   </p>
                 </div>
               )}
@@ -839,12 +929,11 @@ export function AboutStep({ data, onChange }: AboutStepProps): React.JSX.Element
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                 <InfoIcon size={14} />
                 <div style={{ fontSize: '11px', color: colors.textSecondary, fontFamily: fonts.body, lineHeight: 1.5 }}>
-                  <strong style={{ color: colors.textPrimary }}>For best results:</strong>
+                  <strong style={{ color: colors.textPrimary }}>For best results, include:</strong>
                   <ul style={{ margin: '0.25rem 0 0', paddingLeft: '1rem' }}>
-                    <li>Use a <strong>full-body shot</strong> standing straight</li>
-                    <li>Include a <strong>reference object</strong> (door frame, chair, etc.)</li>
+                    <li><strong>Full-body shot</strong> standing straight next to a door or furniture</li>
+                    <li><strong>Close-up</strong> of your face for hair and eye color</li>
                     <li>Good lighting with minimal shadows</li>
-                    <li>A close-up for hair and eye color</li>
                   </ul>
                 </div>
               </div>

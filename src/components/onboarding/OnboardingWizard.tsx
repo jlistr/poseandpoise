@@ -113,8 +113,10 @@ export function OnboardingWizard({
     isUploading: isUploadingPhotos,
     uploadProgress,
     // Incremental saves
+    saveTemplate,
     saveProfile,
     saveServices,
+    isSavingTemplate,
     isSavingProfile,
     isSavingServices,
   } = useOnboardingData({ existingProfile, existingServices, existingPhotos });
@@ -140,6 +142,10 @@ export function OnboardingWizard({
   // Save current step data before navigating away
   const saveCurrentStepData = useCallback(async () => {
     switch (currentStep) {
+      case 'template':
+        // Explicitly save template when leaving the step (backup for auto-save)
+        await saveTemplate();
+        break;
       case 'profile':
         await saveProfile();
         break;
@@ -150,10 +156,9 @@ export function OnboardingWizard({
         // About data is included in profile save
         await saveProfile();
         break;
-      // Template saves automatically on change
       // Photos upload immediately
     }
-  }, [currentStep, saveProfile, saveServices]);
+  }, [currentStep, saveTemplate, saveProfile, saveServices]);
 
   const handleBack = useCallback(async () => {
     if (!isFirstStep) {
