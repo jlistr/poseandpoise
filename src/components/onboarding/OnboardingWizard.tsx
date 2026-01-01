@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { AIOnboardingChat } from "./AIOnboardingChat";
 
 // Template metadata (inline to avoid import issues)
 const TEMPLATE_OPTIONS = [
@@ -37,8 +38,8 @@ const TEMPLATE_OPTIONS = [
   },
 ];
 
-// Step labels for progress indicator
-const STEP_LABELS = ['Profile', 'About', 'Services', 'Template', 'Photos'];
+// Step labels for progress indicator (Step 0 = AI Setup)
+const STEP_LABELS = ['AI Setup', 'Profile', 'About', 'Services', 'Template', 'Photos'];
 
 // =============================================================================
 // Types
@@ -342,7 +343,7 @@ const styles = {
 // =============================================================================
 export function OnboardingWizard({ userEmail, userId, existingProfile }: OnboardingWizardProps) {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -380,7 +381,7 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
     photos: [],
   });
 
-  const totalSteps = 5;
+  const totalSteps = 6; // Including AI Setup step (step 0)
 
   // =========================================================================
   // Handlers
@@ -681,8 +682,58 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
   };
 
   // =========================================================================
+  // AI Onboarding Handlers
+  // =========================================================================
+  const handleAIComplete = (aiData: Record<string, unknown>) => {
+    // Apply extracted data from AI chat
+    const updates: Partial<OnboardingData> = {};
+    
+    if (aiData.displayName) updates.displayName = aiData.displayName as string;
+    if (aiData.username) updates.username = aiData.username as string;
+    if (aiData.location) updates.location = aiData.location as string;
+    if (aiData.instagram) updates.instagram = aiData.instagram as string;
+    if (aiData.tiktok) updates.tiktok = aiData.tiktok as string;
+    if (aiData.website) updates.website = aiData.website as string;
+    if (aiData.bio) updates.bio = aiData.bio as string;
+    if (aiData.heightCm) updates.heightCm = aiData.heightCm as string;
+    if (aiData.bustCm) updates.bustCm = aiData.bustCm as string;
+    if (aiData.waistCm) updates.waistCm = aiData.waistCm as string;
+    if (aiData.hipsCm) updates.hipsCm = aiData.hipsCm as string;
+    if (aiData.shoeSize) updates.shoeSize = aiData.shoeSize as string;
+    if (aiData.hairColor) updates.hairColor = aiData.hairColor as string;
+    if (aiData.eyeColor) updates.eyeColor = aiData.eyeColor as string;
+    if (aiData.servicesTitle) updates.servicesTitle = aiData.servicesTitle as string;
+    if (aiData.services && Array.isArray(aiData.services)) {
+      updates.services = aiData.services as Array<{ title: string; description: string; price: string }>;
+    }
+    if (aiData.selectedTemplate) updates.selectedTemplate = aiData.selectedTemplate as string;
+    
+    updateData(updates);
+    setCompletedSteps(prev => new Set([...prev, 0]));
+    setCurrentStep(1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleAISkip = () => {
+    setCompletedSteps(prev => new Set([...prev, 0]));
+    setCurrentStep(1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // =========================================================================
   // Render Steps
   // =========================================================================
+  
+  // Step 0: AI-Powered Setup
+  const renderStep0 = () => (
+    <AIOnboardingChat
+      onComplete={handleAIComplete}
+      onSkip={handleAISkip}
+      userEmail={userEmail}
+      subscriptionTier="free"
+    />
+  );
+  
   const renderStep1 = () => (
     <>
       <div style={styles.stepHeader}>
@@ -1346,7 +1397,7 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
         
         {/* Progress Indicator with Labels */}
         <div style={styles.progressContainer}>
-          {[1, 2, 3, 4, 5].map((step, index) => {
+          {[0, 1, 2, 3, 4, 5].map((step, index) => {
             const isActive = step === currentStep;
             const isCompleted = completedSteps.has(step) || step < currentStep;
             const clickable = canNavigateToStep(step);
@@ -1374,7 +1425,7 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
                     {STEP_LABELS[index]}
                   </span>
                 </div>
-                {index < 4 && <div style={styles.progressLine(isCompleted)} />}
+                {index < 5 && <div style={styles.progressLine(isCompleted)} />}
               </div>
             );
           })}
@@ -1394,47 +1445,56 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
       </header>
 
       {/* Main Content */}
-      <main style={styles.main}>
-        {currentStep === 1 && renderStep1()}
-        {currentStep === 2 && renderStep2()}
-        {currentStep === 3 && renderStep3()}
-        {currentStep === 4 && renderStep4()}
-        {currentStep === 5 && renderStep5()}
-        
-        {error && (
-          <p style={{ ...styles.error, textAlign: "center", marginTop: "16px" }}>
-            {error}
-          </p>
-        )}
-      </main>
+      {currentStep === 0 ? (
+        // Step 0: AI Chat takes full viewport
+        <main style={{ ...styles.main, padding: 0, maxWidth: "100%", height: "calc(100vh - 80px)" }}>
+          {renderStep0()}
+        </main>
+      ) : (
+        <main style={styles.main}>
+          {currentStep === 1 && renderStep1()}
+          {currentStep === 2 && renderStep2()}
+          {currentStep === 3 && renderStep3()}
+          {currentStep === 4 && renderStep4()}
+          {currentStep === 5 && renderStep5()}
+          
+          {error && (
+            <p style={{ ...styles.error, textAlign: "center", marginTop: "16px" }}>
+              {error}
+            </p>
+          )}
+        </main>
+      )}
 
-      {/* Footer Navigation */}
-      <footer style={styles.footer}>
-        <button
-          type="button"
-          onClick={handleBack}
-          style={{
-            ...styles.button(false),
-            visibility: currentStep === 1 ? "hidden" : "visible",
-          }}
-        >
-          Back
-        </button>
-        
-        <button
-          type="button"
-          onClick={handleNext}
-          disabled={loading}
-          style={styles.button(true)}
-        >
-          {loading 
-            ? "Saving..." 
-            : currentStep === totalSteps 
-              ? "Complete Setup" 
-              : "Continue"
-          }
-        </button>
-      </footer>
+      {/* Footer Navigation - Hidden on step 0 (AI chat has its own controls) */}
+      {currentStep > 0 && (
+        <footer style={styles.footer}>
+          <button
+            type="button"
+            onClick={handleBack}
+            style={{
+              ...styles.button(false),
+              visibility: currentStep === 1 ? "hidden" : "visible",
+            }}
+          >
+            Back
+          </button>
+          
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={loading}
+            style={styles.button(true)}
+          >
+            {loading 
+              ? "Saving..." 
+              : currentStep === totalSteps - 1
+                ? "Complete Setup" 
+                : "Continue"
+            }
+          </button>
+        </footer>
+      )}
     </div>
   );
 }
