@@ -176,6 +176,31 @@ export function ProfileStep({ onContinue, onSkip, initialData, standalone = true
     agency: initialData?.agency || "",
   });
 
+  // Sync formData when initialData prop changes (e.g., from AI chat updates)
+  // Note: We track individual field values instead of the initialData object reference
+  // to avoid unnecessary effect runs when parent re-renders with a new object reference
+  useEffect(() => {
+    if (initialData) {
+      setFormData((prev) => ({
+        displayName: initialData.displayName || prev.displayName,
+        username: initialData.username || prev.username,
+        location: initialData.location || prev.location,
+        instagram: initialData.instagram || prev.instagram,
+        tiktok: initialData.tiktok || prev.tiktok,
+        website: initialData.website || prev.website,
+        agency: initialData.agency || prev.agency,
+      }));
+    }
+  }, [
+    initialData?.displayName,
+    initialData?.username,
+    initialData?.location,
+    initialData?.instagram,
+    initialData?.tiktok,
+    initialData?.website,
+    initialData?.agency,
+  ]);
+
   // Calculate collected fields for progress indicator
   const collectedFields = Object.values(formData).filter(Boolean).length;
 

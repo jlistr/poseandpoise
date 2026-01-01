@@ -764,7 +764,9 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
   );
   
   // Handler for ProfileStep component
-  const handleProfileStepContinue = (profileData: {
+  // Note: This handler validates and saves using the passed data directly,
+  // rather than relying on async state updates from updateData()
+  const handleProfileStepContinue = async (profileData: {
     displayName: string;
     username: string;
     location: string;
@@ -773,16 +775,64 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
     website: string;
     agency: string;
   }) => {
-    updateData({
-      displayName: profileData.displayName,
-      username: profileData.username,
-      location: profileData.location,
-      instagram: profileData.instagram,
-      tiktok: profileData.tiktok,
-      website: profileData.website,
-      agency: profileData.agency,
-    });
-    handleNext();
+    // Validate the passed data directly (not from state)
+    if (!profileData.displayName.trim()) {
+      setError("Please enter your display name");
+      return;
+    }
+    if (!profileData.username.trim()) {
+      setError("Please choose a username");
+      return;
+    }
+    if (!/^[a-z0-9_-]{3,20}$/.test(profileData.username.toLowerCase())) {
+      setError("Username must be 3-20 characters (letters, numbers, hyphens, underscores)");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Build FormData using the passed data directly
+      const formData = new FormData();
+      formData.append("username", profileData.username.toLowerCase().trim());
+      formData.append("display_name", profileData.displayName.trim());
+      formData.append("location", profileData.location.trim());
+      formData.append("instagram", profileData.instagram.trim());
+      formData.append("tiktok", profileData.tiktok.trim());
+      formData.append("website", profileData.website.trim());
+      formData.append("agency", profileData.agency.trim());
+
+      const res = await fetch("/api/onboarding/update-profile", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to save profile");
+      }
+
+      // Update state after successful save
+      updateData({
+        displayName: profileData.displayName,
+        username: profileData.username,
+        location: profileData.location,
+        instagram: profileData.instagram,
+        tiktok: profileData.tiktok,
+        website: profileData.website,
+        agency: profileData.agency,
+      });
+
+      // Mark step as completed and advance
+      setCompletedSteps(prev => new Set([...prev, currentStep]));
+      setCurrentStep(prev => prev + 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleProfileStepSkip = () => {
