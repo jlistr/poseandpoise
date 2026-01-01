@@ -726,6 +726,7 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
       onComplete={handleAIComplete}
       onSkip={handleAISkip}
       userEmail={userEmail}
+      userName={data.displayName || existingProfile?.display_name || undefined}
       subscriptionTier="free"
     />
   );

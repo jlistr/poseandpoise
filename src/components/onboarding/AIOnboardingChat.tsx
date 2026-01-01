@@ -49,6 +49,7 @@ interface AIOnboardingChatProps {
   onComplete: (data: ExtractedData) => void;
   onSkip: () => void;
   userEmail: string;
+  userName?: string;
   subscriptionTier?: "free" | "professional" | "deluxe";
 }
 
@@ -198,6 +199,20 @@ const Icons = {
     </svg>
   ),
   
+  // Social Media
+  socialMedia: (
+    <svg width="32" height="32" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5">
+      {/* Instagram-style camera */}
+      <rect x="8" y="8" width="32" height="32" rx="8" />
+      <circle cx="24" cy="24" r="8" />
+      <circle cx="35" cy="13" r="3" fill="currentColor" />
+      {/* Connection dots */}
+      <circle cx="6" cy="6" r="2" fill="#C4A484" />
+      <circle cx="42" cy="6" r="2" fill="#C4A484" />
+      <path d="M6 6l4 4M42 6l-4 4" strokeWidth="1" stroke="#C4A484" />
+    </svg>
+  ),
+  
   // Crown (Pro)
   crown: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none">
@@ -233,6 +248,13 @@ const STEP_TOOLS: Record<OnboardingStep, Tool[]> = {
       description: "Instantly find your city based on your current location",
       icon: Icons.location,
       action: "location",
+    },
+    {
+      id: "social-media",
+      name: "Connect Socials",
+      description: "Add your Instagram, TikTok, and website in one click",
+      icon: Icons.socialMedia,
+      action: "click",
     },
     {
       id: "agency",
@@ -698,6 +720,7 @@ export function AIOnboardingChat({
   onComplete, 
   onSkip, 
   userEmail,
+  userName,
   subscriptionTier = "free" 
 }: AIOnboardingChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -708,6 +731,8 @@ export function AIOnboardingChat({
   const [currentStep, setCurrentStep] = useState<OnboardingStep>("profile");
   const [activeTool, setActiveTool] = useState<string | null>(null);
   const [selectedServices] = useState<string[]>([]);
+  const [showSocialMediaForm, setShowSocialMediaForm] = useState(false);
+  const [socialHandles, setSocialHandles] = useState({ instagram: '', tiktok: '', website: '' });
   
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -734,18 +759,22 @@ export function AIOnboardingChat({
     }]);
   }, [currentStep]);
 
+  // Get first name for personalized greeting
+  const firstName = userName?.split(' ')[0] || '';
+  const personalGreeting = firstName ? `Hi ${firstName}! ` : '';
+
   const getStepGreeting = (step: OnboardingStep): string => {
     switch (step) {
       case "profile":
-        return `Welcome to Pose & Poise. I'm your AI assistant, here to help you build a stunning portfolio in minutes.\n\nUse the tools on the left to get started quickly:\n\n- Auto-Detect Location - Find your city instantly\n- Agency Details - Add your representation\n\nOr simply type your information and I'll help organize it.`;
+        return `${personalGreeting}Welcome to Pose & Poise${firstName ? '' : ''}. I'm your AI assistant, here to help you build a stunning portfolio in minutes.${firstName ? `\n\nI already have your name, so we're off to a great start!` : ''}\n\nLet's set up your profile quickly:\n\n• Auto-Detect Location - Find your city instantly\n• Connect Socials - Add Instagram, TikTok & website\n• Agency Details - If you're represented\n\nOr just type your info and I'll organize it for you.`;
       case "about":
-        return `Let's capture your story and stats.\n\nI have powerful AI tools to save you time:\n\n- AI Photo Analyzer - Upload any photo and I'll extract your measurements, hair color, and eye color\n- Comp Card Scanner - Already have a comp card? Scan it to import all your stats instantly\n- AI Bio Writer - I'll craft a compelling professional bio for you\n\nClick a tool to get started, or tell me about yourself.`;
+        return `${personalGreeting ? `Perfect, ${firstName}! ` : ''}Let's capture your story and stats.\n\nI have powerful AI tools to save you time:\n\n• AI Photo Analyzer - Upload any photo and I'll extract your measurements, hair color, and eye color\n• Comp Card Scanner - Already have a comp card? Scan it to import all your stats instantly\n• AI Bio Writer - I'll craft a compelling professional bio for you\n\nClick a tool to get started, or tell me about yourself.`;
       case "services":
-        return `Now let's showcase your services.\n\nUse my tools to build your service offerings quickly:\n\n- Smart Service Suggestions - I'll recommend services with competitive pricing for your market and experience level\n- Comp Card Generator - Create a professional comp card using your profile\n\n${subscriptionTier === "deluxe" ? "As a Deluxe member, you can generate multiple specialized comp cards: Agency, Editorial, Commercial, Fitness, Parts, and more." : ""}`;
+        return `${firstName ? `Great progress, ${firstName}! ` : ''}Now let's showcase your services.\n\nUse my tools to build your service offerings quickly:\n\n• Smart Service Suggestions - I'll recommend services with competitive pricing for your market and experience level\n• Comp Card Generator - Create a professional comp card using your profile\n\n${subscriptionTier === "deluxe" ? "As a Deluxe member, you can generate multiple specialized comp cards: Agency, Editorial, Commercial, Fitness, Parts, and more." : ""}`;
       case "template":
-        return `Choose a template that reflects your style.\n\n${subscriptionTier === "free" ? "Your plan includes Rose, Poise, and Lumiere templates. Upgrade to unlock the exclusive Noir template." : "You have access to all premium templates."}\n\nClick on a template below to see a preview.`;
+        return `${firstName ? `Almost there, ${firstName}! ` : ''}Choose a template that reflects your style.\n\n${subscriptionTier === "free" ? "Your plan includes Rose, Poise, and Lumiere templates. Upgrade to unlock the exclusive Noir template." : "You have access to all premium templates."}\n\nClick on a template below to see a preview.`;
       case "photos":
-        return `Time to showcase your best work.\n\nUpload your portfolio photos and credit your creative team for each image.\n\n${subscriptionTier === "free" ? "Your plan allows up to 10 photos. Upgrade for more." : subscriptionTier === "professional" ? "Your Professional plan allows up to 50 photos." : "Your Deluxe plan includes unlimited uploads."}\n\nOnce you've uploaded at least 2 photos, you can preview your portfolio.`;
+        return `${firstName ? `Final step, ${firstName}! ` : ''}Time to showcase your best work.\n\nUpload your portfolio photos and credit your creative team for each image.\n\n${subscriptionTier === "free" ? "Your plan allows up to 10 photos. Upgrade for more." : subscriptionTier === "professional" ? "Your Professional plan allows up to 50 photos." : "Your Deluxe plan includes unlimited uploads."}\n\nOnce you've uploaded at least 2 photos, you can preview your portfolio.`;
       default:
         return "How can I assist you?";
     }
@@ -771,6 +800,9 @@ export function AIOnboardingChat({
         handleAIRequest("comp-generator", "Generate my professional comp card");
       } else if (tool.id === "agency") {
         addAssistantMessage("Are you currently represented by a modeling agency?\n\nIf yes, please share:\n- Agency name\n- Agency website (optional)\n- Your agent's email (optional)\n\nThis information will be displayed on your portfolio to help clients and brands contact your representation.");
+      } else if (tool.id === "social-media") {
+        setShowSocialMediaForm(true);
+        addAssistantMessage("Let's connect your social profiles! This helps clients and brands discover more of your work.\n\nFill in the handles you'd like to share:");
       }
     }
   };
@@ -958,6 +990,28 @@ export function AIOnboardingChat({
 
   const removePendingImage = (index: number) => {
     setPendingImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSaveSocials = () => {
+    const updates: Partial<ExtractedData> = {};
+    if (socialHandles.instagram) updates.instagram = socialHandles.instagram.replace('@', '');
+    if (socialHandles.tiktok) updates.tiktok = socialHandles.tiktok.replace('@', '');
+    if (socialHandles.website) updates.website = socialHandles.website;
+    
+    if (Object.keys(updates).length > 0) {
+      setExtractedData(prev => ({ ...prev, ...updates }));
+      
+      const connected: string[] = [];
+      if (updates.instagram) connected.push(`@${updates.instagram} on Instagram`);
+      if (updates.tiktok) connected.push(`@${updates.tiktok} on TikTok`);
+      if (updates.website) connected.push(updates.website);
+      
+      addAssistantMessage(`Perfect! I've saved your social profiles:\n\n${connected.map(s => `• ${s}`).join('\n')}\n\nThese will appear on your portfolio so clients can easily find more of your work.`);
+    }
+    
+    setShowSocialMediaForm(false);
+    setActiveTool(null);
+    setSocialHandles({ instagram: '', tiktok: '', website: '' });
   };
 
   const handleNextStep = () => {
@@ -1175,6 +1229,208 @@ export function AIOnboardingChat({
             </div>
           )}
 
+          {/* Social Media Form */}
+          {showSocialMediaForm && (
+            <div style={{
+              backgroundColor: "white",
+              border: "1px solid rgba(196, 164, 132, 0.3)",
+              padding: "24px",
+              maxWidth: "400px",
+            }}>
+              <div style={{
+                fontFamily: "'Outfit', sans-serif",
+                fontSize: "10px",
+                fontWeight: 600,
+                letterSpacing: "2px",
+                textTransform: "uppercase" as const,
+                color: "#C4A484",
+                marginBottom: "20px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}>
+                {Icons.socialMedia}
+                Connect Your Socials
+              </div>
+              
+              {/* Instagram */}
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom: "8px",
+                  fontFamily: "'Outfit', sans-serif",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  color: "#1A1A1A",
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect x="2" y="2" width="20" height="20" rx="5" />
+                    <circle cx="12" cy="12" r="4" />
+                    <circle cx="18" cy="6" r="1.5" fill="currentColor" />
+                  </svg>
+                  Instagram
+                </label>
+                <div style={{ display: "flex", alignItems: "center", gap: "0" }}>
+                  <span style={{
+                    padding: "10px 12px",
+                    backgroundColor: "#FAF9F7",
+                    border: "1px solid rgba(26, 26, 26, 0.15)",
+                    borderRight: "none",
+                    fontFamily: "'Outfit', sans-serif",
+                    fontSize: "14px",
+                    color: "rgba(26, 26, 26, 0.5)",
+                  }}>@</span>
+                  <input
+                    type="text"
+                    placeholder="yourhandle"
+                    value={socialHandles.instagram}
+                    onChange={(e) => setSocialHandles(prev => ({ ...prev, instagram: e.target.value }))}
+                    style={{
+                      flex: 1,
+                      padding: "10px 12px",
+                      fontSize: "14px",
+                      fontFamily: "'Outfit', sans-serif",
+                      border: "1px solid rgba(26, 26, 26, 0.15)",
+                      backgroundColor: "#FAF9F7",
+                      color: "#1A1A1A",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+              </div>
+              
+              {/* TikTok */}
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom: "8px",
+                  fontFamily: "'Outfit', sans-serif",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  color: "#1A1A1A",
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
+                  </svg>
+                  TikTok
+                </label>
+                <div style={{ display: "flex", alignItems: "center", gap: "0" }}>
+                  <span style={{
+                    padding: "10px 12px",
+                    backgroundColor: "#FAF9F7",
+                    border: "1px solid rgba(26, 26, 26, 0.15)",
+                    borderRight: "none",
+                    fontFamily: "'Outfit', sans-serif",
+                    fontSize: "14px",
+                    color: "rgba(26, 26, 26, 0.5)",
+                  }}>@</span>
+                  <input
+                    type="text"
+                    placeholder="yourhandle"
+                    value={socialHandles.tiktok}
+                    onChange={(e) => setSocialHandles(prev => ({ ...prev, tiktok: e.target.value }))}
+                    style={{
+                      flex: 1,
+                      padding: "10px 12px",
+                      fontSize: "14px",
+                      fontFamily: "'Outfit', sans-serif",
+                      border: "1px solid rgba(26, 26, 26, 0.15)",
+                      backgroundColor: "#FAF9F7",
+                      color: "#1A1A1A",
+                      outline: "none",
+                    }}
+                  />
+                </div>
+              </div>
+              
+              {/* Website */}
+              <div style={{ marginBottom: "20px" }}>
+                <label style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  marginBottom: "8px",
+                  fontFamily: "'Outfit', sans-serif",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  color: "#1A1A1A",
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="2" y1="12" x2="22" y2="12" />
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                  </svg>
+                  Website
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://yourwebsite.com"
+                  value={socialHandles.website}
+                  onChange={(e) => setSocialHandles(prev => ({ ...prev, website: e.target.value }))}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    fontSize: "14px",
+                    fontFamily: "'Outfit', sans-serif",
+                    border: "1px solid rgba(26, 26, 26, 0.15)",
+                    backgroundColor: "#FAF9F7",
+                    color: "#1A1A1A",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+              
+              {/* Buttons */}
+              <div style={{ display: "flex", gap: "12px" }}>
+                <button
+                  onClick={() => {
+                    setShowSocialMediaForm(false);
+                    setActiveTool(null);
+                    setSocialHandles({ instagram: '', tiktok: '', website: '' });
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: "12px",
+                    fontFamily: "'Outfit', sans-serif",
+                    fontSize: "12px",
+                    fontWeight: 500,
+                    letterSpacing: "1px",
+                    textTransform: "uppercase" as const,
+                    border: "1px solid rgba(26, 26, 26, 0.2)",
+                    backgroundColor: "transparent",
+                    color: "#1A1A1A",
+                    cursor: "pointer",
+                  }}
+                >
+                  Skip
+                </button>
+                <button
+                  onClick={handleSaveSocials}
+                  style={{
+                    flex: 1,
+                    padding: "12px",
+                    fontFamily: "'Outfit', sans-serif",
+                    fontSize: "12px",
+                    fontWeight: 500,
+                    letterSpacing: "1px",
+                    textTransform: "uppercase" as const,
+                    border: "none",
+                    backgroundColor: "#1A1A1A",
+                    color: "#FAF9F7",
+                    cursor: "pointer",
+                  }}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Extracted Data Card */}
           {hasExtractedData && (
             <div style={styles.extractedCard}>
@@ -1185,6 +1441,9 @@ export function AIOnboardingChat({
               <div style={styles.dataGrid}>
                 {extractedData.location && <div style={styles.dataItem}><strong>Location:</strong> {extractedData.location}</div>}
                 {extractedData.displayName && <div style={styles.dataItem}><strong>Name:</strong> {extractedData.displayName}</div>}
+                {extractedData.instagram && <div style={styles.dataItem}><strong>Instagram:</strong> @{extractedData.instagram}</div>}
+                {extractedData.tiktok && <div style={styles.dataItem}><strong>TikTok:</strong> @{extractedData.tiktok}</div>}
+                {extractedData.website && <div style={styles.dataItem}><strong>Website:</strong> {extractedData.website}</div>}
                 {extractedData.agencyName && <div style={styles.dataItem}><strong>Agency:</strong> {extractedData.agencyName}</div>}
                 {extractedData.heightCm && <div style={styles.dataItem}><strong>Height:</strong> {extractedData.heightCm} cm</div>}
                 {extractedData.bustCm && <div style={styles.dataItem}><strong>Bust:</strong> {extractedData.bustCm} cm</div>}
