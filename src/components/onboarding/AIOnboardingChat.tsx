@@ -800,7 +800,8 @@ export function AIOnboardingChat({
   
   // Guided flow state
   const [currentToolIndex, setCurrentToolIndex] = useState(-1); // -1 means greeting phase
-  const [isAutoProgressing, setIsAutoProgressing] = useState(true);
+  const currentToolIndexRef = useRef(-1); // Ref to track current index for callbacks
+  const [isAutoProgressing] = useState(true);
   const [toolCompleted, setToolCompleted] = useState<Record<string, boolean>>({});
   
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -863,6 +864,7 @@ export function AIOnboardingChat({
     
     // Reset tool index for new step
     setCurrentToolIndex(-1);
+    currentToolIndexRef.current = -1;
     setToolCompleted({});
     setShowSocialMediaForm(false);
     setShowAgencyForm(false);
@@ -884,7 +886,8 @@ export function AIOnboardingChat({
       return;
     }
 
-    const nextIndex = currentToolIndex + 1;
+    // Use ref to get the current index (avoids stale closure issues)
+    const nextIndex = currentToolIndexRef.current + 1;
     
     if (nextIndex < currentToolSequence.length) {
       const nextToolId = currentToolSequence[nextIndex];
@@ -892,7 +895,10 @@ export function AIOnboardingChat({
       
       if (nextTool) {
         progressInProgressRef.current = true;
+        
+        // Update both state and ref
         setCurrentToolIndex(nextIndex);
+        currentToolIndexRef.current = nextIndex;
         
         // Announce the next tool
         const toolAnnouncement = getToolAnnouncement(nextToolId, nextIndex === 0);
@@ -912,7 +918,7 @@ export function AIOnboardingChat({
       addAssistantMessage(getStepCompletionMessage(currentStep));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentToolIndex, currentToolSequence, currentStep]);
+  }, [currentToolSequence, currentStep]);
 
   // Get announcement message for each tool
   const getToolAnnouncement = (toolId: string, isFirst: boolean): string => {
