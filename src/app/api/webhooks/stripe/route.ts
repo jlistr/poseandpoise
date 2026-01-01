@@ -162,10 +162,18 @@ async function upsertSubscription(userId: string, subscription: Stripe.Subscript
   const sub = subscription as unknown as {
     customer: string;
     id: string;
-    current_period_start: number;
-    current_period_end: number;
-    cancel_at_period_end: boolean;
+    current_period_start?: number;
+    current_period_end?: number;
+    cancel_at_period_end?: boolean;
   };
+  
+  // Safely convert timestamps - handle undefined/null values
+  const currentPeriodStart = sub.current_period_start 
+    ? new Date(sub.current_period_start * 1000).toISOString() 
+    : null;
+  const currentPeriodEnd = sub.current_period_end 
+    ? new Date(sub.current_period_end * 1000).toISOString() 
+    : null;
   
   // Upsert subscription data
   // Note: 'tier' column triggers sync_profile_subscription_tier() to update profiles.subscription_tier
@@ -178,9 +186,9 @@ async function upsertSubscription(userId: string, subscription: Stripe.Subscript
       plan_id: planId,
       tier: planId, // Required for trigger to update profiles.subscription_tier
       status: status,
-      current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
-      cancel_at_period_end: sub.cancel_at_period_end,
+      current_period_start: currentPeriodStart,
+      current_period_end: currentPeriodEnd,
+      cancel_at_period_end: sub.cancel_at_period_end ?? false,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'profile_id' });
   
