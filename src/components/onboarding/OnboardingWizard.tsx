@@ -1392,14 +1392,13 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
         variant="solid" 
         isAuthenticated={true} 
         showLinks={true}
-        links={[
-          { label: "Help", href: "/support" },
-        ]}
+        links={[]}
         user={{
           name: data.displayName || undefined,
           email: userEmail,
           avatarUrl: data.avatarUrl || undefined,
         }}
+        userPlan="trial"
       />
 
       {/* Step Progress Header - Hidden on step 0 (AI chat has its own header) */}

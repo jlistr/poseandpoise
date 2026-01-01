@@ -17,12 +17,15 @@ interface UserInfo {
   avatarUrl?: string;
 }
 
+type UserPlan = "free" | "professional" | "deluxe" | "trial";
+
 interface NavbarProps {
   links?: NavLink[];
   showLinks?: boolean;
   variant?: "transparent" | "solid";
   isAuthenticated?: boolean;
   user?: UserInfo;
+  userPlan?: UserPlan;
   onSignOut?: () => void;
 }
 
@@ -59,6 +62,7 @@ export function Navbar({
   variant = "transparent",
   isAuthenticated = false,
   user,
+  userPlan = "free",
   onSignOut,
 }: NavbarProps) {
   const router = useRouter();
@@ -165,19 +169,43 @@ export function Navbar({
           {/* Auth Links */}
           {isAuthenticated ? (
             <div style={{ display: "flex", alignItems: "center", gap: spacing.gap.lg }}>
-              <Link
-                href="/dashboard"
-                className={`pp-nav-link ${loaded ? "fade-up delay-5" : ""}`}
-                style={{
-                  fontFamily: typography.fontFamily.body,
-                  fontSize: typography.fontSize.bodySmall,
-                  color: colors.text.tertiary,
-                  textDecoration: "none",
-                  transition: "color 0.2s ease",
-                }}
-              >
-                Dashboard
-              </Link>
+              {/* Upgrade CTA - Show for Free, Professional, or Trial plans */}
+              {(userPlan === "free" || userPlan === "professional" || userPlan === "trial") && (
+                <Link
+                  href="/pricing"
+                  className={loaded ? "fade-up delay-5" : ""}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    fontFamily: typography.fontFamily.body,
+                    fontSize: typography.fontSize.caption,
+                    fontWeight: 500,
+                    letterSpacing: typography.letterSpacing.wider,
+                    textTransform: "uppercase",
+                    padding: "8px 16px",
+                    background: `linear-gradient(135deg, ${colors.accent?.rose || '#FF7AA2'} 0%, ${colors.accent?.gold || '#C4A484'} 100%)`,
+                    color: "#FFFFFF",
+                    textDecoration: "none",
+                    borderRadius: "6px",
+                    transition: "all 0.3s ease",
+                    boxShadow: "0 2px 8px rgba(255, 122, 162, 0.25)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.boxShadow = "0 4px 12px rgba(255, 122, 162, 0.35)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "0 2px 8px rgba(255, 122, 162, 0.25)";
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                  </svg>
+                  {userPlan === "professional" ? "Go Deluxe" : "Upgrade"}
+                </Link>
+              )}
               
               {/* User Avatar with Dropdown */}
               <div 
