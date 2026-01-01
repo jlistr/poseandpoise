@@ -1553,7 +1553,7 @@ export function AIOnboardingChat({
                     zIndex: 100,
                     overflow: "hidden",
                   }}>
-                    {/* Shimmer Animation Styles */}
+                    {/* Shimmer Animation Styles - runs 2-3 times then stops */}
                     <style>{`
                       @keyframes shimmer {
                         0% {
@@ -1561,6 +1561,17 @@ export function AIOnboardingChat({
                         }
                         100% {
                           background-position: 200% 0;
+                        }
+                      }
+                      @keyframes shimmer-fade {
+                        0% {
+                          opacity: 1;
+                        }
+                        80% {
+                          opacity: 1;
+                        }
+                        100% {
+                          opacity: 0;
                         }
                       }
                       @keyframes pulse-glow {
@@ -1579,6 +1590,16 @@ export function AIOnboardingChat({
                         to {
                           opacity: 1;
                           transform: translateY(0);
+                        }
+                      }
+                      @keyframes status-pulse {
+                        0%, 100% {
+                          opacity: 1;
+                          transform: scale(1);
+                        }
+                        50% {
+                          opacity: 0.6;
+                          transform: scale(1.2);
                         }
                       }
                       .shimmer-field {
@@ -1601,15 +1622,21 @@ export function AIOnboardingChat({
                           transparent 100%
                         );
                         background-size: 200% 100%;
-                        animation: shimmer 2.5s ease-in-out infinite;
+                        animation: shimmer 1.5s ease-in-out 2, shimmer-fade 3s ease-out forwards;
                         pointer-events: none;
                         border-radius: 8px;
                       }
                       .collected-field {
                         animation: fade-in-up 0.4s ease-out forwards;
                       }
-                      .collected-field:hover {
-                        animation: pulse-glow 1.5s ease-in-out infinite;
+                      .header-shimmer {
+                        animation: shimmer 2s ease-in-out 2, shimmer-fade 4s ease-out forwards;
+                      }
+                      .footer-shimmer {
+                        animation: shimmer 2.5s ease-in-out 2, shimmer-fade 5s ease-out forwards;
+                      }
+                      .status-dot {
+                        animation: status-pulse 2s ease-in-out 3;
                       }
                     `}</style>
                     
@@ -1623,18 +1650,20 @@ export function AIOnboardingChat({
                       position: "relative",
                       overflow: "hidden",
                     }}>
-                      {/* Header shimmer overlay */}
-                      <div style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: "linear-gradient(90deg, transparent 0%, rgba(196, 164, 132, 0.05) 50%, transparent 100%)",
-                        backgroundSize: "200% 100%",
-                        animation: "shimmer 3s ease-in-out infinite",
-                        pointerEvents: "none",
-                      }} />
+                      {/* Header shimmer overlay - fades out after ~4s */}
+                      <div 
+                        className="header-shimmer"
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          background: "linear-gradient(90deg, transparent 0%, rgba(196, 164, 132, 0.08) 50%, transparent 100%)",
+                          backgroundSize: "200% 100%",
+                          pointerEvents: "none",
+                        }} 
+                      />
                       <div style={{
                         display: "flex",
                         alignItems: "center",
@@ -1676,14 +1705,16 @@ export function AIOnboardingChat({
                             alignItems: "center",
                             gap: "6px",
                           }}>
-                            <span style={{
-                              display: "inline-block",
-                              width: "6px",
-                              height: "6px",
-                              borderRadius: "50%",
-                              backgroundColor: "#22C55E",
-                              animation: "pulse-glow 2s ease-in-out infinite",
-                            }} />
+                            <span 
+                              className="status-dot"
+                              style={{
+                                display: "inline-block",
+                                width: "6px",
+                                height: "6px",
+                                borderRadius: "50%",
+                                backgroundColor: "#22C55E",
+                              }} 
+                            />
                             {extractedDataItems.length} field{extractedDataItems.length !== 1 ? 's' : ''} collected
                           </div>
                         </div>
@@ -1808,18 +1839,20 @@ export function AIOnboardingChat({
                       position: "relative",
                       overflow: "hidden",
                     }}>
-                      {/* Footer shimmer */}
-                      <div style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        background: "linear-gradient(90deg, transparent 0%, rgba(196, 164, 132, 0.1) 50%, transparent 100%)",
-                        backgroundSize: "200% 100%",
-                        animation: "shimmer 4s ease-in-out infinite",
-                        pointerEvents: "none",
-                      }} />
+                      {/* Footer shimmer - fades out after ~5s */}
+                      <div 
+                        className="footer-shimmer"
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          background: "linear-gradient(90deg, transparent 0%, rgba(196, 164, 132, 0.1) 50%, transparent 100%)",
+                          backgroundSize: "200% 100%",
+                          pointerEvents: "none",
+                        }} 
+                      />
                       <span style={{
                         fontFamily: "'Outfit', sans-serif",
                         fontSize: "11px",
