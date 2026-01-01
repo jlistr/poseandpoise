@@ -1539,7 +1539,7 @@ export function AIOnboardingChat({
                   </svg>
                 </div>
                 
-                {/* Dropdown Panel - Pseudo Form Style */}
+                {/* Dropdown Panel - Pseudo Form Style with Shimmer */}
                 {showDataSummary && (
                   <div style={{
                     position: "absolute",
@@ -1553,29 +1553,106 @@ export function AIOnboardingChat({
                     zIndex: 100,
                     overflow: "hidden",
                   }}>
-                    {/* Header */}
+                    {/* Shimmer Animation Styles */}
+                    <style>{`
+                      @keyframes shimmer {
+                        0% {
+                          background-position: -200% 0;
+                        }
+                        100% {
+                          background-position: 200% 0;
+                        }
+                      }
+                      @keyframes pulse-glow {
+                        0%, 100% {
+                          box-shadow: 0 0 0 0 rgba(196, 164, 132, 0);
+                        }
+                        50% {
+                          box-shadow: 0 0 8px 2px rgba(196, 164, 132, 0.3);
+                        }
+                      }
+                      @keyframes fade-in-up {
+                        from {
+                          opacity: 0;
+                          transform: translateY(8px);
+                        }
+                        to {
+                          opacity: 1;
+                          transform: translateY(0);
+                        }
+                      }
+                      .shimmer-field {
+                        position: relative;
+                        overflow: hidden;
+                      }
+                      .shimmer-field::after {
+                        content: '';
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        background: linear-gradient(
+                          90deg,
+                          transparent 0%,
+                          rgba(196, 164, 132, 0.08) 20%,
+                          rgba(196, 164, 132, 0.15) 50%,
+                          rgba(196, 164, 132, 0.08) 80%,
+                          transparent 100%
+                        );
+                        background-size: 200% 100%;
+                        animation: shimmer 2.5s ease-in-out infinite;
+                        pointer-events: none;
+                        border-radius: 8px;
+                      }
+                      .collected-field {
+                        animation: fade-in-up 0.4s ease-out forwards;
+                      }
+                      .collected-field:hover {
+                        animation: pulse-glow 1.5s ease-in-out infinite;
+                      }
+                    `}</style>
+                    
+                    {/* Header with subtle shimmer */}
                     <div style={{
                       padding: "16px 20px",
                       background: "linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%)",
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
+                      position: "relative",
+                      overflow: "hidden",
                     }}>
+                      {/* Header shimmer overlay */}
+                      <div style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: "linear-gradient(90deg, transparent 0%, rgba(196, 164, 132, 0.05) 50%, transparent 100%)",
+                        backgroundSize: "200% 100%",
+                        animation: "shimmer 3s ease-in-out infinite",
+                        pointerEvents: "none",
+                      }} />
                       <div style={{
                         display: "flex",
                         alignItems: "center",
                         gap: "10px",
+                        position: "relative",
+                        zIndex: 1,
                       }}>
                         <div style={{
-                          width: "28px",
-                          height: "28px",
-                          borderRadius: "8px",
-                          backgroundColor: "rgba(196, 164, 132, 0.2)",
+                          width: "32px",
+                          height: "32px",
+                          borderRadius: "10px",
+                          background: "linear-gradient(135deg, rgba(196, 164, 132, 0.3) 0%, rgba(196, 164, 132, 0.15) 100%)",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
+                          boxShadow: "0 2px 8px rgba(196, 164, 132, 0.2)",
                         }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C4A484" strokeWidth="2.5">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C4A484" strokeWidth="2.5">
                             <path d="M9 11l3 3L22 4" />
                             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
                           </svg>
@@ -1583,7 +1660,7 @@ export function AIOnboardingChat({
                         <div>
                           <div style={{
                             fontFamily: "'Outfit', sans-serif",
-                            fontSize: "13px",
+                            fontSize: "14px",
                             fontWeight: 600,
                             color: "#FAF9F7",
                             letterSpacing: "0.02em",
@@ -1595,7 +1672,18 @@ export function AIOnboardingChat({
                             fontSize: "11px",
                             color: "rgba(250, 249, 247, 0.5)",
                             marginTop: "2px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
                           }}>
+                            <span style={{
+                              display: "inline-block",
+                              width: "6px",
+                              height: "6px",
+                              borderRadius: "50%",
+                              backgroundColor: "#22C55E",
+                              animation: "pulse-glow 2s ease-in-out infinite",
+                            }} />
                             {extractedDataItems.length} field{extractedDataItems.length !== 1 ? 's' : ''} collected
                           </div>
                         </div>
@@ -1605,14 +1693,16 @@ export function AIOnboardingChat({
                         style={{
                           background: "rgba(255, 255, 255, 0.1)",
                           border: "none",
-                          borderRadius: "6px",
+                          borderRadius: "8px",
                           cursor: "pointer",
-                          padding: "6px",
+                          padding: "8px",
                           color: "rgba(250, 249, 247, 0.6)",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           transition: "all 0.2s ease",
+                          position: "relative",
+                          zIndex: 1,
                         }}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)";
@@ -1629,41 +1719,71 @@ export function AIOnboardingChat({
                       </button>
                     </div>
                     
-                    {/* Form Fields */}
+                    {/* Form Fields with Shimmer */}
                     <div style={{ padding: "16px 20px", maxHeight: "320px", overflowY: "auto" }}>
                       {extractedDataItems.map((item, i) => (
-                        <div key={i} style={{
-                          marginBottom: i < extractedDataItems.length - 1 ? "12px" : 0,
-                        }}>
+                        <div 
+                          key={i} 
+                          className="collected-field"
+                          style={{
+                            marginBottom: i < extractedDataItems.length - 1 ? "14px" : 0,
+                            animationDelay: `${i * 0.1}s`,
+                            opacity: 0,
+                          }}
+                        >
                           <label style={{
-                            display: "block",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
                             fontFamily: "'Outfit', sans-serif",
                             fontSize: "10px",
                             fontWeight: 600,
                             color: "#C4A484",
                             textTransform: "uppercase",
-                            letterSpacing: "0.08em",
-                            marginBottom: "6px",
+                            letterSpacing: "0.1em",
+                            marginBottom: "8px",
                           }}>
+                            <span style={{
+                              display: "inline-block",
+                              width: "4px",
+                              height: "4px",
+                              borderRadius: "50%",
+                              backgroundColor: "#C4A484",
+                            }} />
                             {item.label}
                           </label>
-                          <div style={{
-                            padding: "10px 14px",
-                            backgroundColor: "white",
-                            border: "1px solid rgba(26, 26, 26, 0.1)",
-                            borderRadius: "8px",
-                            fontFamily: "'Outfit', sans-serif",
-                            fontSize: "13px",
-                            fontWeight: 500,
-                            color: "#1A1A1A",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                            boxShadow: "0 1px 2px rgba(0, 0, 0, 0.04)",
-                          }}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C4A484" strokeWidth="2">
-                              <path d="M20 6L9 17l-5-5" />
-                            </svg>
+                          <div 
+                            className="shimmer-field"
+                            style={{
+                              padding: "12px 16px",
+                              backgroundColor: "white",
+                              border: "1px solid rgba(196, 164, 132, 0.2)",
+                              borderRadius: "10px",
+                              fontFamily: "'Outfit', sans-serif",
+                              fontSize: "13px",
+                              fontWeight: 500,
+                              color: "#1A1A1A",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "10px",
+                              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.8)",
+                              transition: "all 0.2s ease",
+                            }}
+                          >
+                            <div style={{
+                              width: "20px",
+                              height: "20px",
+                              borderRadius: "6px",
+                              backgroundColor: "rgba(196, 164, 132, 0.1)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                            }}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C4A484" strokeWidth="2.5">
+                                <path d="M20 6L9 17l-5-5" />
+                              </svg>
+                            </div>
                             <span style={{
                               overflow: "hidden",
                               textOverflow: "ellipsis",
@@ -1677,27 +1797,48 @@ export function AIOnboardingChat({
                       ))}
                     </div>
                     
-                    {/* Footer */}
+                    {/* Footer with shimmer accent */}
                     <div style={{
-                      padding: "12px 20px",
+                      padding: "14px 20px",
                       borderTop: "1px solid rgba(26, 26, 26, 0.06)",
-                      backgroundColor: "rgba(26, 26, 26, 0.02)",
+                      background: "linear-gradient(180deg, rgba(196, 164, 132, 0.03) 0%, rgba(196, 164, 132, 0.08) 100%)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
+                      position: "relative",
+                      overflow: "hidden",
                     }}>
+                      {/* Footer shimmer */}
+                      <div style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: "linear-gradient(90deg, transparent 0%, rgba(196, 164, 132, 0.1) 50%, transparent 100%)",
+                        backgroundSize: "200% 100%",
+                        animation: "shimmer 4s ease-in-out infinite",
+                        pointerEvents: "none",
+                      }} />
                       <span style={{
                         fontFamily: "'Outfit', sans-serif",
                         fontSize: "11px",
-                        color: "rgba(26, 26, 26, 0.4)",
+                        color: "rgba(26, 26, 26, 0.5)",
+                        position: "relative",
+                        zIndex: 1,
                       }}>
                         Auto-saved as you go
                       </span>
                       <div style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: "4px",
+                        gap: "6px",
                         color: "#22C55E",
+                        position: "relative",
+                        zIndex: 1,
+                        padding: "4px 10px",
+                        backgroundColor: "rgba(34, 197, 94, 0.1)",
+                        borderRadius: "12px",
                       }}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                           <path d="M20 6L9 17l-5-5" />
