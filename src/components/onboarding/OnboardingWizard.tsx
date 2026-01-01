@@ -46,16 +46,22 @@ const RocketIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
 
 // ============================================================================
 // Step Configuration
+// New order: Template → Photos → Profile → Services → About
+// 1. Template: Set the "container" for your work first
+// 2. Photos: High-value step - upload images to see your portfolio come alive
+// 3. Profile: Quick objective data (height, measurements, location, socials)
+// 4. Services: Business end - comp card, rates, booking info
+// 5. About: Save the laborious bio writing for last when you're motivated
 // ============================================================================
 
-const STEPS: OnboardingStep[] = ['profile', 'about', 'services', 'template', 'photos'];
+const STEPS: OnboardingStep[] = ['template', 'photos', 'profile', 'services', 'about'];
 
 const STEP_LABELS: Record<OnboardingStep, string> = {
-  profile: 'PROFILE',
-  about: 'ABOUT',
-  services: 'SERVICES',
   template: 'TEMPLATE',
   photos: 'PHOTOS',
+  profile: 'PROFILE',
+  services: 'SERVICES',
+  about: 'ABOUT',
 };
 
 // ============================================================================
@@ -70,7 +76,7 @@ interface OnboardingWizardProps {
 
 export function OnboardingWizard({ userEmail, userId, existingProfile }: OnboardingWizardProps): React.JSX.Element {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>('profile');
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>('template');
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -139,6 +145,29 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
     return Object.keys(errors).length === 0;
   }, [currentStep, data.profile]);
 
+  // Validate required profile fields before launching (profile is no longer last step)
+  const validateForLaunch = useCallback((): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!data.profile.displayName.trim()) {
+      errors.displayName = 'Display name is required';
+    }
+    if (!data.profile.username.trim()) {
+      errors.username = 'Username is required';
+    } else if (!/^[a-z0-9_-]+$/.test(data.profile.username)) {
+      errors.username = 'Username can only contain lowercase letters, numbers, hyphens, and underscores';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      // Navigate to profile step to show errors
+      setCurrentStep('profile');
+      return false;
+    }
+
+    return true;
+  }, [data.profile]);
+
   const handleContinue = useCallback(() => {
     if (!validateCurrentStep()) return;
 
@@ -150,7 +179,8 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
 
   // Save and launch portfolio
   const handleLaunchPortfolio = useCallback(async () => {
-    if (!validateCurrentStep()) return;
+    // Validate required profile fields before launching
+    if (!validateForLaunch()) return;
 
     setIsSaving(true);
     setSaveError(null);
@@ -271,7 +301,7 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
     } finally {
       setIsSaving(false);
     }
-  }, [data, router, validateCurrentStep]);
+  }, [data, router, validateForLaunch]);
 
   // Render current step content
   const renderStepContent = () => {

@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import {
   type OnboardingData,
+  type OnboardingStep,
   type ProfileData,
   type AboutData,
   type ServicesData,
@@ -31,7 +32,7 @@ interface UseOnboardingDataReturn {
   togglePhotoVisibility: (id: string) => void;
   removePhoto: (id: string) => void;
   updatePhotoCredit: (id: string, field: 'photographer' | 'studio', value: string) => void;
-  getCollectedFieldsCount: (step: 'profile' | 'about' | 'services' | 'template' | 'photos') => number;
+  getCollectedFieldsCount: (step: OnboardingStep) => number;
 }
 
 export function useOnboardingData({ existingProfile }: UseOnboardingDataProps = {}): UseOnboardingDataReturn {
@@ -110,7 +111,7 @@ export function useOnboardingData({ existingProfile }: UseOnboardingDataProps = 
 
   // Count collected fields for progress indicator
   const getCollectedFieldsCount = useCallback(
-    (step: 'profile' | 'about' | 'services' | 'template' | 'photos'): number => {
+    (step: OnboardingStep): number => {
       switch (step) {
         case 'profile': {
           const { displayName, username, location, instagram, tiktok, website, agency } = data.profile;

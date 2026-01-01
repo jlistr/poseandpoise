@@ -2,8 +2,8 @@
 // Onboarding Types & Design Tokens
 // ============================================================================
 
-// Step Types
-export type OnboardingStep = 'profile' | 'about' | 'services' | 'template' | 'photos';
+// Step Types (ordered: template → photos → profile → services → about)
+export type OnboardingStep = 'template' | 'photos' | 'profile' | 'services' | 'about';
 export type LocationStatus = 'idle' | 'detecting' | 'found' | 'error';
 export type ExperienceLevel = 'beginner' | 'intermediate' | 'professional' | 'expert';
 
@@ -65,6 +65,11 @@ export interface Template {
   bgColor: string;
   textColor: string;
   isPro: boolean;
+  // Layout characteristics
+  layout: 'hero-split' | 'hero-fullscreen' | 'grid-first' | 'filmstrip';
+  heroStyle: 'left-aligned' | 'centered' | 'right-aligned' | 'overlay';
+  galleryStyle: 'masonry' | 'grid-3' | 'grid-2' | 'filmstrip' | 'stacked';
+  navStyle: 'minimal' | 'classic' | 'floating' | 'hidden';
 }
 
 export interface PortfolioPhoto {
@@ -159,10 +164,58 @@ export const DEFAULT_SERVICE_CATEGORIES: ServiceCategory[] = [
 ];
 
 export const TEMPLATES: Template[] = [
-  { id: 'rose', name: 'Rosé', description: 'Soft editorial blush with feminine elegance', accentColor: '#F5D5D8', bgColor: '#FFF9F9', textColor: '#2D2D2D', isPro: false },
-  { id: 'poise', name: 'Poise', description: 'Timeless elegance with warm neutrals', accentColor: '#C4A484', bgColor: '#FAF9F6', textColor: '#2D2D2D', isPro: false },
-  { id: 'lumiere', name: 'Lumière', description: 'Golden hour warmth with editorial flair', accentColor: '#D4A574', bgColor: '#2C2420', textColor: '#F5F0EB', isPro: false },
-  { id: 'noir', name: 'Noir', description: 'Bold monochrome with dramatic contrast', accentColor: '#FFFFFF', bgColor: '#1A1A1A', textColor: '#FFFFFF', isPro: true },
+  {
+    id: 'rose',
+    name: 'Rosé',
+    description: 'Split hero with elegant masonry gallery',
+    accentColor: '#F5D5D8',
+    bgColor: '#FFF9F9',
+    textColor: '#2D2D2D',
+    isPro: false,
+    layout: 'hero-split',
+    heroStyle: 'left-aligned',
+    galleryStyle: 'masonry',
+    navStyle: 'minimal',
+  },
+  {
+    id: 'poise',
+    name: 'Poise',
+    description: 'Centered hero with clean 3-column grid',
+    accentColor: '#C4A484',
+    bgColor: '#FAF9F6',
+    textColor: '#2D2D2D',
+    isPro: false,
+    layout: 'hero-fullscreen',
+    heroStyle: 'centered',
+    galleryStyle: 'grid-3',
+    navStyle: 'classic',
+  },
+  {
+    id: 'lumiere',
+    name: 'Lumière',
+    description: 'Cinematic filmstrip with vintage warmth',
+    accentColor: '#D4A574',
+    bgColor: '#2C2420',
+    textColor: '#F5F0EB',
+    isPro: false,
+    layout: 'filmstrip',
+    heroStyle: 'overlay',
+    galleryStyle: 'filmstrip',
+    navStyle: 'floating',
+  },
+  {
+    id: 'noir',
+    name: 'Noir',
+    description: 'Bold 2-column with dramatic full-bleed images',
+    accentColor: '#FFFFFF',
+    bgColor: '#1A1A1A',
+    textColor: '#FFFFFF',
+    isPro: true,
+    layout: 'grid-first',
+    heroStyle: 'right-aligned',
+    galleryStyle: 'grid-2',
+    navStyle: 'hidden',
+  },
 ];
 
 export const DEFAULT_PROFILE_DATA: ProfileData = {
