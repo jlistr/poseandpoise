@@ -125,13 +125,13 @@ const styles = {
     padding: "4px 8px",
     borderRadius: "6px",
     transition: "all 0.2s ease",
-    backgroundColor: active ? "rgba(255, 122, 162, 0.08)" : "transparent",
+    backgroundColor: active ? "rgba(196, 164, 132, 0.1)" : "transparent",
   }),
   progressDot: (active: boolean, completed: boolean) => ({
     width: "10px",
     height: "10px",
     borderRadius: "50%",
-    backgroundColor: completed ? "#22C55E" : active ? "#FF7AA2" : "rgba(26, 26, 26, 0.15)",
+    backgroundColor: completed ? "#1A1A1A" : active ? "#C4A484" : "rgba(26, 26, 26, 0.15)",
     transition: "all 0.3s ease",
   }),
   progressLabel: (active: boolean, completed: boolean) => ({
@@ -139,7 +139,7 @@ const styles = {
     fontSize: "10px",
     fontWeight: active ? 600 : 400,
     letterSpacing: "0.5px",
-    color: completed ? "#22C55E" : active ? "#FF7AA2" : "rgba(26, 26, 26, 0.4)",
+    color: completed ? "#1A1A1A" : active ? "#C4A484" : "rgba(26, 26, 26, 0.4)",
     textTransform: "uppercase" as const,
     transition: "all 0.2s ease",
     whiteSpace: "nowrap" as const,
@@ -147,7 +147,7 @@ const styles = {
   progressLine: (completed: boolean) => ({
     width: "20px",
     height: "2px",
-    backgroundColor: completed ? "#22C55E" : "rgba(26, 26, 26, 0.1)",
+    backgroundColor: completed ? "#1A1A1A" : "rgba(26, 26, 26, 0.1)",
     transition: "all 0.3s ease",
     flexShrink: 0,
   }),
@@ -1421,13 +1421,13 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
                     onMouseEnter={(e) => {
                       if (clickable) {
                         e.currentTarget.style.backgroundColor = isActive 
-                          ? "rgba(255, 122, 162, 0.12)" 
+                          ? "rgba(196, 164, 132, 0.15)" 
                           : "rgba(26, 26, 26, 0.04)";
                       }
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = isActive 
-                        ? "rgba(255, 122, 162, 0.08)" 
+                        ? "rgba(196, 164, 132, 0.1)" 
                         : "transparent";
                     }}
                   >
