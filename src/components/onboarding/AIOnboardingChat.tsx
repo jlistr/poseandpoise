@@ -2101,7 +2101,7 @@ export function AIOnboardingChat({
                     type="text"
                     placeholder="yourhandle"
                     value={socialHandles.instagram}
-                    onChange={(e) => setSocialHandles(prev => ({ ...prev, instagram: e.target.value }))}
+                    onChange={(e) => setSocialHandles(prev => ({ ...prev, instagram: e.target.value.replace('@', '') }))}
                     style={{
                       flex: 1,
                       padding: "10px 12px",
@@ -2114,6 +2114,34 @@ export function AIOnboardingChat({
                     }}
                   />
                 </div>
+                {/* Live Instagram link preview */}
+                {socialHandles.instagram && (
+                  <a
+                    href={`https://instagram.com/${socialHandles.instagram.replace('@', '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      marginTop: "8px",
+                      fontFamily: "'Outfit', sans-serif",
+                      fontSize: "12px",
+                      color: "#C4A484",
+                      textDecoration: "none",
+                      transition: "color 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = "#E1306C"}
+                    onMouseLeave={(e) => e.currentTarget.style.color = "#C4A484"}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                      <polyline points="15,3 21,3 21,9" />
+                      <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                    instagram.com/{socialHandles.instagram.replace('@', '')}
+                  </a>
+                )}
               </div>
               
               {/* TikTok */}
@@ -2147,7 +2175,7 @@ export function AIOnboardingChat({
                     type="text"
                     placeholder="yourhandle"
                     value={socialHandles.tiktok}
-                    onChange={(e) => setSocialHandles(prev => ({ ...prev, tiktok: e.target.value }))}
+                    onChange={(e) => setSocialHandles(prev => ({ ...prev, tiktok: e.target.value.replace('@', '') }))}
                     style={{
                       flex: 1,
                       padding: "10px 12px",
@@ -2160,6 +2188,34 @@ export function AIOnboardingChat({
                     }}
                   />
                 </div>
+                {/* Live TikTok link preview */}
+                {socialHandles.tiktok && (
+                  <a
+                    href={`https://tiktok.com/@${socialHandles.tiktok.replace('@', '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      marginTop: "8px",
+                      fontFamily: "'Outfit', sans-serif",
+                      fontSize: "12px",
+                      color: "#C4A484",
+                      textDecoration: "none",
+                      transition: "color 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = "#000000"}
+                    onMouseLeave={(e) => e.currentTarget.style.color = "#C4A484"}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                      <polyline points="15,3 21,3 21,9" />
+                      <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                    tiktok.com/@{socialHandles.tiktok.replace('@', '')}
+                  </a>
+                )}
               </div>
               
               {/* Website */}
@@ -2198,6 +2254,34 @@ export function AIOnboardingChat({
                     boxSizing: "border-box",
                   }}
                 />
+                {/* Live Website link preview */}
+                {socialHandles.website && socialHandles.website.length > 5 && (
+                  <a
+                    href={socialHandles.website.startsWith('http') ? socialHandles.website : `https://${socialHandles.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      marginTop: "8px",
+                      fontFamily: "'Outfit', sans-serif",
+                      fontSize: "12px",
+                      color: "#C4A484",
+                      textDecoration: "none",
+                      transition: "color 0.2s ease",
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = "#1A1A1A"}
+                    onMouseLeave={(e) => e.currentTarget.style.color = "#C4A484"}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                      <polyline points="15,3 21,3 21,9" />
+                      <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                    {socialHandles.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                  </a>
+                )}
               </div>
               
               {/* Buttons */}
