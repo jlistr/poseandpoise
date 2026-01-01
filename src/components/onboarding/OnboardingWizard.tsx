@@ -8,6 +8,8 @@ import {
   type OnboardingStep,
   type StepInfo,
   type ExistingProfile,
+  type ExistingService,
+  type ExistingPhoto,
   colors,
   fonts,
 } from './types';
@@ -72,9 +74,11 @@ interface OnboardingWizardProps {
   userEmail: string;
   userId: string;
   existingProfile?: ExistingProfile;
+  existingServices?: ExistingService[];
+  existingPhotos?: ExistingPhoto[];
 }
 
-export function OnboardingWizard({ userEmail, userId, existingProfile }: OnboardingWizardProps): React.JSX.Element {
+export function OnboardingWizard({ userEmail, userId, existingProfile, existingServices, existingPhotos }: OnboardingWizardProps): React.JSX.Element {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('template');
   const [isSaving, setIsSaving] = useState(false);
@@ -96,7 +100,12 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
     getCollectedFieldsCount,
     isUploading: isUploadingPhotos,
     uploadProgress,
-  } = useOnboardingData({ existingProfile });
+    // Incremental saves
+    saveProfile,
+    saveServices,
+    isSavingProfile,
+    isSavingServices,
+  } = useOnboardingData({ existingProfile, existingServices, existingPhotos });
 
   // Get user initials for header
   const userInitials = data.profile.displayName
@@ -116,19 +125,41 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === STEPS.length - 1;
 
-  const handleBack = useCallback(() => {
+  // Save current step data before navigating away
+  const saveCurrentStepData = useCallback(async () => {
+    switch (currentStep) {
+      case 'profile':
+        await saveProfile();
+        break;
+      case 'services':
+        await saveServices();
+        break;
+      case 'about':
+        // About data is included in profile save
+        await saveProfile();
+        break;
+      // Template saves automatically on change
+      // Photos upload immediately
+    }
+  }, [currentStep, saveProfile, saveServices]);
+
+  const handleBack = useCallback(async () => {
     if (!isFirstStep) {
+      // Save current step data before going back
+      await saveCurrentStepData();
       setCurrentStep(STEPS[currentStepIndex - 1]);
       setValidationErrors({});
     }
-  }, [currentStepIndex, isFirstStep]);
+  }, [currentStepIndex, isFirstStep, saveCurrentStepData]);
 
-  const handleSkip = useCallback(() => {
+  const handleSkip = useCallback(async () => {
     if (!isLastStep) {
+      // Save current step data before skipping
+      await saveCurrentStepData();
       setCurrentStep(STEPS[currentStepIndex + 1]);
       setValidationErrors({});
     }
-  }, [currentStepIndex, isLastStep]);
+  }, [currentStepIndex, isLastStep, saveCurrentStepData]);
 
   const validateCurrentStep = useCallback((): boolean => {
     const errors: Record<string, string> = {};
@@ -171,14 +202,16 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
     return true;
   }, [data.profile]);
 
-  const handleContinue = useCallback(() => {
+  const handleContinue = useCallback(async () => {
     if (!validateCurrentStep()) return;
 
     if (!isLastStep) {
+      // Save current step data before continuing
+      await saveCurrentStepData();
       setCurrentStep(STEPS[currentStepIndex + 1]);
       setValidationErrors({});
     }
-  }, [currentStepIndex, isLastStep, validateCurrentStep]);
+  }, [currentStepIndex, isLastStep, validateCurrentStep, saveCurrentStepData]);
 
   // Save and launch portfolio
   const handleLaunchPortfolio = useCallback(async () => {

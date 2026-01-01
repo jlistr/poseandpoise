@@ -115,6 +115,40 @@ export interface ExistingProfile {
   bio?: string | null;
   avatar_url?: string | null;
   agency?: string | null;
+  selected_template?: string | null;
+  // Measurements
+  height_cm?: number | null;
+  bust_cm?: number | null;
+  waist_cm?: number | null;
+  hips_cm?: number | null;
+  shoe_size?: string | null;
+  hair_color?: string | null;
+  eye_color?: string | null;
+  // Socials
+  instagram?: string | null;
+  tiktok?: string | null;
+  website?: string | null;
+}
+
+export interface ExistingService {
+  id: string;
+  category: string;
+  title: string;
+  description?: string | null;
+  pricing?: {
+    hourly?: number | null;
+    half_day?: number | null;
+    full_day?: number | null;
+  } | null;
+}
+
+export interface ExistingPhoto {
+  id: string;
+  url: string;
+  photographer?: string | null;
+  studio?: string | null;
+  is_visible: boolean;
+  sort_order: number;
 }
 
 // ============================================================================

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   type OnboardingData,
   type OnboardingStep,
@@ -9,10 +9,13 @@ import {
   type ServicesData,
   type PortfolioPhoto,
   type ExistingProfile,
+  type ExistingService,
+  type ExistingPhoto,
   type PhotoUploadStatus,
   DEFAULT_PROFILE_DATA,
   DEFAULT_ABOUT_DATA,
   DEFAULT_SERVICES_DATA,
+  DEFAULT_SERVICE_CATEGORIES,
 } from '../types';
 
 // ============================================================================
@@ -44,6 +47,8 @@ interface PhotoUploadSuccessResponse {
 
 interface UseOnboardingDataProps {
   existingProfile?: ExistingProfile;
+  existingServices?: ExistingService[];
+  existingPhotos?: ExistingPhoto[];
 }
 
 interface UseOnboardingDataReturn {
@@ -60,9 +65,65 @@ interface UseOnboardingDataReturn {
   getCollectedFieldsCount: (step: OnboardingStep) => number;
   isUploading: boolean;
   uploadProgress: { uploaded: number; total: number };
+  // Incremental save functions
+  saveTemplate: () => Promise<void>;
+  saveProfile: () => Promise<void>;
+  saveServices: () => Promise<void>;
+  isSavingTemplate: boolean;
+  isSavingProfile: boolean;
+  isSavingServices: boolean;
 }
 
-export function useOnboardingData({ existingProfile }: UseOnboardingDataProps = {}): UseOnboardingDataReturn {
+export function useOnboardingData({ existingProfile, existingServices, existingPhotos }: UseOnboardingDataProps = {}): UseOnboardingDataReturn {
+  // Build initial services data from existing services
+  const buildInitialServices = (): ServicesData => {
+    if (!existingServices || existingServices.length === 0) {
+      return DEFAULT_SERVICES_DATA;
+    }
+
+    // Mark categories as selected based on existing services
+    const selectedCategoryIds = new Set(existingServices.map((s) => s.category));
+    const categories = DEFAULT_SERVICE_CATEGORIES.map((cat) => ({
+      ...cat,
+      selected: selectedCategoryIds.has(cat.id),
+      description: existingServices.find((s) => s.category === cat.id)?.description || cat.description,
+    }));
+
+    // Get pricing from first service (they share pricing)
+    const firstService = existingServices[0];
+    const pricing = {
+      hourly: firstService?.pricing?.hourly?.toString() || '',
+      halfDay: firstService?.pricing?.half_day?.toString() || '',
+      fullDay: firstService?.pricing?.full_day?.toString() || '',
+    };
+
+    return {
+      ...DEFAULT_SERVICES_DATA,
+      categories,
+      pricing,
+    };
+  };
+
+  // Build initial photos from existing photos
+  const buildInitialPhotos = (): PortfolioPhoto[] => {
+    if (!existingPhotos || existingPhotos.length === 0) {
+      return [];
+    }
+
+    return existingPhotos.map((photo) => ({
+      id: `existing-${photo.id}`,
+      url: photo.url,
+      photographer: photo.photographer || '',
+      studio: photo.studio || '',
+      visible: photo.is_visible,
+      order: photo.sort_order,
+      uploadStatus: 'uploaded' as PhotoUploadStatus,
+      serverId: photo.id,
+      uploadedPhotographer: photo.photographer || '',
+      uploadedStudio: photo.studio || '',
+    }));
+  };
+
   const [data, setData] = useState<OnboardingData>(() => ({
     profile: {
       ...DEFAULT_PROFILE_DATA,
@@ -70,15 +131,28 @@ export function useOnboardingData({ existingProfile }: UseOnboardingDataProps = 
       username: existingProfile?.username || '',
       location: existingProfile?.location || '',
       agency: existingProfile?.agency || '',
+      instagram: existingProfile?.instagram || '',
+      tiktok: existingProfile?.tiktok || '',
+      website: existingProfile?.website || '',
     },
     about: {
       ...DEFAULT_ABOUT_DATA,
       bio: existingProfile?.bio || '',
       profilePhoto: existingProfile?.avatar_url || null,
+      stats: {
+        height: existingProfile?.height_cm?.toString() || '',
+        bust: existingProfile?.bust_cm?.toString() || '',
+        waist: existingProfile?.waist_cm?.toString() || '',
+        hips: existingProfile?.hips_cm?.toString() || '',
+        shoes: existingProfile?.shoe_size || '',
+        dress: '',
+        hairColor: existingProfile?.hair_color || '',
+        eyeColor: existingProfile?.eye_color || '',
+      },
     },
-    services: DEFAULT_SERVICES_DATA,
-    selectedTemplate: 'altar',
-    photos: [],
+    services: buildInitialServices(),
+    selectedTemplate: existingProfile?.selected_template || 'altar',
+    photos: buildInitialPhotos(),
   }));
 
   // Profile updates
@@ -229,6 +303,134 @@ export function useOnboardingData({ existingProfile }: UseOnboardingDataProps = 
     total: data.photos.length,
   };
 
+  // ============================================================================
+  // Incremental Save Functions
+  // ============================================================================
+
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSavingServices, setIsSavingServices] = useState(false);
+
+  // Track last saved values to avoid unnecessary API calls
+  const lastSavedTemplateRef = useRef<string | null>(existingProfile?.selected_template || null);
+  const lastSavedProfileRef = useRef<ProfileData | null>(null);
+  const lastSavedServicesRef = useRef<ServicesData | null>(null);
+
+  // Save template selection immediately
+  const saveTemplate = useCallback(async () => {
+    if (data.selectedTemplate === lastSavedTemplateRef.current) return;
+    
+    setIsSavingTemplate(true);
+    try {
+      const response = await fetch('/api/onboarding/save-template', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ template_id: data.selectedTemplate }),
+      });
+      
+      if (response.ok) {
+        lastSavedTemplateRef.current = data.selectedTemplate;
+        console.log('Template saved:', data.selectedTemplate);
+      }
+    } catch (error) {
+      console.error('Failed to save template:', error);
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  }, [data.selectedTemplate]);
+
+  // Save profile data
+  const saveProfile = useCallback(async () => {
+    // Only save if we have the required fields
+    if (!data.profile.username.trim() || !data.profile.displayName.trim()) return;
+    
+    setIsSavingProfile(true);
+    try {
+      const formData = new FormData();
+      formData.append('username', data.profile.username.toLowerCase().trim());
+      formData.append('display_name', data.profile.displayName.trim());
+      if (data.profile.location) formData.append('location', data.profile.location.trim());
+      if (data.profile.instagram) formData.append('instagram', data.profile.instagram.trim());
+      if (data.profile.tiktok) formData.append('tiktok', data.profile.tiktok.trim());
+      if (data.profile.website) formData.append('website', data.profile.website.trim());
+      if (data.profile.agency) formData.append('agency', data.profile.agency.trim());
+      if (data.about.bio) formData.append('bio', data.about.bio.trim());
+
+      // Add measurements
+      const { stats } = data.about;
+      if (stats.height) formData.append('height_cm', stats.height);
+      if (stats.bust) formData.append('bust_cm', stats.bust);
+      if (stats.waist) formData.append('waist_cm', stats.waist);
+      if (stats.hips) formData.append('hips_cm', stats.hips);
+      if (stats.shoes) formData.append('shoe_size', stats.shoes);
+      if (stats.dress) formData.append('dress_size', stats.dress);
+      if (stats.hairColor) formData.append('hair_color', stats.hairColor);
+      if (stats.eyeColor) formData.append('eye_color', stats.eyeColor);
+
+      const response = await fetch('/api/onboarding/update-profile', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        lastSavedProfileRef.current = { ...data.profile };
+        console.log('Profile saved');
+      }
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+    } finally {
+      setIsSavingProfile(false);
+    }
+  }, [data.profile, data.about]);
+
+  // Save services data
+  const saveServices = useCallback(async () => {
+    setIsSavingServices(true);
+    try {
+      const selectedCategories = data.services.categories.filter((c) => c.selected);
+      const payload = {
+        experience_level: data.services.experienceLevel,
+        services: selectedCategories.map((cat) => ({
+          category: cat.id,
+          title: cat.name,
+          description: cat.description,
+          pricing: {
+            hourly: data.services.pricing.hourly ? Number(data.services.pricing.hourly) : null,
+            half_day: data.services.pricing.halfDay ? Number(data.services.pricing.halfDay) : null,
+            full_day: data.services.pricing.fullDay ? Number(data.services.pricing.fullDay) : null,
+          },
+        })),
+        travel_available: data.services.travelAvailable,
+        travel_radius: data.services.travelRadius,
+        tfp_available: data.services.tfpAvailable,
+      };
+
+      const response = await fetch('/api/onboarding/save-services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        lastSavedServicesRef.current = { ...data.services };
+        console.log('Services saved');
+      }
+    } catch (error) {
+      console.error('Failed to save services:', error);
+    } finally {
+      setIsSavingServices(false);
+    }
+  }, [data.services]);
+
+  // Auto-save template when it changes (immediate)
+  useEffect(() => {
+    // Skip if it's the initial value from existingProfile
+    if (data.selectedTemplate === existingProfile?.selected_template) return;
+    if (data.selectedTemplate === lastSavedTemplateRef.current) return;
+    
+    saveTemplate();
+  }, [data.selectedTemplate, existingProfile?.selected_template, saveTemplate]);
+
   // Count collected fields for progress indicator
   const getCollectedFieldsCount = useCallback(
     (step: OnboardingStep): number => {
@@ -279,6 +481,13 @@ export function useOnboardingData({ existingProfile }: UseOnboardingDataProps = 
     getCollectedFieldsCount,
     isUploading,
     uploadProgress,
+    // Incremental saves
+    saveTemplate,
+    saveProfile,
+    saveServices,
+    isSavingTemplate,
+    isSavingProfile,
+    isSavingServices,
   };
 }
 
