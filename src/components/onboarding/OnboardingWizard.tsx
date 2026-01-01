@@ -55,6 +55,7 @@ interface OnboardingData {
   instagram: string;
   tiktok: string;
   website: string;
+  agency: string;
   
   // Step 2: About
   bio: string;
@@ -358,6 +359,7 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
     instagram: "",
     tiktok: "",
     website: "",
+    agency: "",
     // Step 2
     bio: existingProfile?.bio || "",
     avatarUrl: existingProfile?.avatar_url || null,
@@ -775,6 +777,7 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
       instagram: profileData.instagram,
       tiktok: profileData.tiktok,
       website: profileData.website,
+      agency: profileData.agency,
     });
     handleNext();
   };
