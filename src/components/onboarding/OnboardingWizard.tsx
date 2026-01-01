@@ -265,15 +265,43 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
         throw new Error(templateError.error || 'Failed to save template');
       }
 
-      // 4. Upload any remaining photos that haven't been uploaded yet
-      // (Photos are now uploaded in real-time, so this catches any that failed or are pending)
+      // 4. Handle photos - upload pending/failed ones, update credits for already-uploaded ones
       for (const photo of data.photos) {
-        // Skip photos that are already uploaded
-        if (photo.uploadStatus === 'uploaded' && photo.serverId) {
+        // Skip photos currently uploading - they'll complete on their own
+        if (photo.uploadStatus === 'uploading') {
           continue;
         }
         
-        if (photo.file) {
+        // For already-uploaded photos, check if credits were edited after upload
+        if (photo.uploadStatus === 'uploaded' && photo.serverId) {
+          const creditsChanged = 
+            photo.photographer !== (photo.uploadedPhotographer || '') ||
+            photo.studio !== (photo.uploadedStudio || '');
+          
+          if (creditsChanged) {
+            // Update credits on the server without re-uploading the file
+            try {
+              const updateResponse = await fetch('/api/onboarding/update-photo-credits', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  photo_id: photo.serverId,
+                  photographer: photo.photographer || '',
+                  studio: photo.studio || '',
+                }),
+              });
+              if (!updateResponse.ok) {
+                console.error('Failed to update photo credits:', photo.id);
+              }
+            } catch (err) {
+              console.error('Error updating photo credits:', err);
+            }
+          }
+          continue;
+        }
+        
+        // Upload pending or failed photos
+        if (photo.file && (photo.uploadStatus === 'pending' || photo.uploadStatus === 'error')) {
           const photoFormData = new FormData();
           photoFormData.append('file', photo.file);
           photoFormData.append('photographer', photo.photographer || '');

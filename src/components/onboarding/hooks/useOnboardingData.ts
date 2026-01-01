@@ -120,6 +120,9 @@ export function useOnboardingData({ existingProfile }: UseOnboardingDataProps = 
         uploadStatus: 'uploaded',
         serverId: result.photo?.id,
         url: result.photo?.url || photo.url, // Use server URL if available
+        // Track what was uploaded so we can detect changes later
+        uploadedPhotographer: photo.photographer,
+        uploadedStudio: photo.studio,
       });
     } catch (error) {
       console.error('Photo upload error:', error);
@@ -132,10 +135,20 @@ export function useOnboardingData({ existingProfile }: UseOnboardingDataProps = 
     }
   }, [updatePhotoStatus]);
 
+  // Generate unique ID for photos
+  // Using crypto.randomUUID() for guaranteed uniqueness even with rapid uploads
+  const generatePhotoId = useCallback((): string => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return `photo-${crypto.randomUUID()}`;
+    }
+    // Fallback for environments without crypto.randomUUID
+    return `photo-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+  }, []);
+
   // Photo management - adds photos and starts upload immediately
   const addPhotos = useCallback((files: FileList) => {
     const newPhotos: PortfolioPhoto[] = Array.from(files).map((file, index) => ({
-      id: `photo-${Date.now()}-${index}`,
+      id: generatePhotoId(),
       url: URL.createObjectURL(file),
       file,
       photographer: '',
@@ -143,6 +156,9 @@ export function useOnboardingData({ existingProfile }: UseOnboardingDataProps = 
       visible: true,
       order: data.photos.length + index,
       uploadStatus: 'pending' as PhotoUploadStatus,
+      // Track what was uploaded to detect credit changes
+      uploadedPhotographer: '',
+      uploadedStudio: '',
     }));
     
     setData((prev) => ({ ...prev, photos: [...prev.photos, ...newPhotos] }));
@@ -151,7 +167,7 @@ export function useOnboardingData({ existingProfile }: UseOnboardingDataProps = 
     newPhotos.forEach((photo) => {
       uploadPhoto(photo);
     });
-  }, [data.photos.length, uploadPhoto]);
+  }, [data.photos.length, uploadPhoto, generatePhotoId]);
 
   const togglePhotoVisibility = useCallback((id: string) => {
     setData((prev) => ({

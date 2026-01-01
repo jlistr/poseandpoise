@@ -86,6 +86,9 @@ export interface PortfolioPhoto {
   uploadStatus: PhotoUploadStatus;
   uploadError?: string;
   serverId?: string; // ID from database after successful upload
+  // Track what was uploaded to detect credit changes after upload
+  uploadedPhotographer?: string;
+  uploadedStudio?: string;
 }
 
 export interface OnboardingData {
