@@ -1,0 +1,143 @@
+POST https://getlate.dev/api/v1/social-accounts/connect AUTH
+"Authorization: Bearer sk_d2a1dc5a342950371539eec7f70419478a4ce1e479cc684ef7a7f41ddd2d4255"
+
+Pass it RAW JSON in the body 
+'{
+  "platform": "instagram",
+  "profile_id": "69568fa185cefc061f3f7a32"
+}'
+
+Will Recieve a connect_url
+
+Step 1: Generate an OAuth Connection URL
+You need to call the Late API's endpoint to generate a connection URL for the Instagram account.
+
+Request
+
+POST https://getlate.dev/api/v1/social-accounts/connect
+Headers
+Authorization: Bearer sk_your_api_key
+Body Parameters
+platform: The social media platform, in this case, "instagram".
+(Optional) profile_id: The ID of the profile where the connected Instagram account should be grouped. If not provided, the account will be added to the default profile.
+Example cURL Command
+
+curl -X POST https://getlate.dev/api/v1/social-accounts/connect \
+-H "Authorization: Bearer sk_d2a1dc5a342950371539eec7f70419478a4ce1e479cc684ef7a7f41ddd2d4255" \
+-H "Content-Type: application/json" \
+-d '{
+  "platform": "instagram",
+  "profile_id": "69568fa185cefc061f3f7a32"
+}'
+
+
+Example Response
+You will receive a response containing a connect_url. This is the URL you should provide to your customers to connect their Instagram account.
+
+Sample response:
+
+
+{
+  "connect_url": "https://getlate.dev/connect/instagram?token=abcd1234"
+}
+Step 2: Redirect Customers to the connect_url
+Once you have the connect_url, redirect the customer to this URL so they can log in to their Instagram account and grant permissions. For example:
+
+
+const ConnectInstagram = ({ connectUrl }) => {
+  return (
+    <div>
+      <p>To connect your Instagram account, click the button below:</p>
+      <a href={connectUrl} target="_blank" rel="noopener noreferrer">
+        <button>Connect Instagram</button>
+      </a>
+    </div>
+  );
+};
+export default ConnectInstagram;
+Step 3: Handle the Webhook (Optional)
+Once the customer successfully connects their Instagram account, Late may send a webhook to your server to confirm the connection. The webhook will contain information about the connected social account, including the platform, username, and profile_id.
+
+Ensure your backend is configured to receive and process this webhook.
+
+Full Example Flow in React
+Here’s an example implementation in React:
+
+Generate Connection URL: Create a function to call the Late API and retrieve the connection URL for Instagram.
+
+Render the URL in Your UI: Display the link in your UI so users can connect their Instagram account.
+
+
+import { useEffect, useState } from "react";
+const ConnectInstagram = ({ apiKey, profileId }) => {
+  const [connectUrl, setConnectUrl] = useState("");
+  useEffect(() => {
+    const fetchConnectUrl = async () => {
+      try {
+        const response = await fetch(
+          "https://getlate.dev/api/v1/social-accounts/connect",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              platform: "instagram",
+              profile_id: profileId, // Optional
+            }),
+          }
+        );
+        if (!response.ok) {
+          throw new Error("Failed to generate connect URL");
+        }
+        const data = await response.json();
+        setConnectUrl(data.connect_url);
+      } catch (error) {
+        console.error("Error generating connect URL:", error);
+      }
+    };
+    fetchConnectUrl();
+  }, [apiKey, profileId]);
+  return (
+    <div>
+      {connectUrl ? (
+        <a href={connectUrl} target="_blank" rel="noopener noreferrer">
+          <button>Connect Instagram</button>
+        </a>
+      ) : (
+        <p>Loading connection URL...</p>
+      )}
+    </div>
+  );
+};
+export default ConnectInstagram;
+Step 4: Verify the Instagram Account is Connected
+After the user connects their Instagram account, you can retrieve their social accounts (as explained earlier) to confirm the connection. Look for the platform: "instagram" in the response.
+
+Example:
+
+
+const fetchInstagramAccount = async () => {
+  const response = await fetch(
+    `https://getlate.dev/api/v1/profiles/${profileId}/social-accounts`,
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    }
+  );
+  const data = await response.json();
+  const instagramAccount = data.find(
+    (account) => account.platform === "instagram"
+  );
+  if (instagramAccount) {
+    console.log("Instagram account connected:", instagramAccount.username);
+  } else {
+    console.log("No Instagram account connected.");
+  }
+};
+Key Points to Keep in Mind
+OAuth Authentication Flow: Connecting Instagram accounts requires user action to authenticate and grant permissions via the connect_url.
+Profiles: Accounts can optionally be connected under a specific profile for better organization.
+Backend Support: If you’re working with webhooks, ensure your backend is set up to securely handle Late’s webhook events.

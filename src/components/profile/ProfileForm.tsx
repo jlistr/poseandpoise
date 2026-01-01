@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useMemo } from "react";
 import { updateProfile, type Profile } from "@/app/actions/profile";
 import { uploadAgencyLogo, deleteAgencyLogo } from "@/app/actions/agency-logo";
 import { colors, typography, spacing } from "@/styles/tokens";
+import { SocialAccountsConnect } from "./SocialAccountsConnect";
 
 // =============================================================================
 // Unit Conversion Utilities
@@ -876,6 +877,25 @@ export function ProfileForm({ profile }: ProfileFormProps) {
       {/* Social Links */}
       <div style={sectionStyle}>
         <h3 style={sectionTitleStyle}>Social Links</h3>
+        
+        {/* Connect Social Accounts */}
+        <div style={{ 
+          marginBottom: spacing.padding.lg,
+          padding: spacing.padding.md,
+          background: 'rgba(196, 164, 132, 0.05)',
+          border: `1px solid ${colors.accent.light}`,
+        }}>
+          <SocialAccountsConnect 
+            onAccountConnected={(platform, username) => {
+              // Auto-populate the input field when account is connected
+              const input = document.querySelector(`input[name="${platform}"]`) as HTMLInputElement;
+              if (input && !input.value) {
+                input.value = `@${username}`;
+              }
+            }}
+          />
+        </div>
+
         <div style={gridStyle}>
           <div>
             <label style={labelStyle}>Instagram</label>

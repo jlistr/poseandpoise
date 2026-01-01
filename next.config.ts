@@ -19,6 +19,26 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: '*.poseandpoise.studio',
       },
+      {
+        // Instagram CDN for profile pictures (Late API)
+        protocol: 'https',
+        hostname: 'scontent-iad3-2.cdninstagram.com',
+      },
+      {
+        // Instagram CDN wildcard
+        protocol: 'https',
+        hostname: '*.cdninstagram.com',
+      },
+      {
+        // TikTok CDN for profile pictures (Late API)
+        protocol: 'https',
+        hostname: '*.tiktokcdn-us.com',
+      },
+      {
+        // TikTok CDN alternate
+        protocol: 'https',
+        hostname: '*.tiktokcdn.com',
+      },
     ],
   },
 };
