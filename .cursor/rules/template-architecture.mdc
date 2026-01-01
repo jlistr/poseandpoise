@@ -1,0 +1,201 @@
+---
+alwaysApply: true
+description: Defines the portfolio template system architecture and naming conventions
+---
+
+# Portfolio Template Architecture — STRICT ENFORCEMENT
+
+Pose & Poise offers custom site templates as a premium feature. This rule defines the architecture, naming conventions, and design principles for the template system.
+
+## Two Distinct Systems
+
+The platform consists of two separate but connected systems:
+
+### 1. Main Application (Dashboard/Control Center)
+- Landing page, onboarding, dashboard, settings, billing
+- Uses brand colors: Cream (#FAF9F7), Charcoal (#1A1A1A), Camel (#C4A484)
+- Uses brand fonts: Cormorant Garamond (headlines), Outfit (body)
+- Authenticated users only
+- Manages data, uploads, settings
+
+### 2. Portfolio Templates (Public Mini-Sites)
+- Rendered at `poseandpoise.studio/{username}`
+- Each template is a self-contained 4-5 page mini-website
+- Templates have their own color palettes, fonts, and layouts
+- Public, no authentication required
+- Read-only display of user data
+
+## Template Naming Convention — REQUIRED
+
+Templates use **conceptual alternative names** that evoke mood and industry focus:
+
+| Template ID | Name | Target Aesthetic | Industry Focus |
+|-------------|------|------------------|----------------|
+| `elysian` | Elysian | Soft, warm, approachable | Commercial/Lifestyle |
+| `obsidian` | Obsidian | Moody, high-contrast, edgy | Editorial/Fashion |
+| `solstice` | Solstice | Dynamic, raw, powerful | Fitness/Athletic |
+| `altar` | Altar | Minimalist, sophisticated, clean | Bridal/Luxury |
+
+**FORBIDDEN:** Generic names like "Template 1", "Dark Theme", "Light Theme"
+
+## Template Structure — REQUIRED
+
+Each template lives in `/src/templates/{template-id}/`:
+
+```
+templates/
+├── index.ts                    # Central registry & metadata
+├── elysian/
+│   ├── ElysianTemplate.tsx     # Main entry point
+│   └── components/
+│       ├── Header.tsx          # Navigation
+│       ├── PortfolioPage.tsx   # Photo gallery (landing)
+│       ├── AboutPage.tsx       # Bio, stats, story
+│       ├── ServicesPage.tsx    # Rates, booking info
+│       ├── ContactPage.tsx     # Contact form
+│       ├── Footer.tsx          # Social links
+│       └── FullScreenMenu.tsx  # Mobile navigation
+├── obsidian/
+│   └── [same structure]
+├── solstice/
+│   └── [same structure]
+└── altar/
+    └── [same structure]
+```
+
+## Template Building Blocks — REQUIRED
+
+Every template MUST include these pages/sections:
+
+| Page | Purpose | Required Content |
+|------|---------|------------------|
+| **Portfolio** | Landing/Home | Photo gallery, name, brief intro |
+| **About** | Personal story | Bio, measurements, hair/eye color, agency |
+| **Services** | Business info | Rates, comp card, booking types |
+| **Contact** | Lead generation | Contact form, social links, location |
+
+## Template Data Interface — REQUIRED
+
+All templates receive the same `PortfolioData` interface:
+
+```typescript
+interface PortfolioData {
+  profile: {
+    displayName: string;
+    username: string;
+    bio: string;
+    avatarUrl: string;
+    agency?: string;
+    location?: string;
+  };
+  stats: {
+    heightCm: number;
+    bustCm: number;
+    waistCm: number;
+    hipsCm: number;
+    shoeSize: string;
+    hairColor: string;
+    eyeColor: string;
+  };
+  photos: Array<{
+    id: string;
+    url: string;
+    thumbnailUrl: string;
+    caption?: string;
+    sortOrder: number;
+    isVisible: boolean;
+  }>;
+  services: Array<{
+    title: string;
+    description: string;
+    price: string;
+  }>;
+  social: {
+    instagram?: string;
+    tiktok?: string;
+    website?: string;
+  };
+  settings: {
+    template: string;
+    accentColor?: string;
+    isPublished: boolean;
+    isPublic: boolean;
+  };
+}
+```
+
+## Template Metadata — REQUIRED
+
+Each template must define metadata for the selector UI:
+
+```typescript
+interface TemplateMetadata {
+  id: string;                    // e.g., 'elysian'
+  name: string;                  // e.g., 'Elysian'
+  description: string;           // Evocative, sells the aesthetic
+  isPremium: boolean;            // Gated behind Pro subscription
+  thumbnailUrl: string;          // Preview image path
+  accentColor: string;           // Primary accent hex
+  // Layout characteristics
+  layout: 'hero-split' | 'hero-fullscreen' | 'grid-first' | 'filmstrip';
+  heroStyle: 'left-aligned' | 'centered' | 'right-aligned' | 'overlay';
+  galleryStyle: 'masonry' | 'grid-3' | 'grid-2' | 'filmstrip' | 'stacked';
+  navStyle: 'minimal' | 'classic' | 'floating' | 'hidden';
+}
+```
+
+## Template Selector — DESIGN PRINCIPLES
+
+The template selector is a **sales tool** that showcases templates with mid-to-high fidelity previews.
+
+### Purpose
+- Excite users about premium subscription value
+- Demonstrate the unique look and feel of each template
+- Show real layout differences, not just color swaps
+
+### REQUIRED Preview Elements
+- High-fidelity mockup showing actual layout structure
+- User's name dynamically inserted into preview
+- Visible navigation style differences
+- Gallery layout visualization (masonry vs grid vs filmstrip)
+- Hero section structure (split, centered, overlay, etc.)
+
+### FORBIDDEN in Previews
+- ❌ Generic placeholder boxes
+- ❌ Simple color-only differentiation
+- ❌ Low-effort "lorem ipsum" style mockups
+- ❌ Screenshots instead of rendered previews
+
+### Premium Gating
+```typescript
+export function getAvailableTemplates(isPro: boolean): TemplateMetadata[] {
+  if (isPro) return TEMPLATE_METADATA;
+  return TEMPLATE_METADATA.filter(t => !t.isPremium);
+}
+```
+
+## Template Independence — REQUIRED
+
+Templates are **isolated** and can define their own:
+- Color palette (independent of brand colors)
+- Typography choices
+- Layout structure
+- Animation style
+- Component library
+
+**BUT** all templates must:
+- Accept the same `PortfolioData` interface
+- Be interchangeable (user can switch without data loss)
+- Follow accessibility standards
+- Be responsive (mobile-first)
+
+## ENFORCEMENT
+
+Before creating or modifying templates:
+1. Use conceptual names (Elysian, Obsidian, Solstice, Altar)
+2. Follow the required folder structure
+3. Implement all 4 building block pages
+4. Accept `PortfolioData` interface
+5. Define complete metadata with layout characteristics
+6. Create high-fidelity selector previews that showcase unique layouts
+7. Gate premium templates behind subscription check

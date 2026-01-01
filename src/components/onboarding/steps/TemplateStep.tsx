@@ -239,7 +239,7 @@ function TemplatePreview({ template, isSelected, modelName, onClick }: TemplateP
       style={{
         padding: 0,
         border: isSelected ? `3px solid ${colors.camel}` : `1px solid ${colors.border}`,
-        borderRadius: '12px',
+        borderRadius: 0,
         overflow: 'hidden',
         cursor: 'pointer',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -288,7 +288,7 @@ function TemplatePreview({ template, isSelected, modelName, onClick }: TemplateP
             fontSize: '9px',
             fontWeight: 600,
             letterSpacing: '0.08em',
-            borderRadius: '4px',
+            borderRadius: 0,
             display: 'flex',
             alignItems: 'center',
             gap: '4px',
@@ -326,7 +326,7 @@ function TemplatePreview({ template, isSelected, modelName, onClick }: TemplateP
             color: colors.textMuted,
             backgroundColor: colors.cream,
             padding: '2px 6px',
-            borderRadius: '3px',
+            borderRadius: 0,
           }}>
             {template.galleryStyle === 'masonry' ? 'MASONRY' : 
              template.galleryStyle === 'grid-3' ? '3-COL' :
@@ -399,7 +399,7 @@ export function TemplateStep({ selectedTemplate, onSelectTemplate, modelName = '
           marginTop: '2rem',
           padding: '1rem 1.25rem',
           backgroundColor: colors.cream,
-          borderRadius: '0.75rem',
+          borderRadius: 0,
           border: `1px solid ${colors.border}`,
         }}
       >
