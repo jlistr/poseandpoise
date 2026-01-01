@@ -72,6 +72,8 @@ export interface Template {
   navStyle: 'minimal' | 'classic' | 'floating' | 'hidden';
 }
 
+export type PhotoUploadStatus = 'pending' | 'uploading' | 'uploaded' | 'error';
+
 export interface PortfolioPhoto {
   id: string;
   url: string;
@@ -80,6 +82,10 @@ export interface PortfolioPhoto {
   studio: string;
   visible: boolean;
   order: number;
+  // Upload tracking
+  uploadStatus: PhotoUploadStatus;
+  uploadError?: string;
+  serverId?: string; // ID from database after successful upload
 }
 
 export interface OnboardingData {

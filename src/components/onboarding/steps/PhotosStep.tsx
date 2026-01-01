@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { colors, fonts, type PortfolioPhoto, type Template, TEMPLATES } from '../types';
+import { colors, fonts, type PortfolioPhoto, type Template, TEMPLATES, type PhotoUploadStatus } from '../types';
 
 // ============================================================================
 // Icons
@@ -36,6 +36,27 @@ const TrashIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
   </svg>
 );
 
+const CheckIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
+const AlertIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
+  </svg>
+);
+
+const RefreshIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="23 4 23 10 17 10" />
+    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+  </svg>
+);
+
 // ============================================================================
 // Photo Card Component
 // ============================================================================
@@ -45,16 +66,23 @@ interface PhotoCardProps {
   onToggleVisibility: (id: string) => void;
   onRemove: (id: string) => void;
   onUpdateCredit: (id: string, field: 'photographer' | 'studio', value: string) => void;
+  onRetry?: (id: string) => void;
 }
 
-function PhotoCard({ photo, onToggleVisibility, onRemove, onUpdateCredit }: PhotoCardProps): React.JSX.Element {
+function PhotoCard({ photo, onToggleVisibility, onRemove, onUpdateCredit, onRetry }: PhotoCardProps): React.JSX.Element {
+  const isUploading = photo.uploadStatus === 'uploading';
+  const hasError = photo.uploadStatus === 'error';
+  const isUploaded = photo.uploadStatus === 'uploaded';
+
   return (
     <div
       style={{
-        border: `1px solid ${colors.border}`,
+        border: `1px solid ${hasError ? colors.error : colors.border}`,
         borderRadius: '0.75rem',
         overflow: 'hidden',
         backgroundColor: colors.white,
+        opacity: isUploading ? 0.8 : 1,
+        transition: 'opacity 0.2s',
       }}
     >
       {/* Image */}
@@ -76,6 +104,32 @@ function PhotoCard({ photo, onToggleVisibility, onRemove, onUpdateCredit }: Phot
             opacity: photo.visible ? 1 : 0.5,
           }}
         />
+        
+        {/* Upload status overlay */}
+        {isUploading && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundColor: 'rgba(0,0,0,0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                border: '3px solid rgba(255,255,255,0.3)',
+                borderTopColor: colors.white,
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+              }}
+            />
+          </div>
+        )}
+        
         {/* Actions overlay */}
         <div
           style={{
@@ -86,16 +140,58 @@ function PhotoCard({ photo, onToggleVisibility, onRemove, onUpdateCredit }: Phot
             gap: '0.5rem',
           }}
         >
+          {/* Upload status indicator */}
+          {isUploaded && (
+            <div
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                backgroundColor: '#4CAF50',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: colors.white,
+              }}
+              title="Uploaded"
+            >
+              <CheckIcon size={14} />
+            </div>
+          )}
+          
+          {hasError && onRetry && (
+            <button
+              type="button"
+              onClick={() => onRetry(photo.id)}
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                backgroundColor: colors.error,
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: colors.white,
+              }}
+              title={`Upload failed: ${photo.uploadError || 'Unknown error'}. Click to retry.`}
+            >
+              <RefreshIcon size={14} />
+            </button>
+          )}
+          
           <button
             type="button"
             onClick={() => onToggleVisibility(photo.id)}
+            disabled={isUploading}
             style={{
-              width: '32px',
-              height: '32px',
+              width: '28px',
+              height: '28px',
               borderRadius: '50%',
               backgroundColor: 'rgba(255,255,255,0.9)',
               border: 'none',
-              cursor: 'pointer',
+              cursor: isUploading ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -108,13 +204,14 @@ function PhotoCard({ photo, onToggleVisibility, onRemove, onUpdateCredit }: Phot
           <button
             type="button"
             onClick={() => onRemove(photo.id)}
+            disabled={isUploading}
             style={{
-              width: '32px',
-              height: '32px',
+              width: '28px',
+              height: '28px',
               borderRadius: '50%',
               backgroundColor: 'rgba(255,255,255,0.9)',
               border: 'none',
-              cursor: 'pointer',
+              cursor: isUploading ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -125,6 +222,7 @@ function PhotoCard({ photo, onToggleVisibility, onRemove, onUpdateCredit }: Phot
             <TrashIcon size={14} />
           </button>
         </div>
+        
         {/* Hidden badge */}
         {!photo.visible && (
           <div
@@ -142,6 +240,28 @@ function PhotoCard({ photo, onToggleVisibility, onRemove, onUpdateCredit }: Phot
             Hidden
           </div>
         )}
+        
+        {/* Error badge */}
+        {hasError && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '0.5rem',
+              left: '0.5rem',
+              padding: '0.25rem 0.5rem',
+              backgroundColor: colors.error,
+              color: colors.white,
+              fontSize: '10px',
+              borderRadius: '0.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+            }}
+          >
+            <AlertIcon size={10} />
+            Upload failed
+          </div>
+        )}
       </div>
       {/* Credits */}
       <div style={{ padding: '0.75rem' }}>
@@ -150,6 +270,7 @@ function PhotoCard({ photo, onToggleVisibility, onRemove, onUpdateCredit }: Phot
           placeholder="Photographer"
           value={photo.photographer}
           onChange={(e) => onUpdateCredit(photo.id, 'photographer', e.target.value)}
+          disabled={isUploading}
           style={{
             width: '100%',
             padding: '0.5rem',
@@ -158,6 +279,7 @@ function PhotoCard({ photo, onToggleVisibility, onRemove, onUpdateCredit }: Phot
             borderRadius: '0.375rem',
             marginBottom: '0.5rem',
             outline: 'none',
+            opacity: isUploading ? 0.5 : 1,
           }}
         />
         <input
@@ -165,6 +287,7 @@ function PhotoCard({ photo, onToggleVisibility, onRemove, onUpdateCredit }: Phot
           placeholder="Studio/Location"
           value={photo.studio}
           onChange={(e) => onUpdateCredit(photo.id, 'studio', e.target.value)}
+          disabled={isUploading}
           style={{
             width: '100%',
             padding: '0.5rem',
@@ -172,9 +295,18 @@ function PhotoCard({ photo, onToggleVisibility, onRemove, onUpdateCredit }: Phot
             border: `1px solid ${colors.border}`,
             borderRadius: '0.375rem',
             outline: 'none',
+            opacity: isUploading ? 0.5 : 1,
           }}
         />
       </div>
+      
+      {/* Spinner animation */}
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
@@ -189,8 +321,11 @@ interface PhotosStepProps {
   onToggleVisibility: (id: string) => void;
   onRemovePhoto: (id: string) => void;
   onUpdateCredit: (id: string, field: 'photographer' | 'studio', value: string) => void;
+  onRetryUpload?: (id: string) => void;
   selectedTemplate: string;
   modelName?: string;
+  isUploading?: boolean;
+  uploadProgress?: { uploaded: number; total: number };
 }
 
 export function PhotosStep({
@@ -199,8 +334,11 @@ export function PhotosStep({
   onToggleVisibility,
   onRemovePhoto,
   onUpdateCredit,
+  onRetryUpload,
   selectedTemplate,
   modelName = '',
+  isUploading = false,
+  uploadProgress = { uploaded: 0, total: 0 },
 }: PhotosStepProps): React.JSX.Element {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const template = TEMPLATES.find((t) => t.id === selectedTemplate) || TEMPLATES[1];
@@ -284,6 +422,35 @@ export function PhotosStep({
         </p>
       </div>
 
+      {/* Upload Progress */}
+      {photos.length > 0 && isUploading && (
+        <div
+          style={{
+            marginBottom: '1rem',
+            padding: '0.75rem 1rem',
+            backgroundColor: colors.cream,
+            borderRadius: '0.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+          }}
+        >
+          <div
+            style={{
+              width: '20px',
+              height: '20px',
+              border: `2px solid ${colors.border}`,
+              borderTopColor: colors.camel,
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+            }}
+          />
+          <span style={{ fontSize: '13px', color: colors.textSecondary }}>
+            Uploading photos... {uploadProgress.uploaded} of {uploadProgress.total} complete
+          </span>
+        </div>
+      )}
+
       {/* Photos Grid */}
       {photos.length > 0 && (
         <div
@@ -301,6 +468,7 @@ export function PhotosStep({
               onToggleVisibility={onToggleVisibility}
               onRemove={onRemovePhoto}
               onUpdateCredit={onUpdateCredit}
+              onRetry={onRetryUpload}
             />
           ))}
         </div>

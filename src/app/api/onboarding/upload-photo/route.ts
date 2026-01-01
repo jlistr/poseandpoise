@@ -77,27 +77,32 @@ export async function POST(request: Request) {
       .from("portfolio-photos")
       .getPublicUrl(filename);
 
-    // Get next sort order
-    const { data: existingPhotos } = await supabase
-      .from("photos")
-      .select("sort_order")
-      .eq("profile_id", user.id)
-      .order("sort_order", { ascending: false })
-      .limit(1);
+    // Get next sort order if not provided
+    let finalSortOrder = sortOrder;
+    if (finalSortOrder === null) {
+      const { data: existingPhotos } = await supabase
+        .from("photos")
+        .select("sort_order")
+        .eq("profile_id", user.id)
+        .order("sort_order", { ascending: false })
+        .limit(1);
 
-    const nextSortOrder = existingPhotos && existingPhotos.length > 0 
-      ? existingPhotos[0].sort_order + 1 
-      : 0;
+      finalSortOrder = existingPhotos && existingPhotos.length > 0 
+        ? existingPhotos[0].sort_order + 1 
+        : 0;
+    }
 
-    // Insert photo record
+    // Insert photo record with all fields
     const { data, error } = await supabase
       .from("photos")
       .insert({
         profile_id: user.id,
         url: publicUrl,
-        sort_order: nextSortOrder,
+        sort_order: finalSortOrder,
         size_bytes: file.size,
-        is_visible: true,
+        is_visible: isVisible,
+        photographer: photographer?.trim() || null,
+        studio: studio?.trim() || null,
       })
       .select()
       .single();

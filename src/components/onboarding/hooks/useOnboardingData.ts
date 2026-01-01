@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   type OnboardingData,
   type OnboardingStep,
@@ -9,6 +9,7 @@ import {
   type ServicesData,
   type PortfolioPhoto,
   type ExistingProfile,
+  type PhotoUploadStatus,
   DEFAULT_PROFILE_DATA,
   DEFAULT_ABOUT_DATA,
   DEFAULT_SERVICES_DATA,
@@ -32,7 +33,10 @@ interface UseOnboardingDataReturn {
   togglePhotoVisibility: (id: string) => void;
   removePhoto: (id: string) => void;
   updatePhotoCredit: (id: string, field: 'photographer' | 'studio', value: string) => void;
+  retryPhotoUpload: (id: string) => void;
   getCollectedFieldsCount: (step: OnboardingStep) => number;
+  isUploading: boolean;
+  uploadProgress: { uploaded: number; total: number };
 }
 
 export function useOnboardingData({ existingProfile }: UseOnboardingDataProps = {}): UseOnboardingDataReturn {
@@ -74,7 +78,61 @@ export function useOnboardingData({ existingProfile }: UseOnboardingDataProps = 
     setData((prev) => ({ ...prev, selectedTemplate: templateId }));
   }, []);
 
-  // Photo management
+  // Track upload queue
+  const uploadQueueRef = useRef<Set<string>>(new Set());
+
+  // Helper to update a single photo's status
+  const updatePhotoStatus = useCallback((id: string, updates: Partial<PortfolioPhoto>) => {
+    setData((prev) => ({
+      ...prev,
+      photos: prev.photos.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+    }));
+  }, []);
+
+  // Upload a single photo to the server
+  const uploadPhoto = useCallback(async (photo: PortfolioPhoto) => {
+    if (!photo.file || uploadQueueRef.current.has(photo.id)) return;
+    
+    uploadQueueRef.current.add(photo.id);
+    updatePhotoStatus(photo.id, { uploadStatus: 'uploading' });
+
+    try {
+      const formData = new FormData();
+      formData.append('file', photo.file);
+      formData.append('photographer', photo.photographer || '');
+      formData.append('studio', photo.studio || '');
+      formData.append('visible', String(photo.visible));
+      formData.append('order', String(photo.order));
+
+      const response = await fetch('/api/onboarding/upload-photo', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Upload failed');
+      }
+
+      const result = await response.json();
+      
+      updatePhotoStatus(photo.id, { 
+        uploadStatus: 'uploaded',
+        serverId: result.photo?.id,
+        url: result.photo?.url || photo.url, // Use server URL if available
+      });
+    } catch (error) {
+      console.error('Photo upload error:', error);
+      updatePhotoStatus(photo.id, { 
+        uploadStatus: 'error',
+        uploadError: error instanceof Error ? error.message : 'Upload failed',
+      });
+    } finally {
+      uploadQueueRef.current.delete(photo.id);
+    }
+  }, [updatePhotoStatus]);
+
+  // Photo management - adds photos and starts upload immediately
   const addPhotos = useCallback((files: FileList) => {
     const newPhotos: PortfolioPhoto[] = Array.from(files).map((file, index) => ({
       id: `photo-${Date.now()}-${index}`,
@@ -84,9 +142,16 @@ export function useOnboardingData({ existingProfile }: UseOnboardingDataProps = 
       studio: '',
       visible: true,
       order: data.photos.length + index,
+      uploadStatus: 'pending' as PhotoUploadStatus,
     }));
+    
     setData((prev) => ({ ...prev, photos: [...prev.photos, ...newPhotos] }));
-  }, [data.photos.length]);
+    
+    // Start uploading each photo
+    newPhotos.forEach((photo) => {
+      uploadPhoto(photo);
+    });
+  }, [data.photos.length, uploadPhoto]);
 
   const togglePhotoVisibility = useCallback((id: string) => {
     setData((prev) => ({
@@ -96,6 +161,7 @@ export function useOnboardingData({ existingProfile }: UseOnboardingDataProps = 
   }, []);
 
   const removePhoto = useCallback((id: string) => {
+    // TODO: If photo is already uploaded (has serverId), delete from server too
     setData((prev) => ({
       ...prev,
       photos: prev.photos.filter((p) => p.id !== id),
@@ -108,6 +174,21 @@ export function useOnboardingData({ existingProfile }: UseOnboardingDataProps = 
       photos: prev.photos.map((p) => (p.id === id ? { ...p, [field]: value } : p)),
     }));
   }, []);
+
+  // Retry failed upload
+  const retryPhotoUpload = useCallback((id: string) => {
+    const photo = data.photos.find((p) => p.id === id);
+    if (photo && photo.file && photo.uploadStatus === 'error') {
+      uploadPhoto(photo);
+    }
+  }, [data.photos, uploadPhoto]);
+
+  // Computed upload status
+  const isUploading = data.photos.some((p) => p.uploadStatus === 'uploading');
+  const uploadProgress = {
+    uploaded: data.photos.filter((p) => p.uploadStatus === 'uploaded').length,
+    total: data.photos.length,
+  };
 
   // Count collected fields for progress indicator
   const getCollectedFieldsCount = useCallback(
@@ -155,7 +236,10 @@ export function useOnboardingData({ existingProfile }: UseOnboardingDataProps = 
     togglePhotoVisibility,
     removePhoto,
     updatePhotoCredit,
+    retryPhotoUpload,
     getCollectedFieldsCount,
+    isUploading,
+    uploadProgress,
   };
 }
 

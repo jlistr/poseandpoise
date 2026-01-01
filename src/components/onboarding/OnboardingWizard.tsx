@@ -92,7 +92,10 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
     togglePhotoVisibility,
     removePhoto,
     updatePhotoCredit,
+    retryPhotoUpload,
     getCollectedFieldsCount,
+    isUploading: isUploadingPhotos,
+    uploadProgress,
   } = useOnboardingData({ existingProfile });
 
   // Get user initials for header
@@ -262,8 +265,14 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
         throw new Error(templateError.error || 'Failed to save template');
       }
 
-      // 4. Upload photos
+      // 4. Upload any remaining photos that haven't been uploaded yet
+      // (Photos are now uploaded in real-time, so this catches any that failed or are pending)
       for (const photo of data.photos) {
+        // Skip photos that are already uploaded
+        if (photo.uploadStatus === 'uploaded' && photo.serverId) {
+          continue;
+        }
+        
         if (photo.file) {
           const photoFormData = new FormData();
           photoFormData.append('file', photo.file);
@@ -335,8 +344,11 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
             onToggleVisibility={togglePhotoVisibility}
             onRemovePhoto={removePhoto}
             onUpdateCredit={updatePhotoCredit}
+            onRetryUpload={retryPhotoUpload}
             selectedTemplate={data.selectedTemplate}
             modelName={data.profile.displayName}
+            isUploading={isUploadingPhotos}
+            uploadProgress={uploadProgress}
           />
         );
       default:
