@@ -249,7 +249,9 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
 
 // Metadata for SEO
 export async function generateMetadata({ params }: PageProps) {
-  const { username } = await params;
+  const { username: rawUsername } = await params;
+  // Normalize username to lowercase for consistent lookup
+  const username = rawUsername.toLowerCase();
   const data = await getPublicPortfolioData(username);
   
   if (!data) {
