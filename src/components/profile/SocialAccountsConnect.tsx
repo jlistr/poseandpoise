@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { colors, typography, spacing } from '@/styles/tokens';
 
@@ -21,12 +22,39 @@ interface SocialAccountsConnectProps {
 }
 
 export function SocialAccountsConnect({ onAccountConnected, onAccountDisconnected }: SocialAccountsConnectProps) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Handle OAuth callback query parameters
+  useEffect(() => {
+    const socialConnected = searchParams.get('social_connected');
+    const socialError = searchParams.get('social_error');
+    const platform = searchParams.get('platform');
+
+    if (socialConnected === 'true') {
+      setSuccess(`${platform ? platform.charAt(0).toUpperCase() + platform.slice(1) : 'Account'} connected successfully!`);
+      // Clean up URL query params
+      const url = new URL(window.location.href);
+      url.searchParams.delete('social_connected');
+      url.searchParams.delete('platform');
+      url.searchParams.delete('account_id');
+      url.searchParams.delete('social_callback');
+      router.replace(url.pathname, { scroll: false });
+    } else if (socialError) {
+      setError(`Connection failed: ${socialError}`);
+      // Clean up URL query params
+      const url = new URL(window.location.href);
+      url.searchParams.delete('social_error');
+      url.searchParams.delete('platform');
+      router.replace(url.pathname, { scroll: false });
+    }
+  }, [searchParams, router]);
 
   // Fetch connected accounts
   const fetchAccounts = useCallback(async () => {
@@ -56,7 +84,7 @@ export function SocialAccountsConnect({ onAccountConnected, onAccountDisconnecte
     fetchAccounts();
   }, [fetchAccounts]);
 
-  // Generate connection URL and open in new window
+  // Generate connection URL and redirect to OAuth
   const handleConnect = async (platform: 'instagram' | 'tiktok') => {
     setConnecting(platform);
     setError(null);
@@ -70,43 +98,17 @@ export function SocialAccountsConnect({ onAccountConnected, onAccountDisconnecte
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate connection URL');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to generate connection URL');
       }
 
       const data = await response.json();
       
-      // Open OAuth flow in new window
-      const popup = window.open(data.connect_url, '_blank', 'width=600,height=700');
-      
-      // Poll for account connection (simple approach)
-      if (popup) {
-        const pollInterval = setInterval(async () => {
-          try {
-            // Check if popup is closed
-            if (popup.closed) {
-              clearInterval(pollInterval);
-              // Refresh accounts after popup closes
-              await fetchAccounts();
-              setConnecting(null);
-              setSuccess(`${platform} connection flow completed. Refresh to see changes.`);
-            }
-          } catch {
-            // Cross-origin errors are expected, ignore them
-          }
-        }, 1000);
-
-        // Clear interval after 5 minutes max
-        setTimeout(() => {
-          clearInterval(pollInterval);
-          setConnecting(null);
-        }, 300000);
-      } else {
-        // Popup was blocked, just set connecting to null
-        setConnecting(null);
-      }
+      // Redirect to OAuth flow (will redirect back to /dashboard/profile after completion)
+      window.location.href = data.connect_url;
     } catch (err) {
       console.error('Error connecting:', err);
-      setError(`Failed to connect ${platform}`);
+      setError(err instanceof Error ? err.message : `Failed to connect ${platform}`);
       setConnecting(null);
     }
   };

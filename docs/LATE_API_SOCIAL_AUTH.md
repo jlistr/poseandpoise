@@ -68,25 +68,60 @@ curl -X GET "https://getlate.dev/api/v1/connect/tiktok?profileId=69568fa185cefc0
 
 ---
 
-### Step 2: Redirect User to the `connect_url`
+### Step 2: Redirect User to the `authUrl`
 
-Once you have the `connect_url`, redirect the user to authenticate and grant permissions.
+Once you have the `authUrl`, redirect the user to authenticate and grant permissions.
 
 ```tsx
-const ConnectSocialButton = ({ connectUrl, platform }) => {
-  return (
-    <a href={connectUrl} target="_blank" rel="noopener noreferrer">
-      <button>Connect {platform}</button>
-    </a>
-  );
-};
+// Redirect to OAuth flow - user will be redirected back after completion
+window.location.href = authUrl;
 ```
 
 ---
 
-### Step 3: Handle the Webhook (Optional)
+### Step 3: Handle the OAuth Callback
 
-After successful connection, Late sends a webhook to confirm. The webhook contains:
+After the user completes OAuth, Late redirects back to your `redirect_url` with query parameters:
+
+**Success Parameters:**
+- `success=true` - Connection was successful
+- `social_account_id` - The ID of the newly connected account
+- `platform` - The platform that was connected
+
+**Error Parameters:**
+- `error` - Error message if connection failed
+- `platform` - The platform that failed
+
+**Callback Handler Example (`/api/social/callback/route.ts`):**
+
+```typescript
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  
+  const success = searchParams.get('success');
+  const socialAccountId = searchParams.get('social_account_id');
+  const error = searchParams.get('error');
+  const platform = searchParams.get('platform');
+  
+  // Redirect to profile page with status
+  const redirectUrl = new URL('/dashboard/profile', baseUrl);
+  
+  if (success === 'true' || socialAccountId) {
+    redirectUrl.searchParams.set('social_connected', 'true');
+    redirectUrl.searchParams.set('platform', platform);
+  } else if (error) {
+    redirectUrl.searchParams.set('social_error', error);
+  }
+  
+  return NextResponse.redirect(redirectUrl);
+}
+```
+
+---
+
+### Step 4: Handle the Webhook (Optional)
+
+After successful connection, Late may also send a webhook to confirm. The webhook contains:
 - `platform` - The social platform connected
 - `username` - The user's handle on that platform
 - `profile_id` - The profile the account was added to

@@ -37,11 +37,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Build callback URL for redirect after OAuth
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://poseandpoise.studio';
+    const callbackUrl = `${baseUrl}/api/social/callback?platform=${platform}`;
+
     // Generate OAuth connection URL from Late API
-    // Endpoint: GET /v1/connect/{platform}?profileId={profileId}
-    const url = `${LATE_API_BASE}/connect/${platform}?profileId=${LATE_PROFILE_ID}`;
+    // Endpoint: GET /v1/connect/{platform}?profileId={profileId}&redirect_url={callbackUrl}
+    const url = new URL(`${LATE_API_BASE}/connect/${platform}`);
+    url.searchParams.set('profileId', LATE_PROFILE_ID);
+    url.searchParams.set('redirect_url', callbackUrl);
     
-    const response = await fetch(url, {
+    const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${LATE_API_KEY}`,
