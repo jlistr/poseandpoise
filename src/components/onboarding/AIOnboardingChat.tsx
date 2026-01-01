@@ -798,6 +798,7 @@ export function AIOnboardingChat({
   const [socialHandles, setSocialHandles] = useState({ instagram: '', tiktok: '', website: '' });
   const [showAgencyForm, setShowAgencyForm] = useState(false);
   const [agencyDetails, setAgencyDetails] = useState({ name: '', website: '', email: '' });
+  const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
   const [showDataSummary, setShowDataSummary] = useState(false);
   
   // Guided flow state
@@ -835,6 +836,22 @@ export function AIOnboardingChat({
 
   // Track if we've initialized this step to prevent re-initialization
   const stepInitializedRef = useRef<string | null>(null);
+
+  // Sync form state with extractedData when it changes (for when navigating back)
+  useEffect(() => {
+    // Sync social handles
+    setSocialHandles({
+      instagram: extractedData.instagram || '',
+      tiktok: extractedData.tiktok || '',
+      website: extractedData.website || '',
+    });
+    // Sync agency details
+    setAgencyDetails({
+      name: extractedData.agencyName || '',
+      website: extractedData.agencyWebsite || '',
+      email: extractedData.agencyContact || '',
+    });
+  }, [extractedData.instagram, extractedData.tiktok, extractedData.website, extractedData.agencyName, extractedData.agencyWebsite, extractedData.agencyContact]);
 
   // Initial greeting and auto-start first tool
   useEffect(() => {
@@ -1028,6 +1045,12 @@ export function AIOnboardingChat({
     currentToolRef.current = tool.id;
     
     if (tool.action === "upload") {
+      // For photo analyzer and comp scanner, show a helpful message before file dialog
+      if (tool.id === "photo-analyzer") {
+        addAssistantMessage("Please upload a full-body photo and I'll analyze it to extract your measurements, hair color, and eye color. For best results, use a well-lit photo where you're standing straight.");
+      } else if (tool.id === "comp-scanner") {
+        addAssistantMessage("Upload your existing comp card and I'll extract all your stats automatically - including measurements, hair color, eye color, and any agency information.");
+      }
       fileInputRef.current?.click();
     } else if (tool.action === "location") {
       handleGetLocation();
@@ -1035,7 +1058,7 @@ export function AIOnboardingChat({
       if (tool.id === "bio-generator") {
         handleAIRequest("bio-generator", "Generate a professional bio for me");
       } else if (tool.id === "services-suggest") {
-        handleAIRequest("services-suggest", "Suggest modeling services with pricing");
+        handleAIRequest("services-suggest", "Suggest modeling services with pricing for my market");
       } else if (tool.id === "comp-generator") {
         handleAIRequest("comp-generator", "Generate my professional comp card");
       } else if (tool.id === "agency") {
@@ -1103,6 +1126,8 @@ export function AIOnboardingChat({
   };
 
   const handleAIRequest = async (tool: string, message: string) => {
+    // Add user message to chat
+    addUserMessage(message);
     setIsTyping(true);
     
     try {
@@ -1125,15 +1150,18 @@ export function AIOnboardingChat({
         body: formData,
       });
 
-      if (!response.ok) throw new Error("Failed to get AI response");
-
       const data = await response.json();
 
-      if (data.extractedData) {
+      if (data.extractedData && Object.keys(data.extractedData).length > 0) {
         setExtractedData((prev) => ({ ...prev, ...data.extractedData }));
       }
 
-      addAssistantMessage(data.message);
+      addAssistantMessage(data.message || "I've processed your request.");
+      
+      // Complete the tool after AI response
+      setTimeout(() => {
+        completeCurrentTool(tool);
+      }, 500);
     } catch (error) {
       console.error("AI request error:", error);
       addAssistantMessage("I encountered an issue. Please try again or provide the information manually.");
@@ -1172,7 +1200,19 @@ export function AIOnboardingChat({
       name: file.name,
     }));
 
-    addUserMessage(trimmedInput || "Uploaded image for analysis", attachments.length > 0 ? attachments : undefined);
+    // Determine the message to display
+    let userMessageText = trimmedInput;
+    if (!userMessageText && pendingImages.length > 0) {
+      if (activeTool === "photo-analyzer") {
+        userMessageText = "Please analyze this photo to extract my stats";
+      } else if (activeTool === "comp-scanner") {
+        userMessageText = "Please scan this comp card and extract all my information";
+      } else {
+        userMessageText = "Uploaded image for analysis";
+      }
+    }
+
+    addUserMessage(userMessageText, attachments.length > 0 ? attachments : undefined);
     setInputValue("");
     const imagesToProcess = [...pendingImages];
     setPendingImages([]);
@@ -1186,6 +1226,9 @@ export function AIOnboardingChat({
     }
 
     setIsTyping(true);
+    if (imagesToProcess.length > 0) {
+      setIsAnalyzingImage(true);
+    }
 
     try {
       const formData = new FormData();
@@ -1211,20 +1254,28 @@ export function AIOnboardingChat({
         body: formData,
       });
 
-      if (!response.ok) throw new Error("Failed to get AI response");
-
       const data = await response.json();
 
-      if (data.extractedData) {
+      // Handle extracted data from AI
+      if (data.extractedData && Object.keys(data.extractedData).length > 0) {
         setExtractedData((prev) => ({ ...prev, ...data.extractedData }));
+        
+        // If we got stats from image analysis, complete the tool
+        if (imagesToProcess.length > 0 && (activeTool === "photo-analyzer" || activeTool === "comp-scanner")) {
+          const toolId = activeTool;
+          setTimeout(() => {
+            completeCurrentTool(toolId);
+          }, 500);
+        }
       }
 
-      addAssistantMessage(data.message);
+      addAssistantMessage(data.message || "I've processed your request.");
     } catch (error) {
       console.error("AI chat error:", error);
-      addAssistantMessage("I apologize, but I encountered an issue. Please try again.");
+      addAssistantMessage("I apologize, but I encountered an issue processing your request. You can try again or enter your information manually.");
     } finally {
       setIsTyping(false);
+      setIsAnalyzingImage(false);
       currentToolRef.current = null;
     }
   }, [inputValue, pendingImages, currentStep, subscriptionTier, extractedData, selectedServices, messages, activeTool, completeCurrentTool]);
