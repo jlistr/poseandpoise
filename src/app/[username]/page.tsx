@@ -1,6 +1,7 @@
 // =============================================================================
 // FILE: app/[username]/page.tsx
 // PURPOSE: Public portfolio page - NO editing capabilities, public view only
+//          Owners can preview their unpublished portfolio when logged in
 // =============================================================================
 
 import { notFound } from 'next/navigation';
@@ -12,7 +13,11 @@ interface PageProps {
   params: Promise<{ username: string }>;
 }
 
-async function getPublicPortfolioData(username: string): Promise<PortfolioData | null> {
+interface PortfolioDataWithOwner extends PortfolioData {
+  profileId: string;
+}
+
+async function getPublicPortfolioData(username: string): Promise<PortfolioDataWithOwner | null> {
   const supabase = await createClient();
 
   // Get profile with public data only
@@ -119,7 +124,22 @@ async function getPublicPortfolioData(username: string): Promise<PortfolioData |
       isPublished: profile.is_published || false,
       isPublic: profile.is_public || false,
     },
+    profileId: profile.id,
   };
+}
+
+/**
+ * Check if the current logged-in user owns this portfolio
+ */
+async function isPortfolioOwner(profileId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return false;
+  }
+  
+  return user.id === profileId;
 }
 
 export default async function PublicPortfolioPage({ params }: PageProps) {
@@ -134,8 +154,12 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
     notFound();
   }
   
+  // Check if the current user is the owner of this portfolio
+  const isOwner = await isPortfolioOwner(data.profileId);
+  
   // Check if portfolio is published for public viewing
-  if (!data.settings.isPublished) {
+  // Allow owners to preview their unpublished portfolio
+  if (!data.settings.isPublished && !isOwner) {
     return (
       <div style={{
         minHeight: '100vh',
@@ -164,7 +188,61 @@ export default async function PublicPortfolioPage({ params }: PageProps) {
   }
   
   // Render the selected template - PUBLIC VIEW ONLY, NO EDITING
+  // If owner is previewing unpublished portfolio, show a preview banner
   const Template = getTemplate(data.settings.template);
+  
+  if (isOwner && !data.settings.isPublished) {
+    return (
+      <>
+        {/* Preview Banner for unpublished portfolios */}
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 9999,
+          background: 'linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%)',
+          color: '#FAF9F7',
+          padding: '12px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '16px',
+          fontFamily: "'Outfit', sans-serif",
+          fontSize: '14px',
+          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.2)',
+        }}>
+          <span style={{ 
+            background: '#C4A484', 
+            color: '#1A1A1A',
+            padding: '2px 8px', 
+            borderRadius: '4px',
+            fontSize: '11px',
+            fontWeight: 500,
+            textTransform: 'uppercase',
+            letterSpacing: '1px',
+          }}>
+            Preview Mode
+          </span>
+          <span>This portfolio is not yet published. Only you can see this preview.</span>
+          <a 
+            href="/dashboard"
+            style={{
+              color: '#C4A484',
+              textDecoration: 'underline',
+              textUnderlineOffset: '3px',
+            }}
+          >
+            Go to Dashboard
+          </a>
+        </div>
+        {/* Add padding to account for fixed banner */}
+        <div style={{ paddingTop: '48px' }}>
+          <Template data={data} />
+        </div>
+      </>
+    );
+  }
   
   return <Template data={data} />;
 }
