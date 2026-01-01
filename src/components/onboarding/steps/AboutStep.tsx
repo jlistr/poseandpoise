@@ -95,7 +95,7 @@ export function AboutStep({ data, onChange }: AboutStepProps): React.JSX.Element
 
   // Handle file selection/upload
   const handleFileSelect = useCallback(
-    (file: File) => {
+    async (file: File) => {
       // Validate file type
       const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
       if (!validTypes.includes(file.type)) {
@@ -123,25 +123,44 @@ export function AboutStep({ data, onChange }: AboutStepProps): React.JSX.Element
 
       setIsUploading(true);
 
-      // Create object URL for preview
+      // Create object URL for immediate preview
       const objectUrl = URL.createObjectURL(file);
       pendingBlobUrlRef.current = objectUrl;
-
-      // Revoke the previous profile photo blob URL if it exists
-      const previousPhotoUrl = data.profilePhoto;
       
-      // Simulate upload delay (in real app, this would be an actual upload)
-      uploadTimeoutRef.current = setTimeout(() => {
-        // Revoke the old blob URL to prevent memory leak
-        if (previousPhotoUrl && previousPhotoUrl.startsWith('blob:')) {
-          URL.revokeObjectURL(previousPhotoUrl);
+      // Show preview immediately
+      onChange({ ...data, profilePhoto: objectUrl });
+
+      try {
+        // Upload to server
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/onboarding/upload-avatar', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to upload avatar');
         }
+
+        const result = await response.json();
         
-        onChange({ ...data, profilePhoto: objectUrl });
-        pendingBlobUrlRef.current = null; // Clear pending ref since it's now committed
+        // Revoke the blob URL now that we have the real URL
+        URL.revokeObjectURL(objectUrl);
+        pendingBlobUrlRef.current = null;
+        
+        // Update with the permanent URL from storage
+        onChange({ ...data, profilePhoto: result.url });
+        
+      } catch (error) {
+        console.error('Avatar upload error:', error);
+        // Keep the blob URL as fallback for preview, but show error
+        alert('Failed to upload profile photo. Please try again.');
+      } finally {
         setIsUploading(false);
-        uploadTimeoutRef.current = null;
-      }, 500);
+      }
     },
     [data, onChange]
   );
@@ -160,7 +179,8 @@ export function AboutStep({ data, onChange }: AboutStepProps): React.JSX.Element
   };
 
   const handleRemovePhoto = () => {
-    if (data.profilePhoto) {
+    // Only revoke if it's a blob URL
+    if (data.profilePhoto && data.profilePhoto.startsWith('blob:')) {
       URL.revokeObjectURL(data.profilePhoto);
     }
     onChange({ ...data, profilePhoto: null });
