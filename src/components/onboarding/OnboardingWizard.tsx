@@ -1391,63 +1391,65 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
       {/* Keyframes for spinner animation */}
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       
-      {/* Header */}
-      <header style={styles.header}>
-        <span style={styles.logo}>Pose & Poise</span>
-        
-        {/* Progress Indicator with Labels */}
-        <div style={styles.progressContainer}>
-          {[0, 1, 2, 3, 4, 5].map((step, index) => {
-            const isActive = step === currentStep;
-            const isCompleted = completedSteps.has(step) || step < currentStep;
-            const clickable = canNavigateToStep(step);
-            
-            return (
-              <div key={step} style={{ display: "flex", alignItems: "center" }}>
-                <div 
-                  style={styles.progressStep(isActive, isCompleted, clickable)}
-                  onClick={() => clickable && handleStepClick(step)}
-                  onMouseEnter={(e) => {
-                    if (clickable) {
+      {/* Header - Hidden on step 0 (AI chat has its own header) */}
+      {currentStep > 0 && (
+        <header style={styles.header}>
+          <span style={styles.logo}>Pose & Poise</span>
+          
+          {/* Progress Indicator with Labels */}
+          <div style={styles.progressContainer}>
+            {[0, 1, 2, 3, 4, 5].map((step, index) => {
+              const isActive = step === currentStep;
+              const isCompleted = completedSteps.has(step) || step < currentStep;
+              const clickable = canNavigateToStep(step);
+              
+              return (
+                <div key={step} style={{ display: "flex", alignItems: "center" }}>
+                  <div 
+                    style={styles.progressStep(isActive, isCompleted, clickable)}
+                    onClick={() => clickable && handleStepClick(step)}
+                    onMouseEnter={(e) => {
+                      if (clickable) {
+                        e.currentTarget.style.backgroundColor = isActive 
+                          ? "rgba(255, 122, 162, 0.12)" 
+                          : "rgba(26, 26, 26, 0.04)";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
                       e.currentTarget.style.backgroundColor = isActive 
-                        ? "rgba(255, 122, 162, 0.12)" 
-                        : "rgba(26, 26, 26, 0.04)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = isActive 
-                      ? "rgba(255, 122, 162, 0.08)" 
-                      : "transparent";
-                  }}
-                >
-                  <div style={styles.progressDot(isActive, isCompleted)} />
-                  <span style={styles.progressLabel(isActive, isCompleted)}>
-                    {STEP_LABELS[index]}
-                  </span>
+                        ? "rgba(255, 122, 162, 0.08)" 
+                        : "transparent";
+                    }}
+                  >
+                    <div style={styles.progressDot(isActive, isCompleted)} />
+                    <span style={styles.progressLabel(isActive, isCompleted)}>
+                      {STEP_LABELS[index]}
+                    </span>
+                  </div>
+                  {index < 5 && <div style={styles.progressLine(isCompleted)} />}
                 </div>
-                {index < 5 && <div style={styles.progressLine(isCompleted)} />}
-              </div>
-            );
-          })}
-        </div>
-        
-        {/* Hide skip button on last step */}
-        {currentStep < totalSteps ? (
-          <button 
-            onClick={handleSkip}
-            style={styles.skipButton}
-          >
-            Skip for now
-          </button>
-        ) : (
-          <div style={{ width: "100px" }} /> // Spacer to maintain layout
-        )}
-      </header>
+              );
+            })}
+          </div>
+          
+          {/* Hide skip button on last step */}
+          {currentStep < totalSteps ? (
+            <button 
+              onClick={handleSkip}
+              style={styles.skipButton}
+            >
+              Skip for now
+            </button>
+          ) : (
+            <div style={{ width: "100px" }} /> // Spacer to maintain layout
+          )}
+        </header>
+      )}
 
       {/* Main Content */}
       {currentStep === 0 ? (
-        // Step 0: AI Chat takes full viewport
-        <main style={{ ...styles.main, padding: 0, maxWidth: "100%", height: "calc(100vh - 80px)" }}>
+        // Step 0: AI Chat takes full viewport (no header)
+        <main style={{ ...styles.main, padding: 0, maxWidth: "100%", height: "100vh" }}>
           {renderStep0()}
         </main>
       ) : (
