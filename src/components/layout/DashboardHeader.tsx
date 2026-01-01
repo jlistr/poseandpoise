@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import styles from './DashboardHeader.module.css';
 
 type SubscriptionTier = 'FREE' | 'PROFESSIONAL' | 'DELUXE' | null;
@@ -11,9 +12,10 @@ interface DashboardHeaderProps {
   userName?: string;
   username?: string; // The user's profile username for portfolio URL
   subscriptionTier?: SubscriptionTier;
+  avatarUrl?: string | null;
 }
 
-export function DashboardHeader({ userEmail, userName, username, subscriptionTier }: DashboardHeaderProps) {
+export function DashboardHeader({ userEmail, userName, username, subscriptionTier, avatarUrl }: DashboardHeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const displayName = userName || userEmail?.split('@')[0] || 'User';
@@ -67,9 +69,19 @@ export function DashboardHeader({ userEmail, userName, username, subscriptionTie
                   {currentTier.label}
                 </span>
               )}
-              <div className={styles.avatar}>
-                {displayName.charAt(0).toUpperCase()}
-              </div>
+              {avatarUrl ? (
+                <Image 
+                  src={avatarUrl} 
+                  alt={displayName} 
+                  width={36} 
+                  height={36} 
+                  className={styles.avatarImage}
+                />
+              ) : (
+                <div className={styles.avatar}>
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+              )}
               <ChevronIcon isOpen={isMenuOpen} />
             </button>
 

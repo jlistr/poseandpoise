@@ -19,10 +19,10 @@ export default async function DashboardLayout({
     redirect('/login');
   }
 
-  // Get profile for display name, subscription tier, and onboarding status
+  // Get profile for display name, subscription tier, avatar, and onboarding status
   const { data: profile } = await supabase
     .from('profiles')
-    .select('display_name, username, subscription_tier, onboarding_completed')
+    .select('display_name, username, subscription_tier, onboarding_completed, avatar_url')
     .eq('id', user.id)
     .single();
 
@@ -38,6 +38,7 @@ export default async function DashboardLayout({
         userName={profile?.display_name || profile?.username}
         username={profile?.username}
         subscriptionTier={profile?.subscription_tier}
+        avatarUrl={profile?.avatar_url}
       />
       <DashboardNav />
       <main className={styles.main}>

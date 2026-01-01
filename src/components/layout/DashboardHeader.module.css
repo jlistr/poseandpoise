@@ -103,6 +103,15 @@
     font-family: var(--font-body, 'Outfit', sans-serif);
     font-size: 14px;
     font-weight: 500;
+    border-radius: 50%;
+  }
+
+  .avatarImage {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--color-border-subtle, rgba(26, 26, 26, 0.08));
   }
   
   /* Dropdown */
