@@ -19,8 +19,8 @@ export default function TemplateSettingsPage() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState('rose');
-  const [originalTemplate, setOriginalTemplate] = useState('rose');
+  const [selectedTemplate, setSelectedTemplate] = useState('elysian');
+  const [originalTemplate, setOriginalTemplate] = useState('elysian');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [loading, setLoading] = useState(true);
 
@@ -39,8 +39,8 @@ export default function TemplateSettingsPage() {
         
         if (data) {
           setProfile(data);
-          setSelectedTemplate(data.template || 'rose');
-          setOriginalTemplate(data.template || 'rose');
+          setSelectedTemplate(data.template || 'elysian');
+          setOriginalTemplate(data.template || 'elysian');
         }
       }
       setLoading(false);
@@ -432,7 +432,7 @@ interface TemplateCardProps {
 }
 
 function TemplateCard({ template, isSelected, onSelect, disabled, isPremiumLocked }: TemplateCardProps) {
-  const isDark = template.id === 'noir';
+  const isDark = template.id === 'obsidian';
 
   return (
     <button
@@ -540,11 +540,11 @@ function TemplateCard({ template, isSelected, onSelect, disabled, isPremiumLocke
 // Template Thumbnail (Mini Preview)
 // =============================================================================
 function TemplateThumbnail({ templateId, accentColor }: { templateId: string; accentColor: string }) {
-  const isDark = templateId === 'noir';
-  const isLumiere = templateId === 'lumiere';
+  const isDark = templateId === 'obsidian';
+  const isSolstice = templateId === 'solstice';
   
   // Lumière has a unique filmstrip design
-  if (isLumiere) {
+  if (isSolstice) {
     const warmCream = '#FFF8F0';
     const portfolioDark = '#1F1816';
     const terracotta = '#C8553D';
@@ -748,7 +748,7 @@ function TemplateThumbnail({ templateId, accentColor }: { templateId: string; ac
 // =============================================================================
 function TemplatePreview({ templateId, displayName, username }: { templateId: string; displayName: string; username: string }) {
   const template = TEMPLATE_METADATA.find(t => t.id === templateId);
-  const isDark = templateId === 'noir';
+  const isDark = templateId === 'obsidian';
   const accentColor = template?.accentColor || '#C4A484';
   
   return (

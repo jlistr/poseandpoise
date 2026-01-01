@@ -250,7 +250,7 @@ export function OwnerPreviewBanner({
                             height: '12px',
                             borderRadius: '50%',
                             background: template.accentColor,
-                            border: template.id === 'noir' ? '1px solid rgba(26,26,26,0.2)' : 'none',
+                            border: template.id === 'obsidian' ? '1px solid rgba(26,26,26,0.2)' : 'none',
                           }}
                         />
                         <span

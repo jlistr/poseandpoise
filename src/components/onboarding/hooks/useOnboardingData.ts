@@ -50,7 +50,7 @@ export function useOnboardingData({ existingProfile }: UseOnboardingDataProps = 
       profilePhoto: existingProfile?.avatar_url || null,
     },
     services: DEFAULT_SERVICES_DATA,
-    selectedTemplate: 'poise',
+    selectedTemplate: 'ivory',
     photos: [],
   }));
 

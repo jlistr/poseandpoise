@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
-const VALID_TEMPLATES = ['rose', 'poise', 'lumiere', 'noir'];
-const FREE_TEMPLATES = ['rose', 'poise', 'lumiere'];
+const VALID_TEMPLATES = ['elysian', 'ivory', 'solstice', 'obsidian'];
+const FREE_TEMPLATES = ['elysian', 'ivory', 'solstice'];
 
 export async function POST(request: Request) {
   try {
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
     // If template is premium and user is not paid, fall back to rose
     const finalTemplate = (!isPaidUser && !FREE_TEMPLATES.includes(templateId)) 
-      ? 'rose' 
+      ? 'elysian' 
       : templateId;
 
     // Update profile with selected template

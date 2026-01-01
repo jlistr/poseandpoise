@@ -7,6 +7,7 @@ import type { TemplateComponent, TemplateMetadata } from '@/types/portfolio';
 
 // Import all template components
 // Each template is a self-contained folder with its own components
+// Note: Internal folder names kept as legacy (rose, poise, etc.) but IDs updated
 import { RoseTemplate } from './rose/RoseTemplate';
 import { PoiseTemplate } from './poise/PoiseTemplate';
 import { LumiereTemplate } from './lumiere/LumiereTemplate';
@@ -15,13 +16,14 @@ import { NoirTemplate } from './noir/NoirTemplate';
 // =============================================================================
 // TEMPLATE REGISTRY
 // Maps template IDs to their React components
+// New naming: Elysian (rose), Ivory (poise), Solstice (lumiere), Obsidian (noir)
 // =============================================================================
 
 export const TEMPLATES: Record<string, TemplateComponent> = {
-  rose: RoseTemplate,
-  poise: PoiseTemplate,
-  lumiere: LumiereTemplate,
-  noir: NoirTemplate,
+  elysian: RoseTemplate,
+  ivory: PoiseTemplate,
+  solstice: LumiereTemplate,
+  obsidian: NoirTemplate,
 };
 
 // =============================================================================
@@ -31,35 +33,35 @@ export const TEMPLATES: Record<string, TemplateComponent> = {
 
 export const TEMPLATE_METADATA: TemplateMetadata[] = [
   {
-    id: 'rose',
-    name: 'Rosé',
-    description: 'Soft editorial blush with feminine elegance',
+    id: 'elysian',
+    name: 'Elysian',
+    description: 'Split hero with elegant masonry gallery',
     isPremium: false,
-    thumbnailUrl: '/templates/rose-preview.jpg',
-    accentColor: '#FF7AA2',
+    thumbnailUrl: '/templates/elysian-preview.jpg',
+    accentColor: '#F5D5D8',
   },
   {
-    id: 'poise',
-    name: 'Poise',
-    description: 'Timeless elegance with warm neutrals',
+    id: 'ivory',
+    name: 'Ivory',
+    description: 'Centered hero with clean 3-column grid',
     isPremium: false,
-    thumbnailUrl: '/templates/poise-preview.jpg',
+    thumbnailUrl: '/templates/ivory-preview.jpg',
     accentColor: '#C4A484',
   },
   {
-    id: 'lumiere',
-    name: 'Lumière',
-    description: 'Golden hour warmth with editorial flair',
+    id: 'solstice',
+    name: 'Solstice',
+    description: 'Cinematic filmstrip with vintage warmth',
     isPremium: false,
-    thumbnailUrl: '/templates/lumiere-preview.jpg',
-    accentColor: '#A78E14',
+    thumbnailUrl: '/templates/solstice-preview.jpg',
+    accentColor: '#D4A574',
   },
   {
-    id: 'noir',
-    name: 'Noir',
-    description: 'Bold monochrome with dramatic contrast',
+    id: 'obsidian',
+    name: 'Obsidian',
+    description: 'Bold 2-column with dramatic full-bleed images',
     isPremium: true, // Premium template - requires Pro subscription
-    thumbnailUrl: '/templates/noir-preview.jpg',
+    thumbnailUrl: '/templates/obsidian-preview.jpg',
     accentColor: '#FFFFFF',
   },
 ];
@@ -70,10 +72,10 @@ export const TEMPLATE_METADATA: TemplateMetadata[] = [
 
 /**
  * Get a template component by ID
- * Falls back to Rose template if ID not found
+ * Falls back to Elysian template if ID not found
  */
 export function getTemplate(templateId: string): TemplateComponent {
-  return TEMPLATES[templateId] ?? TEMPLATES.rose;
+  return TEMPLATES[templateId] ?? TEMPLATES.elysian;
 }
 
 /**

@@ -121,7 +121,7 @@ async function getPortfolioData(username: string): Promise<PortfolioData | null>
       isPrimary: card.is_primary,
     })),
     settings: {
-      template: profile.template || 'rose',
+      template: profile.template || 'elysian',
       accentColor: profile.accent_color,
       isPublished: profile.is_published || false,
       isPublic: profile.is_public || false,

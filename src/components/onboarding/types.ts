@@ -165,8 +165,8 @@ export const DEFAULT_SERVICE_CATEGORIES: ServiceCategory[] = [
 
 export const TEMPLATES: Template[] = [
   {
-    id: 'rose',
-    name: 'Rosé',
+    id: 'elysian',
+    name: 'Elysian',
     description: 'Split hero with elegant masonry gallery',
     accentColor: '#F5D5D8',
     bgColor: '#FFF9F9',
@@ -178,8 +178,8 @@ export const TEMPLATES: Template[] = [
     navStyle: 'minimal',
   },
   {
-    id: 'poise',
-    name: 'Poise',
+    id: 'ivory',
+    name: 'Ivory',
     description: 'Centered hero with clean 3-column grid',
     accentColor: '#C4A484',
     bgColor: '#FAF9F6',
@@ -191,8 +191,8 @@ export const TEMPLATES: Template[] = [
     navStyle: 'classic',
   },
   {
-    id: 'lumiere',
-    name: 'Lumière',
+    id: 'solstice',
+    name: 'Solstice',
     description: 'Cinematic filmstrip with vintage warmth',
     accentColor: '#D4A574',
     bgColor: '#2C2420',
@@ -204,8 +204,8 @@ export const TEMPLATES: Template[] = [
     navStyle: 'floating',
   },
   {
-    id: 'noir',
-    name: 'Noir',
+    id: 'obsidian',
+    name: 'Obsidian',
     description: 'Bold 2-column with dramatic full-bleed images',
     accentColor: '#FFFFFF',
     bgColor: '#1A1A1A',

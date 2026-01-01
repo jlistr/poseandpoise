@@ -37,8 +37,8 @@ interface TemplatePreviewProps {
   onClick: () => void;
 }
 
-// Rosé Template - Split hero with masonry gallery
-function RosePreview({ template, modelName }: { template: Template; modelName: string }): React.JSX.Element {
+// Elysian Template - Split hero with masonry gallery
+function ElysianPreview({ template, modelName }: { template: Template; modelName: string }): React.JSX.Element {
   return (
     <div style={{ backgroundColor: template.bgColor, height: '100%', overflow: 'hidden' }}>
       {/* Minimal nav */}
@@ -77,8 +77,8 @@ function RosePreview({ template, modelName }: { template: Template; modelName: s
   );
 }
 
-// Poise Template - Centered hero with 3-column grid
-function PoisePreview({ template, modelName }: { template: Template; modelName: string }): React.JSX.Element {
+// Ivory Template - Centered hero with 3-column grid
+function IvoryPreview({ template, modelName }: { template: Template; modelName: string }): React.JSX.Element {
   return (
     <div style={{ backgroundColor: template.bgColor, height: '100%', overflow: 'hidden' }}>
       {/* Classic nav */}
@@ -115,8 +115,8 @@ function PoisePreview({ template, modelName }: { template: Template; modelName: 
   );
 }
 
-// Lumière Template - Cinematic filmstrip
-function LumierePreview({ template, modelName }: { template: Template; modelName: string }): React.JSX.Element {
+// Solstice Template - Cinematic filmstrip
+function SolsticePreview({ template, modelName }: { template: Template; modelName: string }): React.JSX.Element {
   const warmCream = '#FFF8F0';
   const terracotta = '#C8553D';
 
@@ -172,8 +172,8 @@ function LumierePreview({ template, modelName }: { template: Template; modelName
   );
 }
 
-// Noir Template - Bold 2-column with dramatic images
-function NoirPreview({ template, modelName }: { template: Template; modelName: string }): React.JSX.Element {
+// Obsidian Template - Bold 2-column with dramatic images
+function ObsidianPreview({ template, modelName }: { template: Template; modelName: string }): React.JSX.Element {
   return (
     <div style={{ backgroundColor: template.bgColor, height: '100%', overflow: 'hidden' }}>
       {/* Hidden nav - just a subtle line */}
@@ -219,16 +219,16 @@ function NoirPreview({ template, modelName }: { template: Template; modelName: s
 function TemplatePreview({ template, isSelected, modelName, onClick }: TemplatePreviewProps): React.JSX.Element {
   const renderPreview = () => {
     switch (template.id) {
-      case 'rose':
-        return <RosePreview template={template} modelName={modelName} />;
-      case 'poise':
-        return <PoisePreview template={template} modelName={modelName} />;
-      case 'lumiere':
-        return <LumierePreview template={template} modelName={modelName} />;
-      case 'noir':
-        return <NoirPreview template={template} modelName={modelName} />;
+      case 'elysian':
+        return <ElysianPreview template={template} modelName={modelName} />;
+      case 'ivory':
+        return <IvoryPreview template={template} modelName={modelName} />;
+      case 'solstice':
+        return <SolsticePreview template={template} modelName={modelName} />;
+      case 'obsidian':
+        return <ObsidianPreview template={template} modelName={modelName} />;
       default:
-        return <PoisePreview template={template} modelName={modelName} />;
+        return <IvoryPreview template={template} modelName={modelName} />;
     }
   };
 

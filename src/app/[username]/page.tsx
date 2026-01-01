@@ -114,7 +114,7 @@ async function getPublicPortfolioData(username: string): Promise<PortfolioData |
       photoIds: compCard.photo_ids,
     } : undefined,
     settings: {
-      template: profile.template || 'rose',
+      template: profile.template || 'elysian',
       accentColor: profile.accent_color,
       isPublished: profile.is_published || false,
       isPublic: profile.is_public || false,
