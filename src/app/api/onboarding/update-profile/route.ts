@@ -55,7 +55,7 @@ export async function POST(request: Request) {
 
     // Optional fields
     const optionalFields = [
-      "location", "instagram", "tiktok", "website", "bio",
+      "location", "instagram", "tiktok", "website", "agency", "bio",
       "shoe_size", "hair_color", "eye_color"
     ];
     

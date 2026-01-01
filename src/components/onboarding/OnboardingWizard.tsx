@@ -90,6 +90,7 @@ interface OnboardingWizardProps {
     location?: string | null;
     bio?: string | null;
     avatar_url?: string | null;
+    agency?: string | null;
   };
 }
 
@@ -359,7 +360,7 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
     instagram: "",
     tiktok: "",
     website: "",
-    agency: "",
+    agency: existingProfile?.agency || "",
     // Step 2
     bio: existingProfile?.bio || "",
     avatarUrl: existingProfile?.avatar_url || null,
@@ -523,6 +524,7 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
         formData.append("instagram", data.instagram.trim());
         formData.append("tiktok", data.tiktok.trim());
         formData.append("website", data.website.trim());
+        formData.append("agency", data.agency.trim());
       }
       
       if (currentStep === 2) {
@@ -719,6 +721,7 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
     if (aiData.instagram) updates.instagram = aiData.instagram as string;
     if (aiData.tiktok) updates.tiktok = aiData.tiktok as string;
     if (aiData.website) updates.website = aiData.website as string;
+    if (aiData.agencyName) updates.agency = aiData.agencyName as string;
     if (aiData.bio) updates.bio = aiData.bio as string;
     if (aiData.heightCm) updates.heightCm = aiData.heightCm as string;
     if (aiData.bustCm) updates.bustCm = aiData.bustCm as string;
@@ -798,7 +801,7 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
         instagram: data.instagram,
         tiktok: data.tiktok,
         website: data.website,
-        agency: "",
+        agency: data.agency,
       }}
     />
   );

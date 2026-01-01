@@ -13,7 +13,7 @@ export default async function OnboardingPage() {
   // Check if user has already completed onboarding
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, username, location, bio, avatar_url, onboarding_completed")
+    .select("display_name, username, location, bio, avatar_url, agency, onboarding_completed")
     .eq("id", user.id)
     .single();
 
@@ -32,6 +32,7 @@ export default async function OnboardingPage() {
         location: profile.location,
         bio: profile.bio,
         avatar_url: profile.avatar_url,
+        agency: profile.agency,
       } : undefined}
     />
   );
