@@ -14,10 +14,10 @@ export default async function PhotosPage() {
     redirect('/login');
   }
 
-  // Fetch photos ordered by sort_order (including analytics counts)
+  // Fetch photos ordered by sort_order
   const { data: photos, error: photosError } = await supabase
     .from('photos')
-    .select('*, view_count, click_count')
+    .select('*')
     .eq('profile_id', user.id)
     .order('sort_order', { ascending: true });
 
@@ -29,8 +29,6 @@ export default async function PhotosPage() {
   const normalizedPhotos: Photo[] = (photos || []).map((photo) => ({
     ...photo,
     is_visible: photo.is_visible ?? true,
-    view_count: photo.view_count ?? 0,
-    click_count: photo.click_count ?? 0,
   }));
 
   // Server action: Save photo order and visibility

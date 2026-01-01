@@ -71,6 +71,36 @@
   color: var(--color-text-tertiary, rgba(26, 26, 26, 0.6));
 }
 
+/* Toolbar Right */
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Upload Toggle Button */
+.uploadToggleButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: transparent;
+  border: 1px solid var(--color-border-light, rgba(26, 26, 26, 0.2));
+  color: var(--color-charcoal, #1A1A1A);
+  font-family: var(--font-body, 'Outfit', sans-serif);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.uploadToggleButton:hover {
+  border-color: var(--color-camel, #C4A484);
+  color: var(--color-camel, #C4A484);
+}
+
 /* Save Button */
 .saveButton {
   padding: 12px 24px;
@@ -96,6 +126,14 @@
   background: var(--color-camel, #C4A484);
   transform: translateY(-2px);
   box-shadow: 0 10px 40px var(--color-accent-transparent, rgba(196, 164, 132, 0.3));
+}
+
+/* Uploader Section */
+.uploaderSection {
+  margin-bottom: 24px;
+  padding: 24px;
+  background: var(--color-white, #FFFFFF);
+  border: 1px solid var(--color-border-subtle, rgba(26, 26, 26, 0.05));
 }
 
 /* Grid */
@@ -172,17 +210,28 @@
     align-items: flex-start;
   }
 
+  .toolbarRight {
+    flex-direction: column;
+    width: 100%;
+  }
+
   .instructions {
     flex-wrap: wrap;
     gap: 12px;
   }
 
+  .uploadToggleButton,
   .saveButton {
     width: 100%;
+    justify-content: center;
   }
 
   .grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 16px;
+  }
+
+  .uploaderSection {
+    padding: 16px;
   }
 }

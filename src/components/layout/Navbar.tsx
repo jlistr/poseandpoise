@@ -236,6 +236,12 @@ export function Navbar({
                       width={36}
                       height={36}
                       style={{
+                        width: "36px",
+                        height: "36px",
+                        minWidth: "36px",
+                        minHeight: "36px",
+                        maxWidth: "36px",
+                        maxHeight: "36px",
                         borderRadius: "50%",
                         objectFit: "cover",
                         border: `2px solid ${colors.border.divider}`,
@@ -461,23 +467,6 @@ export function Navbar({
                 }}
               >
                 Sign In
-              </Link>
-              <Link
-                href="/signup"
-                className={loaded ? "fade-up delay-5" : ""}
-                style={{
-                  fontFamily: typography.fontFamily.body,
-                  fontSize: typography.fontSize.caption,
-                  letterSpacing: typography.letterSpacing.wider,
-                  textTransform: "uppercase",
-                  padding: `${spacing.padding.sm} ${spacing.padding.lg}`,
-                  background: colors.charcoal,
-                  color: colors.cream,
-                  textDecoration: "none",
-                  transition: "all 0.3s ease",
-                }}
-              >
-                Get Started
               </Link>
             </>
           )}

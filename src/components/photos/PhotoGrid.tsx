@@ -19,7 +19,9 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { SortablePhotoItem, PhotoDragOverlay } from './SortablePhotoItem';
+import { PhotoUploader } from './PhotoUploader';
 import type { Photo, PhotoUpdate } from '@/types/photo';
+import type { Photo as UploadedPhoto } from '@/app/actions/photos';
 import styles from './PhotoGrid.module.css';
 
 interface PhotoGridProps {
@@ -30,10 +32,18 @@ interface PhotoGridProps {
 }
 
 export function PhotoGrid({ initialPhotos, onSave, onDelete, onUpdateCaption }: PhotoGridProps) {
+  const router = useRouter();
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showUploader, setShowUploader] = useState(false);
+
+  const handleUploadComplete = useCallback(() => {
+    // Refresh the page to get new photos from the server
+    router.refresh();
+    setShowUploader(false);
+  }, [router]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -159,15 +169,33 @@ export function PhotoGrid({ initialPhotos, onSave, onDelete, onUpdateCaption }: 
           </div>
         </div>
 
-        {/* Save Button */}
-        <button
-          onClick={handleSave}
-          disabled={!hasChanges || isSaving}
-          className={`${styles.saveButton} ${hasChanges ? styles.saveButtonActive : ''}`}
-        >
-          {isSaving ? 'Saving...' : hasChanges ? 'Save Changes' : 'Saved'}
-        </button>
+        {/* Action Buttons */}
+        <div className={styles.toolbarRight}>
+          <button
+            onClick={() => setShowUploader(!showUploader)}
+            className={styles.uploadToggleButton}
+            type="button"
+          >
+            <UploadIcon />
+            Upload Photos
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!hasChanges || isSaving}
+            className={`${styles.saveButton} ${hasChanges ? styles.saveButtonActive : ''}`}
+            type="button"
+          >
+            {isSaving ? 'Saving...' : hasChanges ? 'Save Changes' : 'Saved'}
+          </button>
+        </div>
       </div>
+
+      {/* Upload Section */}
+      {showUploader && (
+        <div className={styles.uploaderSection}>
+          <PhotoUploader onUploadComplete={handleUploadComplete} />
+        </div>
+      )}
 
       {/* Photo Grid */}
       <div className={styles.gridWrapper}>
@@ -197,38 +225,25 @@ export function PhotoGrid({ initialPhotos, onSave, onDelete, onUpdateCaption }: 
             </DragOverlay>
           </DndContext>
         ) : (
-          <EmptyState />
+          <div className={styles.emptyState}>
+            <PhotoUploader onUploadComplete={handleUploadComplete} />
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-function EmptyState() {
+// Icons
+function UploadIcon() {
   return (
-    <div className={styles.emptyState}>
-      <svg
-        width="48"
-        height="48"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1"
-      >
-        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-        <circle cx="8.5" cy="8.5" r="1.5" />
-        <polyline points="21 15 16 10 5 21" />
-      </svg>
-      <h3>No photos yet</h3>
-      <p>Upload photos to start building your portfolio gallery.</p>
-      <button className={styles.uploadButton}>
-        Upload Photos
-      </button>
-    </div>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
   );
 }
-
-// Icons
 function DragIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">

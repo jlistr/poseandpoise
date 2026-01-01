@@ -167,7 +167,7 @@ export function PricingHeader({ isLoggedIn, user, currentTier }: PricingHeaderPr
                       style={{
                         borderRadius: "50%",
                         objectFit: "cover",
-                        border: `2px solid ${colors.border.divider}`,
+                        border: `2px solid ${colors.border.light}`,
                       }}
                     />
                   ) : (

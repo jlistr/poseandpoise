@@ -66,6 +66,15 @@ export async function POST(request: Request) {
       }
 
       // =======================================================================
+      // SUBSCRIPTION CREATED - New subscription started
+      // =======================================================================
+      case 'customer.subscription.created': {
+        const subscription = event.data.object as Stripe.Subscription;
+        await handleSubscriptionChange(subscription);
+        break;
+      }
+
+      // =======================================================================
       // SUBSCRIPTION UPDATED - Plan change, renewal, trial end, etc.
       // =======================================================================
       case 'customer.subscription.updated': {
@@ -80,6 +89,19 @@ export async function POST(request: Request) {
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
         await handleSubscriptionDeleted(subscription);
+        break;
+      }
+
+      // =======================================================================
+      // INVOICE PAYMENT FAILED - Payment issue
+      // =======================================================================
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as Stripe.Invoice;
+        const subscriptionId = (invoice as { subscription?: string | null }).subscription 
+          || (invoice as { parent?: { subscription?: string } }).parent?.subscription;
+        if (subscriptionId) {
+          await handlePaymentFailed(subscriptionId);
+        }
         break;
       }
 
@@ -236,5 +258,28 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   }
   
   console.log(`Downgraded user ${existingSub.profile_id} to free tier`);
+}
+
+// =============================================================================
+// HELPER: Handle payment failure
+// =============================================================================
+async function handlePaymentFailed(subscriptionId: string) {
+  const { data: existingSub } = await supabaseAdmin
+    .from('subscriptions')
+    .select('profile_id')
+    .eq('stripe_subscription_id', subscriptionId)
+    .single();
+  
+  if (existingSub) {
+    await supabaseAdmin
+      .from('subscriptions')
+      .update({
+        status: 'past_due',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('profile_id', existingSub.profile_id);
+    
+    console.log(`Marked subscription as past_due for user ${existingSub.profile_id}`);
+  }
 }
 

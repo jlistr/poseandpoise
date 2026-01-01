@@ -1,17 +1,18 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { uploadPhoto } from "@/app/actions/photos";
+import { uploadPhoto, type Photo } from "@/app/actions/photos";
 import { colors, typography, spacing } from "@/styles/tokens";
 import { CameraIcon, HourglassIcon } from "@/components/icons/Icons";
 
 interface PhotoUploaderProps {
-  onUploadComplete?: () => void;
+  onUploadComplete?: (photos: Photo[]) => void;
 }
 
 export function PhotoUploader({ onUploadComplete }: PhotoUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -20,10 +21,13 @@ export function PhotoUploader({ onUploadComplete }: PhotoUploaderProps) {
 
     setError(null);
     setUploading(true);
+    const uploadedPhotos: Photo[] = [];
 
     // Upload files one at a time
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
+      setUploadProgress(`Uploading ${i + 1} of ${files.length}...`);
+      
       const formData = new FormData();
       formData.append("file", file);
 
@@ -33,15 +37,22 @@ export function PhotoUploader({ onUploadComplete }: PhotoUploaderProps) {
         setError(result.message);
         break;
       }
+      
+      if (result.data) {
+        uploadedPhotos.push(result.data);
+      }
     }
 
     setUploading(false);
+    setUploadProgress("");
     
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
 
-    onUploadComplete?.();
+    if (uploadedPhotos.length > 0) {
+      onUploadComplete?.(uploadedPhotos);
+    }
   }, [onUploadComplete]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -107,7 +118,7 @@ export function PhotoUploader({ onUploadComplete }: PhotoUploaderProps) {
             color: colors.text.primary,
           }}
         >
-          {uploading ? "Uploading..." : "Drop photos here"}
+          {uploading ? uploadProgress || "Uploading..." : "Drop photos here"}
         </p>
         <p
           style={{
