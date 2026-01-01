@@ -1475,18 +1475,153 @@ export function AIOnboardingChat({
       <div style={{ ...styles.chatPanel, position: "relative" as const }}>
         {/* Chat Header */}
         <div style={styles.chatHeader}>
-          <div style={styles.stepIndicator}>
-            {steps.map((step, index) => (
-              <div key={step} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <div style={styles.stepDot(step === currentStep, index < currentStepIndex)} />
-                <span style={styles.stepName(step === currentStep)}>
-                  {step}
-                </span>
-                {index < steps.length - 1 && (
-                  <div style={{ width: "20px", height: "1px", backgroundColor: "rgba(26,26,26,0.1)", margin: "0 4px" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+            <div style={styles.stepIndicator}>
+              {steps.map((step, index) => (
+                <div key={step} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div style={styles.stepDot(step === currentStep, index < currentStepIndex)} />
+                  <span style={styles.stepName(step === currentStep)}>
+                    {step}
+                  </span>
+                  {index < steps.length - 1 && (
+                    <div style={{ width: "20px", height: "1px", backgroundColor: "rgba(26,26,26,0.1)", margin: "0 4px" }} />
+                  )}
+                </div>
+              ))}
+            </div>
+            
+            {/* Items Collected Badge - Top Right */}
+            {hasExtractedData && (
+              <div style={{ position: "relative" }}>
+                <div
+                  onClick={() => setShowDataSummary(!showDataSummary)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "6px 12px",
+                    backgroundColor: showDataSummary ? "#C4A484" : "#1A1A1A",
+                    color: "#FAF9F7",
+                    cursor: "pointer",
+                    fontFamily: "'Outfit', sans-serif",
+                    fontSize: "11px",
+                    fontWeight: 500,
+                    borderRadius: "16px",
+                    transition: "all 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#C4A484";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = showDataSummary ? "#C4A484" : "#1A1A1A";
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 11l3 3L22 4" />
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                  </svg>
+                  {extractedDataItems.length} collected
+                  <svg 
+                    width="10" 
+                    height="10" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2"
+                    style={{ 
+                      transform: showDataSummary ? "rotate(180deg)" : "rotate(0deg)",
+                      transition: "transform 0.2s ease"
+                    }}
+                  >
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </div>
+                
+                {/* Dropdown Panel */}
+                {showDataSummary && (
+                  <div style={{
+                    position: "absolute",
+                    top: "calc(100% + 8px)",
+                    right: 0,
+                    width: "280px",
+                    backgroundColor: "white",
+                    border: "1px solid rgba(26, 26, 26, 0.1)",
+                    borderRadius: "8px",
+                    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
+                    zIndex: 100,
+                    overflow: "hidden",
+                  }}>
+                    <div style={{
+                      padding: "12px 16px",
+                      borderBottom: "1px solid rgba(26, 26, 26, 0.1)",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}>
+                      <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        fontFamily: "'Outfit', sans-serif",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        color: "#1A1A1A",
+                      }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C4A484" strokeWidth="2">
+                          <path d="M9 11l3 3L22 4" />
+                          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                        </svg>
+                        Collected Information
+                      </div>
+                      <button
+                        onClick={() => setShowDataSummary(false)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: "4px",
+                          color: "rgba(26, 26, 26, 0.4)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M18 6L6 18M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div style={{ padding: "12px 16px", maxHeight: "300px", overflowY: "auto" }}>
+                      {extractedDataItems.map((item, i) => (
+                        <div key={i} style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "8px 0",
+                          borderBottom: i < extractedDataItems.length - 1 ? "1px solid rgba(26, 26, 26, 0.05)" : "none",
+                        }}>
+                          <span style={{
+                            fontFamily: "'Outfit', sans-serif",
+                            fontSize: "12px",
+                            color: "rgba(26, 26, 26, 0.5)",
+                          }}>{item.label}</span>
+                          <span style={{
+                            fontFamily: "'Outfit', sans-serif",
+                            fontSize: "12px",
+                            fontWeight: 500,
+                            color: "#1A1A1A",
+                            maxWidth: "150px",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}>{item.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
-            ))}
+            )}
           </div>
           <h1 style={styles.chatTitle}>{STEP_CONFIG[currentStep].title}</h1>
           <p style={styles.chatSubtitle}>{STEP_CONFIG[currentStep].subtitle}</p>
@@ -2011,79 +2146,6 @@ export function AIOnboardingChat({
 
           {/* Upsell */}
           {renderUpsell()}
-          
-          {/* Floating Data Summary */}
-          {hasExtractedData && (
-            <div style={styles.dataSummaryWrapper}>
-              {showDataSummary && (
-                <div style={styles.dataSummaryPanel}>
-                  <div style={styles.dataSummaryHeader}>
-                    <div style={styles.dataSummaryTitle}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M9 11l3 3L22 4" />
-                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-                      </svg>
-                      Collected Info
-                    </div>
-                    <button
-                      onClick={() => setShowDataSummary(false)}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        padding: "4px",
-                        color: "rgba(26, 26, 26, 0.4)",
-                      }}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M6 9l6 6 6-6" />
-                      </svg>
-                    </button>
-                  </div>
-                  <div style={styles.dataSummaryContent}>
-                    <div style={styles.dataGrid}>
-                      {extractedDataItems.map((item, i) => (
-                        <div key={i} style={styles.dataItem}>
-                          <span style={styles.dataLabel}>{item.label}</span>
-                          <span style={styles.dataValue}>{item.value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-              <div
-                style={styles.dataSummaryBadge}
-                onClick={() => setShowDataSummary(!showDataSummary)}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "#C4A484";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "#1A1A1A";
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M9 11l3 3L22 4" />
-                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-                </svg>
-                {extractedDataItems.length} items collected
-                <svg 
-                  width="12" 
-                  height="12" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2"
-                  style={{ 
-                    transform: showDataSummary ? "rotate(180deg)" : "rotate(0deg)",
-                    transition: "transform 0.2s ease"
-                  }}
-                >
-                  <path d="M18 15l-6-6-6 6" />
-                </svg>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Input Area */}
