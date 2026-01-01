@@ -76,12 +76,20 @@ const STEP_LABELS: Record<OnboardingStep, string> = {
 interface OnboardingWizardProps {
   userEmail: string;
   userId: string;
+  subscriptionTier?: string;
   existingProfile?: ExistingProfile;
   existingServices?: ExistingService[];
   existingPhotos?: ExistingPhoto[];
 }
 
-export function OnboardingWizard({ userEmail, userId, existingProfile, existingServices, existingPhotos }: OnboardingWizardProps): React.JSX.Element {
+export function OnboardingWizard({ 
+  userEmail, 
+  userId, 
+  subscriptionTier = 'FREE',
+  existingProfile, 
+  existingServices, 
+  existingPhotos 
+}: OnboardingWizardProps): React.JSX.Element {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('template');
   const [isSaving, setIsSaving] = useState(false);
@@ -183,10 +191,14 @@ export function OnboardingWizard({ userEmail, userId, existingProfile, existingS
     return Object.keys(errors).length === 0;
   }, [currentStep, data.profile]);
 
-  // Validate required profile fields before launching (profile is no longer last step)
+  // Valid template IDs
+  const VALID_TEMPLATES = ['elysian', 'altar', 'solstice', 'obsidian'];
+
+  // Validate required fields before launching
   const validateForLaunch = useCallback((): boolean => {
     const errors: Record<string, string> = {};
 
+    // Validate profile fields
     if (!data.profile.displayName.trim()) {
       errors.displayName = 'Display name is required';
     }
@@ -194,6 +206,18 @@ export function OnboardingWizard({ userEmail, userId, existingProfile, existingS
       errors.username = 'Username is required';
     } else if (!/^[a-z0-9_-]+$/.test(data.profile.username)) {
       errors.username = 'Username can only contain lowercase letters, numbers, hyphens, and underscores';
+    }
+
+    // Validate template selection
+    if (!data.selectedTemplate || !VALID_TEMPLATES.includes(data.selectedTemplate)) {
+      errors.template = 'Please select a template';
+      // If template is invalid, set a default and navigate to template step
+      if (!data.selectedTemplate) {
+        updateSelectedTemplate('altar');
+      }
+      setValidationErrors(errors);
+      setCurrentStep('template');
+      return false;
     }
 
     if (Object.keys(errors).length > 0) {
@@ -204,7 +228,7 @@ export function OnboardingWizard({ userEmail, userId, existingProfile, existingS
     }
 
     return true;
-  }, [data.profile]);
+  }, [data.profile, data.selectedTemplate, updateSelectedTemplate]);
 
   const handleContinue = useCallback(async () => {
     if (!validateCurrentStep()) return;
@@ -290,11 +314,15 @@ export function OnboardingWizard({ userEmail, userId, existingProfile, existingS
         }
       }
 
-      // 3. Save template selection
+      // 3. Save template selection (with fallback to 'altar' if somehow empty)
+      const templateToSave = data.selectedTemplate && VALID_TEMPLATES.includes(data.selectedTemplate) 
+        ? data.selectedTemplate 
+        : 'altar';
+      
       const templateResponse = await fetch('/api/onboarding/save-template', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ template_id: data.selectedTemplate }),
+        body: JSON.stringify({ template_id: templateToSave }),
       });
 
       if (!templateResponse.ok) {
@@ -426,7 +454,13 @@ export function OnboardingWizard({ userEmail, userId, existingProfile, existingS
   const collectedFields = getCollectedFieldsCount(currentStep);
 
   return (
-    <OnboardingLayout userInitials={userInitials} profilePhoto={data.about.profilePhoto}>
+    <OnboardingLayout 
+      userInitials={userInitials} 
+      profilePhoto={data.about.profilePhoto}
+      userName={data.profile.displayName}
+      userEmail={userEmail}
+      subscriptionTier={subscriptionTier}
+    >
       {/* Step Indicator */}
       <StepIndicator steps={steps} />
 

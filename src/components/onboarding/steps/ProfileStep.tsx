@@ -299,7 +299,11 @@ export function ProfileStep({ data, onChange, initialLocation, validationErrors 
     width: '100%',
     padding: '0.625rem 0.75rem',
     fontSize: '14px',
-    border: `1px solid ${hasError ? colors.error : colors.border}`,
+    // Use separate border properties to avoid conflicts when overriding individual sides
+    borderTop: `1px solid ${hasError ? colors.error : colors.border}`,
+    borderRight: `1px solid ${hasError ? colors.error : colors.border}`,
+    borderBottom: `1px solid ${hasError ? colors.error : colors.border}`,
+    borderLeft: `1px solid ${hasError ? colors.error : colors.border}`,
     borderRadius: '0.5rem',
     outline: 'none',
     backgroundColor: hasError ? colors.errorLight : colors.white,

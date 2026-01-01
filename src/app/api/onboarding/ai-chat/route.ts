@@ -21,12 +21,17 @@ const SYSTEM_PROMPT = `You are a friendly and professional AI assistant for Pose
    - Physical characteristics (hair color, eye color)
    - For full-body photos: estimate height and body proportions
    - Professional appearance notes
-3. **Scan Comp Cards**: Extract all stats from comp card images including:
+3. **Scan Comp Cards**: Extract all stats from comp card images or PDFs including:
    - Name, measurements (height, bust, waist, hips in cm)
    - Shoe size, hair color, eye color
    - Agency info if visible
 4. **Suggest Services**: Recommend modeling services based on experience and market
 5. **Write Bios**: Craft compelling professional bios
+6. **Photo Organization**: Scan portfolio photos for photographer/studio credits:
+   - Detect watermarks, signatures, and logos
+   - Identify photographer names and studio branding
+   - Extract Instagram handles if visible
+   - Provide confidence levels for each detection
 
 ## Response Format
 IMPORTANT: Always respond with valid JSON in this exact format. Do not include any text before or after the JSON:
@@ -50,11 +55,23 @@ IMPORTANT: Always respond with valid JSON in this exact format. Do not include a
     "shoeSize": null,
     "hairColor": null,
     "eyeColor": null,
-    "experienceLevel": null
+    "experienceLevel": null,
+    "photos": null
   },
   "suggestions": [],
   "confidence": 0.8
 }
+
+For the photos field (used with photo-organizer tool), use this format:
+"photos": [
+  {
+    "photographer": "Name or null",
+    "studio": "Studio name or null",
+    "instagram": "@handle or null",
+    "confidence": "high/medium/low",
+    "reasoning": "What was detected"
+  }
+]
 
 Only include non-null values for fields you've actually extracted or detected.
 For measurements, use numbers only (e.g., "175" not "175cm").
@@ -70,6 +87,14 @@ For experienceLevel, use only: "beginner", "intermediate", or "professional".
 - Use markdown formatting in your message for better readability`;
 
 // Types for the API
+interface PhotoCredit {
+  photographer?: string | null;
+  studio?: string | null;
+  instagram?: string | null;
+  confidence?: "high" | "medium" | "low";
+  reasoning?: string;
+}
+
 interface ExtractedData {
   displayName?: string | null;
   location?: string | null;
@@ -89,6 +114,7 @@ interface ExtractedData {
   hairColor?: string | null;
   eyeColor?: string | null;
   experienceLevel?: "beginner" | "intermediate" | "professional" | null;
+  photos?: PhotoCredit[];
 }
 
 interface AIResponse {
@@ -176,11 +202,36 @@ export async function POST(request: NextRequest) {
       if (tool === "photo-analyzer") {
         contextMessage += `\n- Task: Analyze the provided image to extract physical characteristics. Look for hair color, eye color, and if it's a full-body shot, estimate approximate height and body proportions.`;
       } else if (tool === "comp-scanner") {
-        contextMessage += `\n- Task: This is a comp card image. Extract ALL visible information: name, measurements (height in cm, bust, waist, hips), shoe size, hair color, eye color, agency name, and any contact info.`;
+        contextMessage += `\n- Task: This is a comp card (image or PDF). Extract ALL visible information: name, measurements (height in cm, bust, waist, hips), shoe size, hair color, eye color, agency name, and any contact info.`;
       } else if (tool === "bio-generator") {
         contextMessage += `\n- Task: Generate a compelling, professional bio (2-3 sentences) based on the collected information. Highlight unique qualities and experience level.`;
       } else if (tool === "services-suggest") {
         contextMessage += `\n- Task: Suggest appropriate modeling services with competitive pricing based on their experience level and location. Include services like: Editorial, Commercial, Runway, Catalog, Fit Model, Parts Model, etc.`;
+      } else if (tool === "photo-organizer") {
+        contextMessage += `\n- Task: Analyze these modeling photos to detect photographer/studio credits. Look for:
+  - Photographer watermarks or signatures (usually in corners or edges)
+  - Studio logos or branding
+  - Visible text that might indicate the photographer or studio name
+  - Professional studio characteristics that might identify the location
+  
+For each image, try to identify:
+  - suggestedPhotographer: The photographer's name if visible
+  - suggestedStudio: The studio name if identifiable
+  - confidence: high/medium/low based on how clear the attribution is
+  - reasoning: Brief explanation of what you detected
+
+Include this in extractedData.photos as an array with entries like:
+{
+  "photos": [
+    {
+      "photographer": "Name or null",
+      "studio": "Name or null", 
+      "instagram": "@handle if visible or null",
+      "confidence": "high/medium/low",
+      "reasoning": "What was detected"
+    }
+  ]
+}`;
       }
     }
     
@@ -197,20 +248,35 @@ export async function POST(request: NextRequest) {
     // Build the message content
     const messageContent: Anthropic.ContentBlockParam[] = [];
     
-    // Add images first if present
+    // Add images and documents first if present
     for (const imageData of images) {
       const matches = imageData.match(/^data:([^;]+);base64,(.+)$/);
       if (matches) {
-        const mediaType = matches[1] as "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+        const mimeType = matches[1];
         const base64Data = matches[2];
-        messageContent.push({
-          type: "image",
-          source: {
-            type: "base64",
-            media_type: mediaType,
-            data: base64Data,
-          },
-        });
+        
+        // Check if it's a PDF document
+        if (mimeType === "application/pdf") {
+          messageContent.push({
+            type: "document",
+            source: {
+              type: "base64",
+              media_type: "application/pdf",
+              data: base64Data,
+            },
+          } as Anthropic.ContentBlockParam);
+        } else {
+          // Handle as image
+          const mediaType = mimeType as "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+          messageContent.push({
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: mediaType,
+              data: base64Data,
+            },
+          });
+        }
       }
     }
     

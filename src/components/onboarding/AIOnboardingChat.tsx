@@ -220,6 +220,21 @@ const Icons = {
     </svg>
   ),
   
+  // Photo Organizer - Camera with magnifying glass for detecting photographers/studios
+  photoOrganizer: (
+    <svg width="32" height="32" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="4" y="12" width="32" height="24" rx="3" />
+      <path d="M12 12V9a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v3" />
+      <circle cx="20" cy="24" r="6" />
+      <circle cx="20" cy="24" r="3" />
+      {/* Magnifying glass */}
+      <circle cx="38" cy="36" r="6" fill="#FAF9F7" stroke="currentColor" strokeWidth="2" />
+      <path d="M42 40l4 4" strokeWidth="2.5" strokeLinecap="round" />
+      {/* @ symbol inside magnifying glass */}
+      <text x="38" y="39" fontSize="8" textAnchor="middle" fill="currentColor" stroke="none" fontWeight="bold">@</text>
+    </svg>
+  ),
+  
   // Arrow Right
   arrowRight: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -330,6 +345,14 @@ const STEP_TOOLS: Record<OnboardingStep, Tool[]> = {
       description: "Drag and drop or click to add your best work",
       icon: Icons.photos,
       action: "upload",
+    },
+    {
+      id: "photo-organizer",
+      name: "Detect Photographers & Studios",
+      description: "AI scans your photos for watermarks, signatures, and studio logos to auto-credit photographers",
+      icon: Icons.photoOrganizer,
+      action: "upload",
+      highlight: true,
     },
   ],
 };
@@ -1025,7 +1048,7 @@ export function AIOnboardingChat({
       case "template":
         return `${firstName ? `Almost there, ${firstName}! ` : ''}Choose a template that reflects your style.\n\n${subscriptionTier === "free" ? "Your plan includes Rose, Poise, and Lumiere templates. Upgrade to unlock the exclusive Noir template." : "You have access to all premium templates."}\n\nClick on a template below to see a preview.`;
       case "photos":
-        return `${firstName ? `Final step, ${firstName}! ` : ''}Time to showcase your best work.\n\nUpload your portfolio photos and credit your creative team for each image.\n\n${subscriptionTier === "free" ? "Your plan allows up to 10 photos. Upgrade for more." : subscriptionTier === "professional" ? "Your Professional plan allows up to 50 photos." : "Your Deluxe plan includes unlimited uploads."}\n\nOnce you've uploaded at least 2 photos, you can preview your portfolio.`;
+        return `${firstName ? `Final step, ${firstName}! ` : ''}Time to showcase your best work.\n\nUpload your portfolio photos and credit your creative team for each image.\n\n• **Detect Photographers & Studios** - AI scans your photos for watermarks and signatures to auto-credit photographers\n\n${subscriptionTier === "free" ? "Your plan allows up to 10 photos. Upgrade for more." : subscriptionTier === "professional" ? "Your Professional plan allows up to 50 photos." : "Your Deluxe plan includes unlimited uploads."}\n\nOnce you've uploaded at least 2 photos, you can preview your portfolio.`;
       default:
         return "How can I assist you?";
     }
@@ -1049,7 +1072,9 @@ export function AIOnboardingChat({
       if (tool.id === "photo-analyzer") {
         addAssistantMessage("Please upload a full-body photo and I'll analyze it to extract your measurements, hair color, and eye color. For best results, use a well-lit photo where you're standing straight.");
       } else if (tool.id === "comp-scanner") {
-        addAssistantMessage("Upload your existing comp card and I'll extract all your stats automatically - including measurements, hair color, eye color, and any agency information.");
+        addAssistantMessage("Upload your existing comp card (image or PDF) and I'll extract all your stats automatically - including measurements, hair color, eye color, and any agency information.");
+      } else if (tool.id === "photo-organizer") {
+        addAssistantMessage("Upload your portfolio photos and I'll scan them for photographer watermarks, signatures, and studio logos. This helps you auto-credit the creative team for each image.");
       }
       fileInputRef.current?.click();
     } else if (tool.action === "location") {
@@ -1295,7 +1320,9 @@ export function AIOnboardingChat({
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
-      setPendingImages((prev) => [...prev, ...files.slice(0, 3 - prev.length)]);
+      // For photo-organizer, allow up to 10 files; otherwise limit to 3
+      const maxFiles = activeTool === "photo-organizer" ? 10 : 3;
+      setPendingImages((prev) => [...prev, ...files.slice(0, maxFiles - prev.length)]);
       // Trigger send after image selection
       setTimeout(() => {
         handleSend();
@@ -1477,7 +1504,8 @@ export function AIOnboardingChat({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept={activeTool === "comp-scanner" ? "image/*,application/pdf" : "image/*"}
+        multiple={activeTool === "photo-organizer"}
         onChange={handleImageUpload}
         style={{ display: "none" }}
       />
@@ -2154,7 +2182,9 @@ export function AIOnboardingChat({
                   <span style={{
                     padding: "10px 12px",
                     backgroundColor: "#FAF9F7",
-                    border: "1px solid rgba(26, 26, 26, 0.15)",
+                    borderTop: "1px solid rgba(26, 26, 26, 0.15)",
+                    borderBottom: "1px solid rgba(26, 26, 26, 0.15)",
+                    borderLeft: "1px solid rgba(26, 26, 26, 0.15)",
                     borderRight: "none",
                     fontFamily: "'Outfit', sans-serif",
                     fontSize: "14px",
@@ -2228,7 +2258,9 @@ export function AIOnboardingChat({
                   <span style={{
                     padding: "10px 12px",
                     backgroundColor: "#FAF9F7",
-                    border: "1px solid rgba(26, 26, 26, 0.15)",
+                    borderTop: "1px solid rgba(26, 26, 26, 0.15)",
+                    borderBottom: "1px solid rgba(26, 26, 26, 0.15)",
+                    borderLeft: "1px solid rgba(26, 26, 26, 0.15)",
                     borderRight: "none",
                     fontFamily: "'Outfit', sans-serif",
                     fontSize: "14px",

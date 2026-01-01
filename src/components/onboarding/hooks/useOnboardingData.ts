@@ -341,8 +341,17 @@ export function useOnboardingData({ existingProfile, existingServices, existingP
   const lastSavedProfileRef = useRef<ProfileData | null>(null);
   const lastSavedServicesRef = useRef<ServicesData | null>(null);
 
+  // Valid template IDs for validation
+  const VALID_TEMPLATES = ['elysian', 'altar', 'solstice', 'obsidian'];
+
   // Save template selection immediately
   const saveTemplate = useCallback(async () => {
+    // Validate template before saving
+    if (!data.selectedTemplate || !VALID_TEMPLATES.includes(data.selectedTemplate)) {
+      console.warn('Invalid template selection, skipping save:', data.selectedTemplate);
+      return;
+    }
+    
     if (data.selectedTemplate === lastSavedTemplateRef.current) return;
     
     setIsSavingTemplate(true);
@@ -355,7 +364,10 @@ export function useOnboardingData({ existingProfile, existingServices, existingP
       
       if (response.ok) {
         lastSavedTemplateRef.current = data.selectedTemplate;
-        console.log('Template saved:', data.selectedTemplate);
+        console.log('Template saved successfully:', data.selectedTemplate);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Failed to save template:', errorData);
       }
     } catch (error) {
       console.error('Failed to save template:', error);

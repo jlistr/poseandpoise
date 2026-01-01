@@ -31,9 +31,19 @@ interface OnboardingLayoutProps {
   children: React.ReactNode;
   userInitials?: string;
   profilePhoto?: string | null;
+  userName?: string;
+  userEmail?: string;
+  subscriptionTier?: string;
 }
 
-export function OnboardingLayout({ children, userInitials = 'U', profilePhoto }: OnboardingLayoutProps): React.JSX.Element {
+export function OnboardingLayout({ 
+  children, 
+  userInitials = 'U', 
+  profilePhoto,
+  userName,
+  userEmail,
+  subscriptionTier = 'FREE'
+}: OnboardingLayoutProps): React.JSX.Element {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -161,13 +171,57 @@ export function OnboardingLayout({ children, userInitials = 'U', profilePhoto }:
                   position: 'absolute',
                   top: 'calc(100% + 8px)',
                   right: 0,
-                  minWidth: '160px',
+                  minWidth: '220px',
                   backgroundColor: colors.white,
                   border: `1px solid ${colors.border}`,
                   boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
                   zIndex: 1000,
+                  borderRadius: '4px',
+                  overflow: 'hidden',
                 }}
               >
+                {/* User Info Header */}
+                <div style={{
+                  padding: '16px',
+                  borderBottom: `1px solid ${colors.border}`,
+                  backgroundColor: colors.cream,
+                }}>
+                  <div style={{ 
+                    fontSize: '14px', 
+                    fontWeight: 600, 
+                    color: colors.textPrimary,
+                    marginBottom: '4px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}>
+                    {userName || 'User'}
+                  </div>
+                  <div style={{ 
+                    fontSize: '12px', 
+                    color: colors.textMuted,
+                    marginBottom: '8px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}>
+                    {userEmail}
+                  </div>
+                  <div style={{
+                    display: 'inline-block',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase',
+                    backgroundColor: colors.camel,
+                    color: colors.white,
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
+                  }}>
+                    {subscriptionTier}
+                  </div>
+                </div>
+
                 <button
                   type="button"
                   onClick={handleSignOut}

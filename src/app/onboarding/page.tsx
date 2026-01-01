@@ -31,7 +31,8 @@ export default async function OnboardingPage() {
       eye_color,
       instagram,
       tiktok,
-      website
+      website,
+      subscription_tier
     `)
     .eq("id", user.id)
     .single();
@@ -58,6 +59,7 @@ export default async function OnboardingPage() {
     <OnboardingWizard 
       userEmail={user.email || ""} 
       userId={user.id}
+      subscriptionTier={profile?.subscription_tier || "FREE"}
       existingProfile={profile ? {
         display_name: profile.display_name,
         username: profile.username,
