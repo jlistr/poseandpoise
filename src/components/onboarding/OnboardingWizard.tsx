@@ -347,7 +347,7 @@ export function OnboardingWizard({ userEmail, userId, existingProfile }: Onboard
   const collectedFields = getCollectedFieldsCount(currentStep);
 
   return (
-    <OnboardingLayout userInitials={userInitials}>
+    <OnboardingLayout userInitials={userInitials} profilePhoto={data.about.profilePhoto}>
       {/* Step Indicator */}
       <StepIndicator steps={steps} />
 

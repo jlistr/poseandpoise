@@ -21,9 +21,10 @@ const SparklesIcon: React.FC<{ size?: number }> = ({ size = 14 }) => (
 interface OnboardingLayoutProps {
   children: React.ReactNode;
   userInitials?: string;
+  profilePhoto?: string | null;
 }
 
-export function OnboardingLayout({ children, userInitials = 'U' }: OnboardingLayoutProps): React.JSX.Element {
+export function OnboardingLayout({ children, userInitials = 'U', profilePhoto }: OnboardingLayoutProps): React.JSX.Element {
   const router = useRouter();
 
   return (
@@ -84,16 +85,30 @@ export function OnboardingLayout({ children, userInitials = 'U' }: OnboardingLay
               width: '36px',
               height: '36px',
               borderRadius: '50%',
-              backgroundColor: colors.charcoal,
+              backgroundColor: profilePhoto ? 'transparent' : colors.charcoal,
               color: colors.cream,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '12px',
               fontWeight: 500,
+              overflow: 'hidden',
+              border: profilePhoto ? `2px solid ${colors.camel}` : 'none',
             }}
           >
-            {userInitials}
+            {profilePhoto ? (
+              <img
+                src={profilePhoto}
+                alt="Profile"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                }}
+              />
+            ) : (
+              userInitials
+            )}
           </div>
         </div>
       </header>
