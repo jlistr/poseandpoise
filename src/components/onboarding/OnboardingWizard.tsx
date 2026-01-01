@@ -400,6 +400,21 @@ export function OnboardingWizard({ userEmail, userId, existingProfile, existingS
             modelName={data.profile.displayName}
           />
         );
+      case 'photos':
+        return (
+          <PhotosStep
+            photos={data.photos}
+            onAddPhotos={addPhotos}
+            onToggleVisibility={togglePhotoVisibility}
+            onRemovePhoto={removePhoto}
+            onUpdateCredit={updatePhotoCredit}
+            onRetryUpload={retryPhotoUpload}
+            selectedTemplate={data.selectedTemplate}
+            modelName={data.profile.displayName}
+            isUploading={isUploadingPhotos}
+            uploadProgress={uploadProgress}
+          />
+        );
       default:
         return null;
     }

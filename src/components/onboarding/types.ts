@@ -2,9 +2,8 @@
 // Onboarding Types & Design Tokens
 // ============================================================================
 
-// Step Types (ordered: template → profile → services → about)
-// Note: Photos step removed from onboarding - photos are uploaded via Portfolio Editor
-export type OnboardingStep = 'template' | 'profile' | 'services' | 'about';
+// Step Types (ordered: template → photos → profile → services → about)
+export type OnboardingStep = 'template' | 'photos' | 'profile' | 'services' | 'about';
 export type LocationStatus = 'idle' | 'detecting' | 'found' | 'error';
 export type ExperienceLevel = 'beginner' | 'intermediate' | 'professional' | 'expert';
 
@@ -141,6 +140,11 @@ export interface ExistingService {
     half_day?: number | null;
     full_day?: number | null;
   } | null;
+  // Metadata fields that should be preserved
+  experience_level?: ExperienceLevel | null;
+  travel_available?: boolean | null;
+  travel_radius?: string | null;
+  tfp_available?: boolean | null;
 }
 
 export interface ExistingPhoto {

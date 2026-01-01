@@ -1,7 +1,25 @@
 'use client';
 
-import React, { useRef } from 'react';
-import { colors, fonts, type PortfolioPhoto, type Template, TEMPLATES, type PhotoUploadStatus } from '../types';
+import React, { useRef, useState, useCallback } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+  DragOverlay,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { colors, fonts, type PortfolioPhoto, TEMPLATES } from '../types';
 
 // ============================================================================
 // Icons
@@ -57,34 +75,84 @@ const RefreshIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
   </svg>
 );
 
+const GripIcon: React.FC<{ size?: number }> = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+    <circle cx="8" cy="6" r="2" />
+    <circle cx="16" cy="6" r="2" />
+    <circle cx="8" cy="12" r="2" />
+    <circle cx="16" cy="12" r="2" />
+    <circle cx="8" cy="18" r="2" />
+    <circle cx="16" cy="18" r="2" />
+  </svg>
+);
+
 // ============================================================================
-// Photo Card Component
+// Sortable Photo Card Component
 // ============================================================================
 
-interface PhotoCardProps {
+interface SortablePhotoCardProps {
   photo: PortfolioPhoto;
+  index: number;
   onToggleVisibility: (id: string) => void;
   onRemove: (id: string) => void;
   onUpdateCredit: (id: string, field: 'photographer' | 'studio', value: string) => void;
   onRetry?: (id: string) => void;
 }
 
-function PhotoCard({ photo, onToggleVisibility, onRemove, onUpdateCredit, onRetry }: PhotoCardProps): React.JSX.Element {
+function SortablePhotoCard({ photo, index, onToggleVisibility, onRemove, onUpdateCredit, onRetry }: SortablePhotoCardProps): React.JSX.Element {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: photo.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 100 : 'auto',
+  };
+
   const isUploading = photo.uploadStatus === 'uploading';
   const hasError = photo.uploadStatus === 'error';
   const isUploaded = photo.uploadStatus === 'uploaded';
 
   return (
     <div
+      ref={setNodeRef}
       style={{
-        border: `1px solid ${hasError ? colors.error : colors.border}`,
-        borderRadius: '0.75rem',
+        ...style,
+        border: `1px solid ${hasError ? colors.error : isDragging ? colors.camel : colors.border}`,
+        borderRadius: 0,
         overflow: 'hidden',
         backgroundColor: colors.white,
-        opacity: isUploading ? 0.8 : 1,
-        transition: 'opacity 0.2s',
+        boxShadow: isDragging ? '0 10px 30px rgba(0,0,0,0.15)' : 'none',
       }}
     >
+      {/* Drag Handle */}
+      <div
+        {...attributes}
+        {...listeners}
+        style={{
+          padding: '0.5rem',
+          backgroundColor: colors.cream,
+          cursor: isDragging ? 'grabbing' : 'grab',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem',
+          borderBottom: `1px solid ${colors.border}`,
+        }}
+      >
+        <GripIcon size={14} />
+        <span style={{ fontSize: '11px', color: colors.textMuted, letterSpacing: '0.05em' }}>
+          #{index + 1}
+        </span>
+      </div>
+
       {/* Image */}
       <div
         style={{
@@ -234,7 +302,7 @@ function PhotoCard({ photo, onToggleVisibility, onRemove, onUpdateCredit, onRetr
               backgroundColor: 'rgba(0,0,0,0.7)',
               color: colors.white,
               fontSize: '10px',
-              borderRadius: '0.25rem',
+              borderRadius: 0,
             }}
           >
             Hidden
@@ -252,7 +320,7 @@ function PhotoCard({ photo, onToggleVisibility, onRemove, onUpdateCredit, onRetr
               backgroundColor: colors.error,
               color: colors.white,
               fontSize: '10px',
-              borderRadius: '0.25rem',
+              borderRadius: 0,
               display: 'flex',
               alignItems: 'center',
               gap: '0.25rem',
@@ -263,6 +331,7 @@ function PhotoCard({ photo, onToggleVisibility, onRemove, onUpdateCredit, onRetr
           </div>
         )}
       </div>
+
       {/* Credits */}
       <div style={{ padding: '0.75rem' }}>
         <input
@@ -276,7 +345,7 @@ function PhotoCard({ photo, onToggleVisibility, onRemove, onUpdateCredit, onRetr
             padding: '0.5rem',
             fontSize: '12px',
             border: `1px solid ${colors.border}`,
-            borderRadius: '0.375rem',
+            borderRadius: 0,
             marginBottom: '0.5rem',
             outline: 'none',
             opacity: isUploading ? 0.5 : 1,
@@ -293,20 +362,35 @@ function PhotoCard({ photo, onToggleVisibility, onRemove, onUpdateCredit, onRetr
             padding: '0.5rem',
             fontSize: '12px',
             border: `1px solid ${colors.border}`,
-            borderRadius: '0.375rem',
+            borderRadius: 0,
             outline: 'none',
             opacity: isUploading ? 0.5 : 1,
           }}
         />
       </div>
-      
-      {/* Spinner animation */}
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+    </div>
+  );
+}
+
+// Simple photo card for drag overlay
+function PhotoCardOverlay({ photo }: { photo: PortfolioPhoto }): React.JSX.Element {
+  return (
+    <div
+      style={{
+        width: '200px',
+        backgroundColor: colors.white,
+        borderRadius: 0,
+        boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
+        overflow: 'hidden',
+        transform: 'rotate(3deg)',
+        border: `2px solid ${colors.camel}`,
+      }}
+    >
+      <img
+        src={photo.url}
+        alt="Dragging"
+        style={{ width: '100%', height: 'auto', display: 'block' }}
+      />
     </div>
   );
 }
@@ -320,6 +404,7 @@ interface PhotosStepProps {
   onAddPhotos: (files: FileList) => void;
   onToggleVisibility: (id: string) => void;
   onRemovePhoto: (id: string) => void;
+  onReorderPhotos: (oldIndex: number, newIndex: number) => void;
   onUpdateCredit: (id: string, field: 'photographer' | 'studio', value: string) => void;
   onRetryUpload?: (id: string) => void;
   selectedTemplate: string;
@@ -333,6 +418,7 @@ export function PhotosStep({
   onAddPhotos,
   onToggleVisibility,
   onRemovePhoto,
+  onReorderPhotos,
   onUpdateCredit,
   onRetryUpload,
   selectedTemplate,
@@ -341,7 +427,40 @@ export function PhotosStep({
   uploadProgress = { uploaded: 0, total: 0 },
 }: PhotosStepProps): React.JSX.Element {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const template = TEMPLATES.find((t) => t.id === selectedTemplate) || TEMPLATES[1];
+
+  // Drag sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  }, []);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (over && active.id !== over.id) {
+      const oldIndex = photos.findIndex((p) => p.id === active.id);
+      const newIndex = photos.findIndex((p) => p.id === over.id);
+      
+      if (oldIndex !== -1 && newIndex !== -1) {
+        onReorderPhotos(oldIndex, newIndex);
+      }
+    }
+  }, [photos, onReorderPhotos]);
+
+  const activePhoto = photos.find(p => p.id === activeId);
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();

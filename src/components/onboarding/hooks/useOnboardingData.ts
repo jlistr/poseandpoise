@@ -60,6 +60,7 @@ interface UseOnboardingDataReturn {
   addPhotos: (files: FileList) => void;
   togglePhotoVisibility: (id: string) => void;
   removePhoto: (id: string) => void;
+  reorderPhotos: (oldIndex: number, newIndex: number) => void;
   updatePhotoCredit: (id: string, field: 'photographer' | 'studio', value: string) => void;
   retryPhotoUpload: (id: string) => void;
   getCollectedFieldsCount: (step: OnboardingStep) => number;
@@ -97,10 +98,20 @@ export function useOnboardingData({ existingProfile, existingServices, existingP
       fullDay: firstService?.pricing?.full_day?.toString() || '',
     };
 
+    // Preserve metadata fields from existing services (use first service as source)
+    // These fields are stored at the service level but apply to all services
+    const experienceLevel = firstService?.experience_level || DEFAULT_SERVICES_DATA.experienceLevel;
+    const travelAvailable = firstService?.travel_available ?? DEFAULT_SERVICES_DATA.travelAvailable;
+    const travelRadius = firstService?.travel_radius || DEFAULT_SERVICES_DATA.travelRadius;
+    const tfpAvailable = firstService?.tfp_available ?? DEFAULT_SERVICES_DATA.tfpAvailable;
+
     return {
-      ...DEFAULT_SERVICES_DATA,
+      experienceLevel,
       categories,
       pricing,
+      travelAvailable,
+      travelRadius,
+      tfpAvailable,
     };
   };
 
@@ -281,6 +292,20 @@ export function useOnboardingData({ existingProfile, existingServices, existingP
     }));
   }, []);
 
+  const reorderPhotos = useCallback((oldIndex: number, newIndex: number) => {
+    setData((prev) => {
+      const photos = [...prev.photos];
+      const [movedPhoto] = photos.splice(oldIndex, 1);
+      photos.splice(newIndex, 0, movedPhoto);
+      // Update order property to reflect new positions
+      const reorderedPhotos = photos.map((photo, index) => ({
+        ...photo,
+        order: index,
+      }));
+      return { ...prev, photos: reorderedPhotos };
+    });
+  }, []);
+
   const updatePhotoCredit = useCallback((id: string, field: 'photographer' | 'studio', value: string) => {
     setData((prev) => ({
       ...prev,
@@ -341,11 +366,12 @@ export function useOnboardingData({ existingProfile, existingServices, existingP
 
   // Save profile data
   const saveProfile = useCallback(async () => {
-    // Only save if we have the required fields
-    if (!data.profile.username.trim() || !data.profile.displayName.trim()) return;
-    
     setIsSavingProfile(true);
     try {
+      // Only save if we have the required fields
+      if (!data.profile.username.trim() || !data.profile.displayName.trim()) {
+        return;
+      }
       const formData = new FormData();
       formData.append('username', data.profile.username.toLowerCase().trim());
       formData.append('display_name', data.profile.displayName.trim());
@@ -458,6 +484,8 @@ export function useOnboardingData({ existingProfile, existingServices, existingP
         }
         case 'template':
           return data.selectedTemplate ? 1 : 0;
+        case 'photos':
+          return data.photos.length;
         default:
           return 0;
       }
@@ -474,6 +502,7 @@ export function useOnboardingData({ existingProfile, existingServices, existingP
     addPhotos,
     togglePhotoVisibility,
     removePhoto,
+    reorderPhotos,
     updatePhotoCredit,
     retryPhotoUpload,
     getCollectedFieldsCount,
