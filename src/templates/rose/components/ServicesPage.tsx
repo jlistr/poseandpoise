@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import type { PortfolioData } from '@/types/portfolio';
 import { useEditMode } from '@/components/portfolio/PortfolioPreview';
 import { RichTextEditor } from '@/components/editor';
@@ -14,6 +13,7 @@ export function ServicesPage({ data }: ServicesPageProps) {
   const editMode = useEditMode();
   const accentColor = editMode?.accentColor || '#FF7AA2';
   const [showCompCardSelector, setShowCompCardSelector] = useState(false);
+  const [isFlipped, setIsFlipped] = useState(false);
   
   // Use services from edit mode if available
   const services = editMode?.services ?? data.services ?? [];
@@ -83,110 +83,298 @@ export function ServicesPage({ data }: ServicesPageProps) {
 
       {/* Comp Card Section */}
       <div style={{ marginBottom: '60px' }}>
-        {/* Comp Card Preview */}
+        {/* Flip Controls */}
         <div
           style={{
-            position: 'relative',
-            maxWidth: '500px',
-            margin: '0 auto',
-            background: '#fff',
-            boxShadow: '0 8px 40px rgba(0, 0, 0, 0.12)',
-            borderRadius: '8px',
-            overflow: 'hidden',
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '8px',
+            marginBottom: '20px',
           }}
         >
-          {/* Comp Card Images Grid */}
-          <div
+          <button
+            onClick={() => setIsFlipped(false)}
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: '2px',
+              padding: '10px 20px',
+              background: !isFlipped ? accentColor : 'transparent',
+              border: `1px solid ${!isFlipped ? accentColor : 'rgba(26, 26, 26, 0.2)'}`,
+              borderRadius: 0,
+              color: !isFlipped ? '#fff' : 'rgba(26, 26, 26, 0.6)',
+              fontFamily: "'Outfit', sans-serif",
+              fontSize: '12px',
+              fontWeight: 500,
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
             }}
           >
-            {compCardPhotos.map((photo, i) => (
-              <div
-                key={photo.id}
-                style={{
-                  aspectRatio: '1',
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}
-              >
-                <img
-                  src={photo.thumbnailUrl || photo.url}
-                  alt={`Comp card photo ${i + 1}`}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-
-          {/* Model Name */}
-          <div
+            <FrontIcon />
+            Front
+          </button>
+          <button
+            onClick={() => setIsFlipped(true)}
             style={{
-              padding: '20px',
-              textAlign: 'center',
-              borderTop: '1px solid rgba(26, 26, 26, 0.1)',
+              padding: '10px 20px',
+              background: isFlipped ? accentColor : 'transparent',
+              border: `1px solid ${isFlipped ? accentColor : 'rgba(26, 26, 26, 0.2)'}`,
+              borderRadius: 0,
+              color: isFlipped ? '#fff' : 'rgba(26, 26, 26, 0.6)',
+              fontFamily: "'Outfit', sans-serif",
+              fontSize: '12px',
+              fontWeight: 500,
+              letterSpacing: '0.5px',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
             }}
           >
-            <h3
-              style={{
-                fontFamily: "'Cormorant Garamond', Georgia, serif",
-                fontSize: '18px',
-                fontWeight: 500,
-                color: '#1A1A1A',
-                marginBottom: '4px',
-              }}
-            >
-              {data.profile.displayName.toUpperCase()}
-            </h3>
-            <span
-              style={{
-                fontFamily: "'Outfit', sans-serif",
-                fontSize: '11px',
-                letterSpacing: '1px',
-                color: 'rgba(26, 26, 26, 0.5)',
-                textTransform: 'uppercase',
-              }}
-            >
-              Model
-            </span>
-          </div>
+            <BackIcon />
+            Back
+          </button>
+        </div>
 
-          {/* Edit Mode - Change Comp Card Button */}
-          {editMode?.isEditMode && compCards.length > 1 && (
-            <button
-              onClick={() => setShowCompCardSelector(!showCompCardSelector)}
+        {/* Comp Card with Flip Animation */}
+        <div
+          style={{
+            perspective: '1500px',
+            maxWidth: '500px',
+            margin: '0 auto',
+          }}
+        >
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              aspectRatio: '1',
+              transformStyle: 'preserve-3d',
+              transition: 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+              transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+            }}
+          >
+            {/* Front of Card */}
+            <div
               style={{
                 position: 'absolute',
-                top: '12px',
-                right: '12px',
-                padding: '8px 14px',
-                background: 'rgba(0, 0, 0, 0.7)',
-                border: 'none',
-                borderRadius: '4px',
-                color: '#fff',
-                fontFamily: "'Outfit', sans-serif",
-                fontSize: '11px',
-                fontWeight: 500,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
+                width: '100%',
+                height: '100%',
+                backfaceVisibility: 'hidden',
+                WebkitBackfaceVisibility: 'hidden',
+                background: '#fff',
+                boxShadow: '0 8px 40px rgba(0, 0, 0, 0.12)',
+                borderRadius: 0,
+                overflow: 'hidden',
               }}
             >
-              <SwapIcon />
-              Change Comp Card
-            </button>
-          )}
+              {/* Comp Card Images Grid */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '2px',
+                  height: 'calc(100% - 80px)',
+                }}
+              >
+                {compCardPhotos.map((photo, i) => (
+                  <div
+                    key={photo.id}
+                    style={{
+                      position: 'relative',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <img
+                      src={photo.thumbnailUrl || photo.url}
+                      alt={`Comp card photo ${i + 1}`}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Model Name */}
+              <div
+                style={{
+                  height: '80px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderTop: '1px solid rgba(26, 26, 26, 0.1)',
+                }}
+              >
+                <h3
+                  style={{
+                    fontFamily: "'Cormorant Garamond', Georgia, serif",
+                    fontSize: '18px',
+                    fontWeight: 500,
+                    color: '#1A1A1A',
+                    marginBottom: '4px',
+                  }}
+                >
+                  {data.profile.displayName.toUpperCase()}
+                </h3>
+                <span
+                  style={{
+                    fontFamily: "'Outfit', sans-serif",
+                    fontSize: '11px',
+                    letterSpacing: '1px',
+                    color: 'rgba(26, 26, 26, 0.5)',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Model
+                </span>
+              </div>
+
+              {/* Edit Mode - Change Comp Card Button */}
+              {editMode?.isEditMode && compCards.length >= 1 && (
+                <button
+                  onClick={() => setShowCompCardSelector(!showCompCardSelector)}
+                  style={{
+                    position: 'absolute',
+                    top: '12px',
+                    right: '12px',
+                    padding: '8px 14px',
+                    background: 'rgba(0, 0, 0, 0.7)',
+                    border: 'none',
+                    borderRadius: 0,
+                    color: '#fff',
+                    fontFamily: "'Outfit', sans-serif",
+                    fontSize: '11px',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <SwapIcon />
+                  {compCards.length === 1 ? 'Select Comp Card' : 'Change Comp Card'}
+                </button>
+              )}
+            </div>
+
+            {/* Back of Card */}
+            <div
+              style={{
+                position: 'absolute',
+                width: '100%',
+                height: '100%',
+                backfaceVisibility: 'hidden',
+                WebkitBackfaceVisibility: 'hidden',
+                background: '#1A1A1A',
+                boxShadow: '0 8px 40px rgba(0, 0, 0, 0.12)',
+                borderRadius: 0,
+                overflow: 'hidden',
+                transform: 'rotateY(180deg)',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              {/* Header */}
+              <div
+                style={{
+                  padding: '24px',
+                  textAlign: 'center',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                }}
+              >
+                <h3
+                  style={{
+                    fontFamily: "'Cormorant Garamond', Georgia, serif",
+                    fontSize: '24px',
+                    fontWeight: 400,
+                    color: '#fff',
+                    marginBottom: '4px',
+                  }}
+                >
+                  {data.profile.displayName}
+                </h3>
+                <span
+                  style={{
+                    fontFamily: "'Outfit', sans-serif",
+                    fontSize: '11px',
+                    letterSpacing: '2px',
+                    color: accentColor,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Model Stats
+                </span>
+              </div>
+
+              {/* Stats Grid */}
+              <div
+                style={{
+                  flex: 1,
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '1px',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  padding: '1px',
+                }}
+              >
+                <StatItem label="Height" value={formatHeight(data.stats.heightCm)} accentColor={accentColor} />
+                <StatItem label="Bust" value={`${data.stats.bustCm} cm`} accentColor={accentColor} />
+                <StatItem label="Waist" value={`${data.stats.waistCm} cm`} accentColor={accentColor} />
+                <StatItem label="Hips" value={`${data.stats.hipsCm} cm`} accentColor={accentColor} />
+                <StatItem label="Shoe" value={data.stats.shoeSize} accentColor={accentColor} />
+                <StatItem label="Hair" value={data.stats.hairColor} accentColor={accentColor} />
+                <StatItem label="Eyes" value={data.stats.eyeColor} accentColor={accentColor} />
+                <StatItem label="Location" value={data.profile.location || '—'} accentColor={accentColor} />
+              </div>
+
+              {/* Agency/Contact */}
+              {data.profile.agency && (
+                <div
+                  style={{
+                    padding: '16px 24px',
+                    textAlign: 'center',
+                    borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: "'Outfit', sans-serif",
+                      fontSize: '10px',
+                      letterSpacing: '1px',
+                      color: 'rgba(255, 255, 255, 0.4)',
+                      textTransform: 'uppercase',
+                      display: 'block',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    Represented by
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: "'Outfit', sans-serif",
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      color: '#fff',
+                    }}
+                  >
+                    {data.profile.agency}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Comp Card Selector Dropdown */}
-        {editMode?.isEditMode && showCompCardSelector && compCards.length > 1 && (
+        {editMode?.isEditMode && showCompCardSelector && compCards.length >= 1 && (
           <div
             style={{
               maxWidth: '500px',
@@ -360,7 +548,37 @@ export function ServicesPage({ data }: ServicesPageProps) {
                   <input
                     type="text"
                     value={service.price || ''}
-                    onChange={(e) => editMode.onUpdateService(index, 'price', e.target.value)}
+                    onChange={(e) => {
+                      // Format as USD currency - strip non-numeric chars except decimal
+                      let value = e.target.value;
+                      // Remove any existing $ and non-numeric chars except decimal point
+                      const numericValue = value.replace(/[^0-9.]/g, '');
+                      // Ensure only one decimal point
+                      const parts = numericValue.split('.');
+                      const formatted = parts.length > 2 
+                        ? parts[0] + '.' + parts.slice(1).join('')
+                        : numericValue;
+                      // Add $ prefix if there's a value
+                      const finalValue = formatted ? `$${formatted}` : '';
+                      editMode.onUpdateService(index, 'price', finalValue);
+                    }}
+                    onBlur={(e) => {
+                      // On blur, format to proper currency (2 decimal places if has decimal)
+                      let value = e.target.value.replace(/[^0-9.]/g, '');
+                      if (value) {
+                        const num = parseFloat(value);
+                        if (!isNaN(num)) {
+                          // Format with proper USD currency
+                          const formatted = num.toLocaleString('en-US', {
+                            style: 'currency',
+                            currency: 'USD',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 2,
+                          });
+                          editMode.onUpdateService(index, 'price', formatted);
+                        }
+                      }
+                    }}
                     placeholder="$0"
                     style={{
                       width: '100px',
@@ -486,8 +704,84 @@ export function ServicesPage({ data }: ServicesPageProps) {
 }
 
 // =============================================================================
+// Helper Components
+// =============================================================================
+
+interface StatItemProps {
+  label: string;
+  value: string;
+  accentColor: string;
+}
+
+function StatItem({ label, value, accentColor }: StatItemProps) {
+  return (
+    <div
+      style={{
+        background: '#1A1A1A',
+        padding: '16px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '4px',
+      }}
+    >
+      <span
+        style={{
+          fontFamily: "'Outfit', sans-serif",
+          fontSize: '10px',
+          letterSpacing: '1px',
+          color: 'rgba(255, 255, 255, 0.4)',
+          textTransform: 'uppercase',
+        }}
+      >
+        {label}
+      </span>
+      <span
+        style={{
+          fontFamily: "'Cormorant Garamond', Georgia, serif",
+          fontSize: '18px',
+          fontWeight: 500,
+          color: '#fff',
+        }}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function formatHeight(cm: number): string {
+  if (!cm) return '—';
+  const totalInches = cm / 2.54;
+  const feet = Math.floor(totalInches / 12);
+  const inches = Math.round(totalInches % 12);
+  return `${feet}'${inches}" / ${cm}cm`;
+}
+
+// =============================================================================
 // Icons
 // =============================================================================
+function FrontIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <line x1="3" y1="9" x2="21" y2="9" />
+      <line x1="9" y1="9" x2="9" y2="21" />
+    </svg>
+  );
+}
+
+function BackIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <line x1="3" y1="12" x2="21" y2="12" />
+      <line x1="12" y1="3" x2="12" y2="21" />
+    </svg>
+  );
+}
+
 function SwapIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

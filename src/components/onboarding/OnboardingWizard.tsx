@@ -98,6 +98,7 @@ export function OnboardingWizard({ userEmail, userId, existingProfile, existingS
     addPhotos,
     togglePhotoVisibility,
     removePhoto,
+    reorderPhotos,
     updatePhotoCredit,
     retryPhotoUpload,
     getCollectedFieldsCount,
@@ -407,6 +408,7 @@ export function OnboardingWizard({ userEmail, userId, existingProfile, existingS
             onAddPhotos={addPhotos}
             onToggleVisibility={togglePhotoVisibility}
             onRemovePhoto={removePhoto}
+            onReorderPhotos={reorderPhotos}
             onUpdateCredit={updatePhotoCredit}
             onRetryUpload={retryPhotoUpload}
             selectedTemplate={data.selectedTemplate}

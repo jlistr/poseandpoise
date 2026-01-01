@@ -132,28 +132,7 @@ function SortablePhotoCard({ photo, index, onToggleVisibility, onRemove, onUpdat
         boxShadow: isDragging ? '0 10px 30px rgba(0,0,0,0.15)' : 'none',
       }}
     >
-      {/* Drag Handle */}
-      <div
-        {...attributes}
-        {...listeners}
-        style={{
-          padding: '0.5rem',
-          backgroundColor: colors.cream,
-          cursor: isDragging ? 'grabbing' : 'grab',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '0.5rem',
-          borderBottom: `1px solid ${colors.border}`,
-        }}
-      >
-        <GripIcon size={14} />
-        <span style={{ fontSize: '11px', color: colors.textMuted, letterSpacing: '0.05em' }}>
-          #{index + 1}
-        </span>
-      </div>
-
-      {/* Image */}
+      {/* Image with overlays */}
       <div
         style={{
           position: 'relative',
@@ -172,6 +151,34 @@ function SortablePhotoCard({ photo, index, onToggleVisibility, onRemove, onUpdat
             opacity: photo.visible ? 1 : 0.5,
           }}
         />
+
+        {/* Top bar with drag handle and position */}
+        <div
+          {...attributes}
+          {...listeners}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            padding: '0.5rem 0.75rem',
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%)',
+            cursor: isDragging ? 'grabbing' : 'grab',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}
+        >
+          <GripIcon size={14} />
+          <span style={{ 
+            fontSize: '12px', 
+            color: colors.white, 
+            fontWeight: 500,
+            textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+          }}>
+            #{index + 1}
+          </span>
+        </div>
         
         {/* Upload status overlay */}
         {isUploading && (
@@ -198,32 +205,33 @@ function SortablePhotoCard({ photo, index, onToggleVisibility, onRemove, onUpdat
           </div>
         )}
         
-        {/* Actions overlay */}
+        {/* Actions overlay - top right */}
         <div
           style={{
             position: 'absolute',
             top: '0.5rem',
             right: '0.5rem',
             display: 'flex',
-            gap: '0.5rem',
+            gap: '0.35rem',
           }}
         >
           {/* Upload status indicator */}
           {isUploaded && (
             <div
               style={{
-                width: '28px',
-                height: '28px',
+                width: '26px',
+                height: '26px',
                 borderRadius: '50%',
                 backgroundColor: '#4CAF50',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: colors.white,
+                boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
               }}
               title="Uploaded"
             >
-              <CheckIcon size={14} />
+              <CheckIcon size={12} />
             </div>
           )}
           
@@ -232,8 +240,8 @@ function SortablePhotoCard({ photo, index, onToggleVisibility, onRemove, onUpdat
               type="button"
               onClick={() => onRetry(photo.id)}
               style={{
-                width: '28px',
-                height: '28px',
+                width: '26px',
+                height: '26px',
                 borderRadius: '50%',
                 backgroundColor: colors.error,
                 border: 'none',
@@ -242,10 +250,11 @@ function SortablePhotoCard({ photo, index, onToggleVisibility, onRemove, onUpdat
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: colors.white,
+                boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
               }}
               title={`Upload failed: ${photo.uploadError || 'Unknown error'}. Click to retry.`}
             >
-              <RefreshIcon size={14} />
+              <RefreshIcon size={12} />
             </button>
           )}
           
@@ -254,54 +263,60 @@ function SortablePhotoCard({ photo, index, onToggleVisibility, onRemove, onUpdat
             onClick={() => onToggleVisibility(photo.id)}
             disabled={isUploading}
             style={{
-              width: '28px',
-              height: '28px',
+              width: '26px',
+              height: '26px',
               borderRadius: '50%',
-              backgroundColor: 'rgba(255,255,255,0.9)',
+              backgroundColor: 'rgba(255,255,255,0.95)',
               border: 'none',
               cursor: isUploading ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: colors.textSecondary,
+              boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
             }}
             title={photo.visible ? 'Hide photo' : 'Show photo'}
           >
-            {photo.visible ? <EyeIcon size={14} /> : <EyeOffIcon size={14} />}
+            {photo.visible ? <EyeIcon size={12} /> : <EyeOffIcon size={12} />}
           </button>
           <button
             type="button"
             onClick={() => onRemove(photo.id)}
             disabled={isUploading}
             style={{
-              width: '28px',
-              height: '28px',
+              width: '26px',
+              height: '26px',
               borderRadius: '50%',
-              backgroundColor: 'rgba(255,255,255,0.9)',
+              backgroundColor: 'rgba(255,255,255,0.95)',
               border: 'none',
               cursor: isUploading ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: colors.error,
+              boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
             }}
             title="Remove photo"
           >
-            <TrashIcon size={14} />
+            <TrashIcon size={12} />
           </button>
         </div>
         
         {/* Hidden badge */}
-        {!photo.visible && (
+        {!photo.visible && !hasError && (
           <div
             style={{
               position: 'absolute',
-              bottom: '0.5rem',
-              left: '0.5rem',
-              padding: '0.25rem 0.5rem',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              padding: '0.5rem 1rem',
               backgroundColor: 'rgba(0,0,0,0.7)',
               color: colors.white,
-              fontSize: '10px',
+              fontSize: '11px',
+              fontWeight: 500,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
               borderRadius: 0,
             }}
           >
@@ -314,83 +329,185 @@ function SortablePhotoCard({ photo, index, onToggleVisibility, onRemove, onUpdat
           <div
             style={{
               position: 'absolute',
-              bottom: '0.5rem',
-              left: '0.5rem',
-              padding: '0.25rem 0.5rem',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              padding: '0.5rem 1rem',
               backgroundColor: colors.error,
               color: colors.white,
-              fontSize: '10px',
+              fontSize: '11px',
+              fontWeight: 500,
               borderRadius: 0,
               display: 'flex',
               alignItems: 'center',
-              gap: '0.25rem',
+              gap: '0.5rem',
             }}
           >
-            <AlertIcon size={10} />
+            <AlertIcon size={14} />
             Upload failed
           </div>
         )}
-      </div>
 
-      {/* Credits */}
-      <div style={{ padding: '0.75rem' }}>
-        <input
-          type="text"
-          placeholder="Photographer"
-          value={photo.photographer}
-          onChange={(e) => onUpdateCredit(photo.id, 'photographer', e.target.value)}
-          disabled={isUploading}
+        {/* Credits Overlay - Bottom */}
+        <div
           style={{
-            width: '100%',
-            padding: '0.5rem',
-            fontSize: '12px',
-            border: `1px solid ${colors.border}`,
-            borderRadius: 0,
-            marginBottom: '0.5rem',
-            outline: 'none',
-            opacity: isUploading ? 0.5 : 1,
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.6) 60%, rgba(0,0,0,0) 100%)',
+            padding: '2rem 0.75rem 0.75rem',
           }}
-        />
-        <input
-          type="text"
-          placeholder="Studio/Location"
-          value={photo.studio}
-          onChange={(e) => onUpdateCredit(photo.id, 'studio', e.target.value)}
-          disabled={isUploading}
-          style={{
-            width: '100%',
-            padding: '0.5rem',
-            fontSize: '12px',
-            border: `1px solid ${colors.border}`,
-            borderRadius: 0,
-            outline: 'none',
-            opacity: isUploading ? 0.5 : 1,
-          }}
-        />
+        >
+          {/* Photographer */}
+          <div style={{ marginBottom: '0.5rem' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '9px',
+                fontWeight: 500,
+                color: 'rgba(255,255,255,0.6)',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                marginBottom: '0.25rem',
+              }}
+            >
+              Photographer
+            </label>
+            <input
+              type="text"
+              placeholder="Add photographer..."
+              value={photo.photographer}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onUpdateCredit(photo.id, 'photographer', e.target.value)}
+              disabled={isUploading}
+              style={{
+                width: '100%',
+                padding: '0.35rem 0',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: colors.white,
+                backgroundColor: 'transparent',
+                border: 'none',
+                borderBottom: '1px solid rgba(255,255,255,0.3)',
+                outline: 'none',
+                opacity: isUploading ? 0.5 : 1,
+              }}
+              onFocus={(e: React.FocusEvent<HTMLInputElement>) => {
+                e.currentTarget.style.borderBottomColor = colors.camel;
+              }}
+              onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+                e.currentTarget.style.borderBottomColor = 'rgba(255,255,255,0.3)';
+              }}
+            />
+          </div>
+
+          {/* Studio */}
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '9px',
+                fontWeight: 500,
+                color: 'rgba(255,255,255,0.6)',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                marginBottom: '0.25rem',
+              }}
+            >
+              Studio
+            </label>
+            <input
+              type="text"
+              placeholder="Add studio..."
+              value={photo.studio}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => onUpdateCredit(photo.id, 'studio', e.target.value)}
+              disabled={isUploading}
+              style={{
+                width: '100%',
+                padding: '0.35rem 0',
+                fontSize: '13px',
+                fontWeight: 500,
+                color: colors.white,
+                backgroundColor: 'transparent',
+                border: 'none',
+                borderBottom: '1px solid rgba(255,255,255,0.3)',
+                outline: 'none',
+                opacity: isUploading ? 0.5 : 1,
+              }}
+              onFocus={(e: React.FocusEvent<HTMLInputElement>) => {
+                e.currentTarget.style.borderBottomColor = colors.camel;
+              }}
+              onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
+                e.currentTarget.style.borderBottomColor = 'rgba(255,255,255,0.3)';
+              }}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-// Simple photo card for drag overlay
+// Photo card for drag overlay
 function PhotoCardOverlay({ photo }: { photo: PortfolioPhoto }): React.JSX.Element {
   return (
     <div
       style={{
-        width: '200px',
+        width: '180px',
         backgroundColor: colors.white,
         borderRadius: 0,
-        boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
+        boxShadow: '0 20px 40px rgba(0,0,0,0.35)',
         overflow: 'hidden',
         transform: 'rotate(3deg)',
         border: `2px solid ${colors.camel}`,
       }}
     >
-      <img
-        src={photo.url}
-        alt="Dragging"
-        style={{ width: '100%', height: 'auto', display: 'block' }}
-      />
+      <div style={{ position: 'relative' }}>
+        <img
+          src={photo.url}
+          alt="Dragging"
+          style={{ 
+            width: '100%', 
+            height: 'auto', 
+            display: 'block',
+            aspectRatio: '3/4',
+            objectFit: 'cover',
+          }}
+        />
+        {/* Credits overlay on drag preview */}
+        {(photo.photographer || photo.studio) && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%)',
+              padding: '1.5rem 0.5rem 0.5rem',
+            }}
+          >
+            {photo.photographer && (
+              <p style={{ 
+                margin: 0, 
+                fontSize: '11px', 
+                color: colors.white,
+                fontWeight: 500,
+              }}>
+                📷 {photo.photographer}
+              </p>
+            )}
+            {photo.studio && (
+              <p style={{ 
+                margin: '0.15rem 0 0', 
+                fontSize: '10px', 
+                color: 'rgba(255,255,255,0.8)',
+              }}>
+                📍 {photo.studio}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -499,7 +616,7 @@ export function PhotosStep({
         tabIndex={0}
         style={{
           border: `2px dashed ${colors.border}`,
-          borderRadius: '0.75rem',
+          borderRadius: 0,
           padding: '3rem 2rem',
           textAlign: 'center',
           cursor: 'pointer',
@@ -548,7 +665,7 @@ export function PhotosStep({
             marginBottom: '1rem',
             padding: '0.75rem 1rem',
             backgroundColor: colors.cream,
-            borderRadius: '0.5rem',
+            borderRadius: 0,
             display: 'flex',
             alignItems: 'center',
             gap: '0.75rem',
@@ -570,27 +687,41 @@ export function PhotosStep({
         </div>
       )}
 
-      {/* Photos Grid */}
+      {/* Photos Grid with Drag & Drop */}
       {photos.length > 0 && (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '1rem',
-            marginBottom: '2rem',
-          }}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
         >
-          {photos.map((photo) => (
-            <PhotoCard
-              key={photo.id}
-              photo={photo}
-              onToggleVisibility={onToggleVisibility}
-              onRemove={onRemovePhoto}
-              onUpdateCredit={onUpdateCredit}
-              onRetry={onRetryUpload}
-            />
-          ))}
-        </div>
+          <SortableContext items={photos.map(p => p.id)} strategy={rectSortingStrategy}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '1rem',
+                marginBottom: '2rem',
+              }}
+            >
+              {photos.map((photo, index) => (
+                <SortablePhotoCard
+                  key={photo.id}
+                  photo={photo}
+                  index={index}
+                  onToggleVisibility={onToggleVisibility}
+                  onRemove={onRemovePhoto}
+                  onUpdateCredit={onUpdateCredit}
+                  onRetry={onRetryUpload}
+                />
+              ))}
+            </div>
+          </SortableContext>
+
+          <DragOverlay>
+            {activePhoto && <PhotoCardOverlay photo={activePhoto} />}
+          </DragOverlay>
+        </DndContext>
       )}
 
       {/* Preview */}
@@ -599,7 +730,7 @@ export function PhotosStep({
           style={{
             padding: '1.5rem',
             backgroundColor: template.bgColor,
-            borderRadius: '0.75rem',
+            borderRadius: 0,
             border: `1px solid ${colors.border}`,
           }}
         >
@@ -624,7 +755,7 @@ export function PhotosStep({
                   style={{
                     width: '80px',
                     height: '100px',
-                    borderRadius: '0.375rem',
+                    borderRadius: 0,
                     overflow: 'hidden',
                     flexShrink: 0,
                   }}
@@ -641,7 +772,7 @@ export function PhotosStep({
                 style={{
                   width: '80px',
                   height: '100px',
-                  borderRadius: '0.375rem',
+                  borderRadius: 0,
                   backgroundColor: 'rgba(0,0,0,0.3)',
                   display: 'flex',
                   alignItems: 'center',
@@ -674,6 +805,28 @@ export function PhotosStep({
           </p>
         </div>
       )}
+
+      {/* Drag hint */}
+      {photos.length > 1 && (
+        <p
+          style={{
+            fontSize: '12px',
+            color: colors.textMuted,
+            textAlign: 'center',
+            marginTop: '0.5rem',
+          }}
+        >
+          Drag photos to reorder them in your portfolio
+        </p>
+      )}
+
+      {/* Spinner animation */}
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </>
   );
 }
