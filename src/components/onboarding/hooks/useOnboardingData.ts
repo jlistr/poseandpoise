@@ -16,6 +16,29 @@ import {
 } from '../types';
 
 // ============================================================================
+// API Response Types
+// ============================================================================
+
+interface PhotoUploadErrorResponse {
+  error: string;
+}
+
+interface PhotoUploadSuccessResponse {
+  success: boolean;
+  photo?: {
+    id: string;
+    url: string;
+    profile_id: string;
+    sort_order: number;
+    size_bytes: number;
+    is_visible: boolean;
+    photographer: string | null;
+    studio: string | null;
+    created_at: string;
+  };
+}
+
+// ============================================================================
 // Hook
 // ============================================================================
 
@@ -110,11 +133,11 @@ export function useOnboardingData({ existingProfile }: UseOnboardingDataProps = 
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData: PhotoUploadErrorResponse = await response.json();
         throw new Error(errorData.error || 'Upload failed');
       }
 
-      const result = await response.json();
+      const result: PhotoUploadSuccessResponse = await response.json();
       
       updatePhotoStatus(photo.id, { 
         uploadStatus: 'uploaded',
