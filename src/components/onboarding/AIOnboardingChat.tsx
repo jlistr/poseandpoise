@@ -714,6 +714,17 @@ const STEP_CONFIG: Record<OnboardingStep, { title: string; subtitle: string }> =
 };
 
 // =============================================================================
+// Tool Sequences for Guided Flow
+// =============================================================================
+const TOOL_SEQUENCES: Record<OnboardingStep, string[]> = {
+  profile: ["location", "social-media", "agency"],
+  about: ["photo-analyzer", "comp-scanner", "bio-generator"],
+  services: ["services-suggest", "comp-generator"],
+  template: [], // Templates are click-to-select, no tool sequence
+  photos: ["photo-upload"],
+};
+
+// =============================================================================
 // Component
 // =============================================================================
 export function AIOnboardingChat({ 
@@ -733,13 +744,22 @@ export function AIOnboardingChat({
   const [selectedServices] = useState<string[]>([]);
   const [showSocialMediaForm, setShowSocialMediaForm] = useState(false);
   const [socialHandles, setSocialHandles] = useState({ instagram: '', tiktok: '', website: '' });
+  const [showAgencyForm, setShowAgencyForm] = useState(false);
+  const [agencyDetails, setAgencyDetails] = useState({ name: '', website: '', email: '' });
+  
+  // Guided flow state
+  const [currentToolIndex, setCurrentToolIndex] = useState(-1); // -1 means greeting phase
+  const [isAutoProgressing, setIsAutoProgressing] = useState(true);
+  const [toolCompleted, setToolCompleted] = useState<Record<string, boolean>>({});
   
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const currentToolRef = useRef<string | null>(null);
+  const autoProgressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const steps: OnboardingStep[] = ["profile", "about", "services", "template", "photos"];
   const currentStepIndex = steps.indexOf(currentStep);
+  const currentToolSequence = TOOL_SEQUENCES[currentStep];
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -748,7 +768,16 @@ export function AIOnboardingChat({
     }
   }, [messages, isTyping]);
 
-  // Initial greeting based on step
+  // Cleanup auto-progress timer
+  useEffect(() => {
+    return () => {
+      if (autoProgressTimerRef.current) {
+        clearTimeout(autoProgressTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Initial greeting and auto-start first tool
   useEffect(() => {
     const greeting = getStepGreeting(currentStep);
     setMessages([{
@@ -757,7 +786,121 @@ export function AIOnboardingChat({
       content: greeting,
       timestamp: new Date(),
     }]);
+    
+    // Reset tool index for new step
+    setCurrentToolIndex(-1);
+    setToolCompleted({});
+    setShowSocialMediaForm(false);
+    setShowAgencyForm(false);
+    
+    // Auto-start first tool after greeting delay
+    if (isAutoProgressing && currentToolSequence.length > 0) {
+      autoProgressTimerRef.current = setTimeout(() => {
+        progressToNextTool();
+      }, 2000); // 2 second delay after greeting
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep]);
+
+  // Function to progress to next tool in sequence
+  const progressToNextTool = useCallback(() => {
+    const nextIndex = currentToolIndex + 1;
+    
+    if (nextIndex < currentToolSequence.length) {
+      const nextToolId = currentToolSequence[nextIndex];
+      const nextTool = STEP_TOOLS[currentStep]?.find(t => t.id === nextToolId);
+      
+      if (nextTool) {
+        setCurrentToolIndex(nextIndex);
+        
+        // Announce the next tool
+        const toolAnnouncement = getToolAnnouncement(nextToolId, nextIndex === 0);
+        if (toolAnnouncement) {
+          addAssistantMessage(toolAnnouncement);
+        }
+        
+        // Auto-trigger the tool after announcement
+        autoProgressTimerRef.current = setTimeout(() => {
+          handleToolClick(nextTool);
+        }, 1500);
+      }
+    } else {
+      // All tools completed for this step
+      addAssistantMessage(getStepCompletionMessage(currentStep));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentToolIndex, currentToolSequence, currentStep]);
+
+  // Get announcement message for each tool
+  const getToolAnnouncement = (toolId: string, isFirst: boolean): string => {
+    const prefix = isFirst ? "Let's start by" : "Next, let's";
+    
+    switch (toolId) {
+      case "location":
+        return `${prefix} finding your location. This helps me suggest services and pricing tailored to your market.`;
+      case "social-media":
+        return `${prefix} connect your social profiles. This helps clients discover more of your work.`;
+      case "agency":
+        return `${prefix} add your agency details if you're represented. This adds credibility to your portfolio.`;
+      case "photo-analyzer":
+        return `${prefix} analyze a photo to extract your measurements. Upload any full-body photo for best results.`;
+      case "comp-scanner":
+        return `Already have a comp card? ${prefix} scan it to import all your stats instantly.`;
+      case "bio-generator":
+        return `${prefix} craft your professional bio. I'll write something compelling based on what you've shared.`;
+      case "services-suggest":
+        return `${prefix} build your service offerings. I'll suggest popular services with competitive pricing for your market.`;
+      case "comp-generator":
+        return `${prefix} create your professional comp card using your profile info.`;
+      case "photo-upload":
+        return `${prefix} upload your portfolio photos. Drag and drop or click to select your best work.`;
+      default:
+        return "";
+    }
+  };
+
+  // Get completion message for each step
+  const getStepCompletionMessage = (step: OnboardingStep): string => {
+    const name = firstName || "there";
+    switch (step) {
+      case "profile":
+        return `Excellent work, ${name}! Your profile is looking great. Click "Continue" to move on to your About section, where we'll capture your story and stats.`;
+      case "about":
+        return `Perfect, ${name}! Your stats and bio are set. Click "Continue" to set up your services and pricing.`;
+      case "services":
+        return `Your services are ready, ${name}! Click "Continue" to choose a stunning template for your portfolio.`;
+      case "template":
+        return `Great choice! Click "Continue" to upload your portfolio photos.`;
+      case "photos":
+        return `Amazing work, ${name}! Your portfolio is almost ready. Click "Continue" to preview and publish!`;
+      default:
+        return "Ready to continue!";
+    }
+  };
+
+  // Mark tool as completed and progress to next
+  const completeCurrentTool = useCallback((toolId: string) => {
+    setToolCompleted(prev => ({ ...prev, [toolId]: true }));
+    setActiveTool(null);
+    setShowSocialMediaForm(false);
+    
+    // Progress to next tool after a short delay
+    if (isAutoProgressing) {
+      autoProgressTimerRef.current = setTimeout(() => {
+        progressToNextTool();
+      }, 2000);
+    }
+  }, [isAutoProgressing, progressToNextTool]);
+
+  // Skip current tool and move to next
+  const skipCurrentTool = useCallback(() => {
+    const currentToolId = currentToolSequence[currentToolIndex];
+    if (currentToolId) {
+      addAssistantMessage("No problem, we can skip this for now. You can always update it later.");
+      completeCurrentTool(currentToolId);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentToolIndex, currentToolSequence, completeCurrentTool]);
 
   // Get first name for personalized greeting
   const firstName = userName?.split(' ')[0] || '';
@@ -781,6 +924,11 @@ export function AIOnboardingChat({
   };
 
   const handleToolClick = async (tool: Tool) => {
+    // Clear any pending auto-progress timer when user manually interacts
+    if (autoProgressTimerRef.current) {
+      clearTimeout(autoProgressTimerRef.current);
+    }
+    
     setActiveTool(tool.id);
     currentToolRef.current = tool.id;
     
@@ -790,27 +938,22 @@ export function AIOnboardingChat({
       handleGetLocation();
     } else if (tool.action === "click") {
       if (tool.id === "bio-generator") {
-        addUserMessage("Please help me write a compelling professional bio");
         handleAIRequest("bio-generator", "Generate a professional bio for me");
       } else if (tool.id === "services-suggest") {
-        addUserMessage("Suggest services with competitive pricing for my market");
         handleAIRequest("services-suggest", "Suggest modeling services with pricing");
       } else if (tool.id === "comp-generator") {
-        addUserMessage("I'd like to generate my comp card");
         handleAIRequest("comp-generator", "Generate my professional comp card");
       } else if (tool.id === "agency") {
-        addAssistantMessage("Are you currently represented by a modeling agency?\n\nIf yes, please share:\n- Agency name\n- Agency website (optional)\n- Your agent's email (optional)\n\nThis information will be displayed on your portfolio to help clients and brands contact your representation.");
+        setShowAgencyForm(true);
       } else if (tool.id === "social-media") {
         setShowSocialMediaForm(true);
-        addAssistantMessage("Let's connect your social profiles! This helps clients and brands discover more of your work.\n\nFill in the handles you'd like to share:");
       }
     }
   };
 
   const handleGetLocation = async () => {
     if (!navigator.geolocation) {
-      addAssistantMessage("Geolocation is not supported by your browser. Please type your city and country.");
-      setActiveTool(null);
+      addAssistantMessage("Geolocation is not supported by your browser. Please type your city and country, or click 'Skip' to continue.");
       return;
     }
 
@@ -833,18 +976,19 @@ export function AIOnboardingChat({
           const locationString = [city, country].filter(Boolean).join(", ");
           
           setExtractedData(prev => ({ ...prev, location: locationString }));
-          addAssistantMessage(`Found you! Your location is ${locationString}.\n\nThis will help us suggest appropriate services and pricing for your market.\n\nAre you represented by an agency? Click the "Agency Details" tool or just tell me.`);
-        } catch {
-          addAssistantMessage("I couldn't determine your exact location. Please type your city and country.");
-        } finally {
           setIsTyping(false);
-          setActiveTool(null);
+          addAssistantMessage(`✓ Found you! Your location is **${locationString}**.\n\nThis will help us suggest appropriate services and pricing for your market.`);
+          
+          // Auto-progress to next tool
+          completeCurrentTool("location");
+        } catch {
+          setIsTyping(false);
+          addAssistantMessage("I couldn't determine your exact location. Please type your city and country, or click 'Skip' to continue.");
         }
       },
       () => {
         setIsTyping(false);
-        setActiveTool(null);
-        addAssistantMessage("Location access was denied. Please type your city and country (e.g., 'Los Angeles, USA').");
+        addAssistantMessage("Location access was denied. Please type your city and country (e.g., 'Los Angeles, USA'), or click 'Skip' to continue.");
       },
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
     );
@@ -924,6 +1068,15 @@ export function AIOnboardingChat({
     setInputValue("");
     const imagesToProcess = [...pendingImages];
     setPendingImages([]);
+
+    // Handle location input locally
+    if (activeTool === "location" && trimmedInput) {
+      setExtractedData(prev => ({ ...prev, location: trimmedInput }));
+      addAssistantMessage(`✓ Location set to **${trimmedInput}**.\n\nThis will help us suggest appropriate services and pricing for your market.`);
+      completeCurrentTool("location");
+      return;
+    }
+
     setIsTyping(true);
 
     try {
@@ -966,7 +1119,7 @@ export function AIOnboardingChat({
       setIsTyping(false);
       currentToolRef.current = null;
     }
-  }, [inputValue, pendingImages, currentStep, subscriptionTier, extractedData, selectedServices, messages]);
+  }, [inputValue, pendingImages, currentStep, subscriptionTier, extractedData, selectedServices, messages, activeTool, completeCurrentTool]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -1006,12 +1159,48 @@ export function AIOnboardingChat({
       if (updates.tiktok) connected.push(`@${updates.tiktok} on TikTok`);
       if (updates.website) connected.push(updates.website);
       
-      addAssistantMessage(`Perfect! I've saved your social profiles:\n\n${connected.map(s => `• ${s}`).join('\n')}\n\nThese will appear on your portfolio so clients can easily find more of your work.`);
+      addAssistantMessage(`✓ Saved your social profiles:\n\n${connected.map(s => `• ${s}`).join('\n')}\n\nThese will appear on your portfolio so clients can easily find more of your work.`);
     }
     
     setShowSocialMediaForm(false);
-    setActiveTool(null);
     setSocialHandles({ instagram: '', tiktok: '', website: '' });
+    
+    // Auto-progress to next tool
+    completeCurrentTool("social-media");
+  };
+  
+  const handleSkipSocials = () => {
+    setShowSocialMediaForm(false);
+    setSocialHandles({ instagram: '', tiktok: '', website: '' });
+    skipCurrentTool();
+  };
+
+  const handleSaveAgency = () => {
+    if (agencyDetails.name) {
+      setExtractedData(prev => ({
+        ...prev,
+        isRepresented: true,
+        agencyName: agencyDetails.name,
+        agencyWebsite: agencyDetails.website || undefined,
+        agencyContact: agencyDetails.email || undefined,
+      }));
+      
+      addAssistantMessage(`✓ Agency details saved!\n\n• **${agencyDetails.name}**${agencyDetails.website ? `\n• ${agencyDetails.website}` : ''}${agencyDetails.email ? `\n• ${agencyDetails.email}` : ''}\n\nYour representation will be displayed on your portfolio.`);
+    } else {
+      setExtractedData(prev => ({ ...prev, isRepresented: false }));
+      addAssistantMessage(`✓ Got it! I've noted that you're currently not represented by an agency.`);
+    }
+    
+    setShowAgencyForm(false);
+    setAgencyDetails({ name: '', website: '', email: '' });
+    completeCurrentTool("agency");
+  };
+  
+  const handleSkipAgency = () => {
+    setShowAgencyForm(false);
+    setAgencyDetails({ name: '', website: '', email: '' });
+    setExtractedData(prev => ({ ...prev, isRepresented: false }));
+    skipCurrentTool();
   };
 
   const handleNextStep = () => {
@@ -1489,11 +1678,7 @@ export function AIOnboardingChat({
               {/* Buttons */}
               <div style={{ display: "flex", gap: "12px" }}>
                 <button
-                  onClick={() => {
-                    setShowSocialMediaForm(false);
-                    setActiveTool(null);
-                    setSocialHandles({ instagram: '', tiktok: '', website: '' });
-                  }}
+                  onClick={handleSkipSocials}
                   style={{
                     flex: 1,
                     padding: "12px",
@@ -1532,6 +1717,175 @@ export function AIOnboardingChat({
             </div>
           )}
 
+          {/* Agency Form */}
+          {showAgencyForm && (
+            <div style={{
+              backgroundColor: "white",
+              border: "1px solid rgba(196, 164, 132, 0.3)",
+              padding: "24px",
+              maxWidth: "420px",
+            }}>
+              <div style={{
+                fontFamily: "'Outfit', sans-serif",
+                fontSize: "10px",
+                fontWeight: 600,
+                letterSpacing: "2px",
+                textTransform: "uppercase" as const,
+                color: "#C4A484",
+                marginBottom: "8px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}>
+                {Icons.agency}
+                Agency Representation
+              </div>
+              
+              <p style={{
+                fontFamily: "'Outfit', sans-serif",
+                fontSize: "13px",
+                color: "rgba(26, 26, 26, 0.6)",
+                marginBottom: "20px",
+                lineHeight: 1.5,
+              }}>
+                Are you represented by a modeling agency? If so, add their details below. This information will appear on your portfolio.
+              </p>
+              
+              {/* Agency Name */}
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  fontFamily: "'Outfit', sans-serif",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  color: "#1A1A1A",
+                }}>
+                  Agency Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g., Elite Model Management"
+                  value={agencyDetails.name}
+                  onChange={(e) => setAgencyDetails(prev => ({ ...prev, name: e.target.value }))}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    fontSize: "14px",
+                    fontFamily: "'Outfit', sans-serif",
+                    border: "1px solid rgba(26, 26, 26, 0.15)",
+                    backgroundColor: "#FAF9F7",
+                    color: "#1A1A1A",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+              
+              {/* Agency Website */}
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  fontFamily: "'Outfit', sans-serif",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  color: "#1A1A1A",
+                }}>
+                  Agency Website <span style={{ color: "rgba(26, 26, 26, 0.4)", fontWeight: 400 }}>(optional)</span>
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://agency.com"
+                  value={agencyDetails.website}
+                  onChange={(e) => setAgencyDetails(prev => ({ ...prev, website: e.target.value }))}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    fontSize: "14px",
+                    fontFamily: "'Outfit', sans-serif",
+                    border: "1px solid rgba(26, 26, 26, 0.15)",
+                    backgroundColor: "#FAF9F7",
+                    color: "#1A1A1A",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+              
+              {/* Agent Email */}
+              <div style={{ marginBottom: "20px" }}>
+                <label style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  fontFamily: "'Outfit', sans-serif",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  color: "#1A1A1A",
+                }}>
+                  Agent Contact Email <span style={{ color: "rgba(26, 26, 26, 0.4)", fontWeight: 400 }}>(optional)</span>
+                </label>
+                <input
+                  type="email"
+                  placeholder="agent@agency.com"
+                  value={agencyDetails.email}
+                  onChange={(e) => setAgencyDetails(prev => ({ ...prev, email: e.target.value }))}
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px",
+                    fontSize: "14px",
+                    fontFamily: "'Outfit', sans-serif",
+                    border: "1px solid rgba(26, 26, 26, 0.15)",
+                    backgroundColor: "#FAF9F7",
+                    color: "#1A1A1A",
+                    outline: "none",
+                    boxSizing: "border-box",
+                  }}
+                />
+              </div>
+              
+              {/* Buttons */}
+              <div style={{ display: "flex", gap: "12px" }}>
+                <button
+                  onClick={handleSkipAgency}
+                  style={{
+                    flex: 1,
+                    padding: "12px",
+                    fontFamily: "'Outfit', sans-serif",
+                    fontSize: "12px",
+                    fontWeight: 500,
+                    letterSpacing: "1px",
+                    textTransform: "uppercase" as const,
+                    border: "1px solid rgba(26, 26, 26, 0.2)",
+                    backgroundColor: "transparent",
+                    color: "#1A1A1A",
+                    cursor: "pointer",
+                  }}
+                >
+                  Not Represented
+                </button>
+                <button
+                  onClick={handleSaveAgency}
+                  style={{
+                    flex: 1,
+                    padding: "12px",
+                    fontFamily: "'Outfit', sans-serif",
+                    fontSize: "12px",
+                    fontWeight: 500,
+                    letterSpacing: "1px",
+                    textTransform: "uppercase" as const,
+                    border: "none",
+                    backgroundColor: "#1A1A1A",
+                    color: "#FAF9F7",
+                    cursor: "pointer",
+                  }}
+                >
+                  Save Agency
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Extracted Data Card */}
           {hasExtractedData && (
             <div style={styles.extractedCard}>
@@ -1564,6 +1918,45 @@ export function AIOnboardingChat({
 
         {/* Input Area */}
         <div style={styles.inputContainer}>
+          {/* Active Tool Skip Button */}
+          {activeTool && !showSocialMediaForm && !showAgencyForm && (
+            <div style={{
+              display: "flex",
+              justifyContent: "center",
+              marginBottom: "12px",
+            }}>
+              <button
+                onClick={skipCurrentTool}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  padding: "10px 20px",
+                  fontFamily: "'Outfit', sans-serif",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  color: "#C4A484",
+                  backgroundColor: "rgba(196, 164, 132, 0.1)",
+                  border: "1px solid rgba(196, 164, 132, 0.3)",
+                  borderRadius: "20px",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = "rgba(196, 164, 132, 0.2)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = "rgba(196, 164, 132, 0.1)";
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M13 5H21M21 5L17 9M21 5L17 1M11 19H3M3 19L7 23M3 19L7 15" />
+                </svg>
+                Skip this step
+              </button>
+            </div>
+          )}
+
           {/* Pending Images Preview */}
           {pendingImages.length > 0 && (
             <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
@@ -1607,7 +2000,7 @@ export function AIOnboardingChat({
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyPress}
-              placeholder="Type a message or click a tool to get started..."
+              placeholder={activeTool === "location" ? "Type your city and country (e.g., Los Angeles, USA)..." : "Type a message or click a tool to get started..."}
               style={styles.textInput}
               className="input-focus"
               rows={1}

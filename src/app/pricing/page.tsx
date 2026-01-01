@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { colors, typography, spacing } from '@/styles/tokens';
 import { PricingClient } from './PricingClient';
+import { PricingHeader } from './PricingHeader';
 import type { PlanId } from '@/lib/stripe';
 
 export const metadata = {
@@ -9,28 +10,43 @@ export const metadata = {
   description: 'Simple, transparent pricing for models at every stage of their career.',
 };
 
-async function getAuthStatus() {
+interface UserData {
+  isLoggedIn: boolean;
+  currentTier: PlanId | null;
+  user: {
+    name: string | null;
+    email: string | null;
+    avatarUrl: string | null;
+  } | null;
+}
+
+async function getAuthStatus(): Promise<UserData> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {
-    return { isLoggedIn: false, currentTier: null };
+    return { isLoggedIn: false, currentTier: null, user: null };
   }
   
   const { data: profile } = await supabase
     .from('profiles')
-    .select('subscription_tier')
+    .select('subscription_tier, display_name, avatar_url')
     .eq('id', user.id)
     .single();
   
   return {
     isLoggedIn: true,
     currentTier: (profile?.subscription_tier as PlanId) || 'FREE',
+    user: {
+      name: profile?.display_name || null,
+      email: user.email || null,
+      avatarUrl: profile?.avatar_url || null,
+    },
   };
 }
 
 export default async function PricingPage() {
-  const { isLoggedIn, currentTier } = await getAuthStatus();
+  const { isLoggedIn, currentTier, user } = await getAuthStatus();
   
   return (
     <div
@@ -42,118 +58,11 @@ export default async function PricingPage() {
       }}
     >
       {/* Header */}
-      <header
-        style={{
-          padding: `${spacing.padding.md} ${spacing.padding['2xl']}`,
-          borderBottom: `1px solid ${colors.border.divider}`,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <Link
-          href="/"
-          style={{
-            fontSize: typography.fontSize.logo,
-            fontWeight: typography.fontWeight.light,
-            letterSpacing: typography.letterSpacing.widest,
-            textTransform: 'uppercase',
-            textDecoration: 'none',
-            color: colors.text.primary,
-          }}
-        >
-          Pose & Poise
-        </Link>
-        <nav
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: spacing.gap.lg,
-          }}
-        >
-          <Link
-            href="/pricing"
-            style={{
-              fontFamily: typography.fontFamily.body,
-              fontSize: typography.fontSize.bodySmall,
-              color: colors.charcoal,
-              textDecoration: 'none',
-            }}
-          >
-            Pricing
-          </Link>
-          <Link
-            href="/examples"
-            style={{
-              fontFamily: typography.fontFamily.body,
-              fontSize: typography.fontSize.bodySmall,
-              color: colors.text.tertiary,
-              textDecoration: 'none',
-            }}
-          >
-            Examples
-          </Link>
-          <Link
-            href="/support"
-            style={{
-              fontFamily: typography.fontFamily.body,
-              fontSize: typography.fontSize.bodySmall,
-              color: colors.text.tertiary,
-              textDecoration: 'none',
-            }}
-          >
-            Support
-          </Link>
-          {isLoggedIn ? (
-            <Link
-              href="/dashboard"
-              style={{
-                fontFamily: typography.fontFamily.body,
-                fontSize: typography.fontSize.caption,
-                letterSpacing: typography.letterSpacing.wider,
-                textTransform: 'uppercase',
-                padding: `${spacing.padding.sm} ${spacing.padding.lg}`,
-                background: colors.charcoal,
-                color: colors.cream,
-                textDecoration: 'none',
-                transition: 'all 0.3s ease',
-              }}
-            >
-              Dashboard
-            </Link>
-          ) : (
-            <>
-              <Link
-                href="/login"
-                style={{
-                  fontFamily: typography.fontFamily.body,
-                  fontSize: typography.fontSize.bodySmall,
-                  color: colors.text.tertiary,
-                  textDecoration: 'none',
-                }}
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/signup"
-                style={{
-                  fontFamily: typography.fontFamily.body,
-                  fontSize: typography.fontSize.caption,
-                  letterSpacing: typography.letterSpacing.wider,
-                  textTransform: 'uppercase',
-                  padding: `${spacing.padding.sm} ${spacing.padding.lg}`,
-                  background: colors.charcoal,
-                  color: colors.cream,
-                  textDecoration: 'none',
-                  transition: 'all 0.3s ease',
-                }}
-              >
-                Get Started
-              </Link>
-            </>
-          )}
-        </nav>
-      </header>
+      <PricingHeader 
+        isLoggedIn={isLoggedIn} 
+        user={user}
+        currentTier={currentTier}
+      />
 
       {/* Hero */}
       <section
